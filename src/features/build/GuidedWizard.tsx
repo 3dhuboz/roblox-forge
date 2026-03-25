@@ -91,9 +91,58 @@ const tycoonFeatures = [
   { id: "codes", name: "Codes System", desc: "Redeemable codes for free cash and boosts" },
 ];
 
+// ── Simulator config ──
+
+const simThemes: Theme[] = [
+  { id: "pets", name: "Pet Collector", icon: Star, color: "bg-purple-600", prompt: "pet collector-themed with egg hatching stations, pet displays, and colorful pet companions" },
+  { id: "clicking", name: "Click Frenzy", icon: Zap, color: "bg-yellow-500", prompt: "click frenzy-themed with giant glowing orbs, combo counters, and satisfying click effects" },
+  { id: "mining", name: "Mining Sim", icon: Pickaxe, color: "bg-amber-700", prompt: "mining-themed with breakable rocks, gem veins, pickaxe upgrades, and underground caves" },
+  { id: "fighting", name: "Fighting Sim", icon: Flame, color: "bg-red-600", prompt: "fighting simulator-themed with training zones, power meters, and PvP arenas" },
+  { id: "cooking", name: "Cooking Sim", icon: Pizza, color: "bg-orange-500", prompt: "cooking simulator-themed with recipe stations, ingredient collection, and restaurant serving" },
+  { id: "magic", name: "Magic Academy", icon: Sparkles, color: "bg-indigo-600", prompt: "magic academy-themed with spell learning zones, mana orbs, and enchanted environments" },
+];
+
+const simScales = [
+  { id: "casual", name: "Casual", count: 2, label: "zones", desc: "Simple click-to-earn with 1 egg type and basic upgrades" },
+  { id: "standard", name: "Standard", count: 4, label: "zones", desc: "Multiple zones, pet system, upgrades, and a rebirth" },
+  { id: "deep", name: "Deep Progression", count: 6, label: "zones", desc: "Many zones, pet tiers, trading, codes, and prestige" },
+  { id: "massive", name: "Massive", count: 10, label: "zones", desc: "Huge world with quests, events, guilds, and seasonal content" },
+];
+
+const simFeatures = [
+  { id: "clicking", name: "Click System", desc: "Tap orbs or objects to earn coins" },
+  { id: "pets", name: "Pet Hatching", desc: "Hatch eggs for pets with rarity tiers" },
+  { id: "rebirth", name: "Rebirth System", desc: "Reset for permanent multipliers and gems" },
+  { id: "zones", name: "Zone Unlocks", desc: "New areas with higher coin multipliers" },
+  { id: "upgrades", name: "Upgrade Shop", desc: "Buy click power, auto-click, and multipliers" },
+  { id: "trading", name: "Pet Trading", desc: "Trade pets with other players" },
+  { id: "codes", name: "Codes System", desc: "Redeemable promo codes for free rewards" },
+  { id: "leaderboard", name: "Leaderboard", desc: "Global rankings for coins and rebirths" },
+];
+
 // ── Template-agnostic wizard ──
 
 function getConfig(templateType: string) {
+  if (templateType === "simulator") {
+    return {
+      themes: simThemes,
+      scales: simScales,
+      features: simFeatures,
+      stepLabels: [
+        { title: "Style", subtitle: "What kind of simulator?" },
+        { title: "Scale", subtitle: "How much content?" },
+        { title: "Systems", subtitle: "What features to include?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "pets",
+      defaultFeatures: ["clicking", "pets", "upgrades"],
+      buildPrompt: (theme: Theme, scale: typeof simScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} simulator called "${name || "My Simulator"}" with ${scale.count} zones. Make it ${theme.prompt}. Include these systems: ${features}. Start with a basic click-to-earn loop, then add zones that unlock at higher coin thresholds. Each zone should have higher coin multipliers and unique visuals.`,
+      namePlaceholder: "My Pet Simulator",
+      scaleLabel: "zones",
+    };
+  }
+
   if (templateType === "tycoon") {
     return {
       themes: tycoonThemes,
