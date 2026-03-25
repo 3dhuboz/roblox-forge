@@ -33,20 +33,30 @@ pub fn create_project(
         anyhow::bail!("A project with this name already exists");
     }
 
-    // Try resource dir first (bundled app), fall back to relative path (dev mode)
+    // Try resource dir first (bundled app), then several dev-mode fallbacks
     let template_source = get_templates_dir(app_handle)
         .map(|d| d.join(template_name))
-        .unwrap_or_else(|_| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
+        .ok()
+        .filter(|p| p.exists())
+        .or_else(|| {
+            // CARGO_MANIFEST_DIR points to src-tauri/ at compile time
+            let from_manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .parent()?
                 .join("templates")
-                .join(template_name)
-        });
-
-    if !template_source.exists() {
-        anyhow::bail!("Template '{}' not found at {:?}", template_name, template_source);
-    }
+                .join(template_name);
+            if from_manifest.exists() { return Some(from_manifest); }
+            // CWD-based fallback (npm run tauri dev runs from project root)
+            let from_cwd = std::env::current_dir().ok()?.join("templates").join(template_name);
+            if from_cwd.exists() { return Some(from_cwd); }
+            // One level up from CWD (if CWD is src-tauri)
+            let from_parent = std::env::current_dir().ok()?.parent()?.join("templates").join(template_name);
+            if from_parent.exists() { return Some(from_parent.to_path_buf()); }
+            None
+        })
+        .context(format!(
+            "Template '{}' not found. Searched resource dir, CARGO_MANIFEST_DIR, and CWD.",
+            template_name
+        ))?;
 
     // Copy template to project dir
     let options = fs_extra::dir::CopyOptions::new();
