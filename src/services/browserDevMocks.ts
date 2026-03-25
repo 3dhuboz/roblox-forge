@@ -512,6 +512,90 @@ function simResponse(lower: string): AiResponse | null {
   return null;
 }
 
+// ── Battlegrounds responses ──
+
+function bgResponse(lower: string): AiResponse | null {
+  if (matches(lower, "fireball", "fire", "projectile", "shoot")) {
+    return {
+      message: "Added Fireball ability! 25 damage, 3-second cooldown, 60-stud range. It launches a glowing orange projectile that explodes on impact with a particle burst.",
+      changes: [
+        { type: "modify_script", description: "Added Fireball to CombatManager" },
+        { type: "update_config", description: "Added Fireball to BattleConfig.Abilities" },
+      ],
+    };
+  }
+  if (matches(lower, "class", "warrior", "mage", "healer", "assassin")) {
+    return {
+      message: "Set up 4 classes! Warrior (150 HP, slow, melee), Mage (80 HP, ranged spells), Healer (100 HP, heals allies), Assassin (75 HP, fast, burst damage). Players pick their class from the lobby board.",
+      changes: [
+        { type: "modify_script", description: "Added class system to CombatManager" },
+        { type: "update_config", description: "Added 4 classes to BattleConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "arena", "map", "battlefield")) {
+    return {
+      message: "Created a new arena — 'Grassy Plains' with cover walls, a center pillar for line-of-sight breaks, and team spawn points on opposite sides. 100x100 studs.",
+      changes: [
+        { type: "add_stage", description: "Added GrassyPlains arena" },
+        { type: "add_part", description: "Added cover walls and spawn points" },
+      ],
+    };
+  }
+  if (matches(lower, "match", "queue", "round", "timer")) {
+    return {
+      message: "Added matchmaking! Step on the glowing queue pad to join. Once 2+ players are queued, a 2-minute round starts. Players teleport to the arena and fight. Winner gets 100 coins!",
+      changes: [
+        { type: "modify_script", description: "Updated MatchManager with queue + round logic" },
+        { type: "add_part", description: "Added QueuePad to Lobby" },
+      ],
+    };
+  }
+  if (matches(lower, "ability", "spell", "skill", "ice", "thunder", "shield", "heal")) {
+    return {
+      message: "Added new abilities! Ice Shard (15 dmg, fast, slows), Thunder Strike (40 dmg, AoE, long cooldown), Shield Bash (20 dmg, knockback, close range), Heal Pulse (-30 dmg = heals, allies in 20-stud radius).",
+      changes: [
+        { type: "update_config", description: "Added 4 abilities to BattleConfig" },
+        { type: "modify_script", description: "Updated CombatManager with ability handlers" },
+      ],
+    };
+  }
+  if (matches(lower, "kill", "death", "feed", "notification")) {
+    return {
+      message: "Added kill feed! Shows 'Player → Victim (Ability)' in the top-right corner with yellow text. Entries fade after 5 seconds. Also tracks kills/deaths per player.",
+      changes: [
+        { type: "modify_script", description: "Added kill feed to BattleUI" },
+        { type: "modify_script", description: "Added kill tracking to CombatManager" },
+      ],
+    };
+  }
+  if (matches(lower, "health", "hp", "bar", "damage")) {
+    return {
+      message: "Added a dynamic health bar! It changes from green → yellow → red as HP drops, shows current/max HP text, and has a smooth tween animation when taking damage.",
+      changes: [{ type: "modify_script", description: "Added health bar to BattleUI" }],
+    };
+  }
+  if (matches(lower, "respawn", "death", "revive")) {
+    return {
+      message: "Added respawn system! 5-second respawn timer with a countdown overlay. Players get 2 seconds of invulnerability after spawning (indicated by transparency flashing).",
+      changes: [
+        { type: "modify_script", description: "Added respawn logic to MatchManager" },
+        { type: "modify_script", description: "Added respawn timer UI to BattleUI" },
+      ],
+    };
+  }
+  if (matches(lower, "reward", "coin", "earn", "win")) {
+    return {
+      message: "Set up rewards! 25 coins per kill, 10 per assist, 100 for winning the round. Coins persist via DataStore and can be spent on cosmetics.",
+      changes: [
+        { type: "update_config", description: "Set kill/win/assist rewards in BattleConfig" },
+        { type: "modify_script", description: "Added reward distribution to MatchManager" },
+      ],
+    };
+  }
+  return null;
+}
+
 // ── Universal responses ──
 
 function universalResponse(lower: string): AiResponse | null {
@@ -551,6 +635,7 @@ export function mockSendChatMessage(message: string): AiResponse {
     obbyResponse(lower) ??
     tycoonResponse(lower) ??
     simResponse(lower) ??
+    bgResponse(lower) ??
     universalResponse(lower);
 
   if (resp) return resp;
