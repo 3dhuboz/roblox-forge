@@ -149,9 +149,58 @@ const bgFeatures = [
   { id: "cosmetics", name: "Cosmetics", desc: "Unlock skins, effects, and titles with coins" },
 ];
 
+// ── RPG config ──
+
+const rpgThemes: Theme[] = [
+  { id: "fantasy", name: "Classic Fantasy", icon: Star, color: "bg-blue-600", prompt: "classic fantasy-themed with medieval towns, enchanted forests, and dragon lairs" },
+  { id: "scifi", name: "Sci-Fi RPG", icon: Zap, color: "bg-cyan-600", prompt: "sci-fi RPG-themed with space stations, alien planets, laser swords, and tech upgrades" },
+  { id: "pirate", name: "Pirate Adventure", icon: Candy, color: "bg-amber-600", prompt: "pirate adventure-themed with tropical islands, ship battles, buried treasure, and sea monsters" },
+  { id: "dungeon", name: "Dungeon Crawler", icon: Flame, color: "bg-red-700", prompt: "dungeon crawler-themed with dark corridors, traps, treasure chests, and boss rooms" },
+  { id: "samurai", name: "Samurai Saga", icon: Wrench, color: "bg-slate-600", prompt: "samurai-themed with Japanese temples, bamboo forests, katana combat, and honor system" },
+  { id: "wizard", name: "Wizard School", icon: Sparkles, color: "bg-purple-600", prompt: "wizard school-themed with spell classrooms, potion labs, magical creatures, and house competition" },
+];
+
+const rpgScales = [
+  { id: "short", name: "Short Quest", count: 3, label: "quests", desc: "1 zone, 3 quests, basic combat — a quick adventure" },
+  { id: "adventure", name: "Adventure", count: 6, label: "quests", desc: "3 zones, 6 quests, item shop, boss fight" },
+  { id: "epic", name: "Epic Journey", count: 12, label: "quests", desc: "5 zones, 12 quests, crafting, dungeons, world bosses" },
+  { id: "mmo", name: "MMO Scale", count: 20, label: "quests", desc: "10+ zones, guilds, raids, PvP, trading, seasonal events" },
+];
+
+const rpgFeatures = [
+  { id: "quests", name: "Quest System", desc: "Kill, explore, and collect quests with XP/gold rewards" },
+  { id: "combat", name: "Combat", desc: "Click enemies to fight with damage based on level and gear" },
+  { id: "leveling", name: "Leveling", desc: "XP-based leveling with stat scaling per level" },
+  { id: "inventory", name: "Inventory & Shop", desc: "Buy weapons, armor, and potions from NPCs" },
+  { id: "bosses", name: "Boss Fights", desc: "Powerful enemies with high HP and special loot" },
+  { id: "zones", name: "Zone Progression", desc: "Unlock new areas at higher levels" },
+  { id: "crafting", name: "Crafting", desc: "Combine materials to create items" },
+  { id: "pets", name: "Companions", desc: "Recruit companions that fight alongside you" },
+];
+
 // ── Template-agnostic wizard ──
 
 function getConfig(templateType: string) {
+  if (templateType === "rpg") {
+    return {
+      themes: rpgThemes,
+      scales: rpgScales,
+      features: rpgFeatures,
+      stepLabels: [
+        { title: "World", subtitle: "What kind of adventure?" },
+        { title: "Scale", subtitle: "How big is the world?" },
+        { title: "Systems", subtitle: "What RPG features?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "fantasy",
+      defaultFeatures: ["quests", "combat", "leveling"],
+      buildPrompt: (theme: Theme, scale: typeof rpgScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} RPG called "${name || "My RPG"}" with ${scale.count} quests. Make it ${theme.prompt}. Include these systems: ${features}. Create zones with level-gated progression, enemies that drop XP and gold, a quest board in the town hub, and an item shop.`,
+      namePlaceholder: "My Fantasy RPG",
+      scaleLabel: "quests",
+    };
+  }
+
   if (templateType === "battlegrounds") {
     return {
       themes: bgThemes,

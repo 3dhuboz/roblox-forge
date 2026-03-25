@@ -215,6 +215,58 @@ function bgProgress(messageCount: number): string[] {
   ];
 }
 
+// ── RPG suggestions ──
+
+function rpgStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Add some slime enemies I can fight",
+      "Create a quest to defeat 5 slimes",
+      "Make a shop where I can buy a sword",
+      "Add a second zone called Dark Forest",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Create a quest chain: kill slimes → explore forest → defeat boss",
+      "Add an inventory system with weapons and armor",
+      "Design 3 zones with level-gated progression",
+      "Add a boss fight with the Forest Guardian",
+    ];
+  }
+  return [
+    "Implement an XP curve with 1.5x scaling per level",
+    "Create a loot table with weighted drop rates per enemy",
+    "Design a quest system with kill/explore/collect objectives",
+    "Build a stat system with per-level scaling for HP/ATK/DEF",
+  ];
+}
+
+function rpgProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a stronger enemy — Goblin with more HP",
+      "Create a health potion item for 20 gold",
+      "Add a quest board NPC in the town",
+      "Make enemies drop gold when defeated",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a boss fight with special attacks",
+      "Create a crafting system",
+      "Add companion pets that fight alongside you",
+      "Make a dungeon zone with traps and treasure",
+    ];
+  }
+  return [
+    "Add a PvP arena for player duels",
+    "Create a guild system",
+    "Add rare legendary item drops from bosses",
+    "Review the level progression and XP balance",
+  ];
+}
+
 // ── Generic fallback ──
 
 function genericStarters(level: string): string[] {
@@ -264,6 +316,12 @@ export function SmartSuggestions({ onSelect, messageCount }: SmartSuggestionsPro
       return messageCount === 0
         ? bgStarters(level)
         : bgProgress(messageCount);
+    }
+
+    if (template === "rpg") {
+      return messageCount === 0
+        ? rpgStarters(level)
+        : rpgProgress(messageCount);
     }
 
     return genericStarters(level);

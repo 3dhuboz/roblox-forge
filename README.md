@@ -6,7 +6,7 @@ RobloxForge lets anyone aged 14–50 design, build, and publish Roblox games thr
 
 ## Features
 
-- **4 Game Templates** — Obby (obstacle course), Tycoon (factory builder), Simulator (click-to-earn + pets), Battlegrounds (PvP combat)
+- **5 Game Templates** — Obby, Tycoon, Simulator, Battlegrounds, RPG — each with full Luau scripts
 - **AI Game Builder** — Chat with AI to design your game. It generates Luau scripts and game structure in real time
 - **Guided Wizard** — Step-by-step builder for beginners: pick theme, difficulty, features, and generate
 - **Luau Script Editor** — Built-in editor with syntax highlighting for keywords, builtins, strings, comments
@@ -94,7 +94,8 @@ roblox-forge/
 │   ├── obby/                     # Obstacle course (6 Luau scripts, 4 model JSONs)
 │   ├── tycoon/                   # Factory tycoon (5 Luau scripts, 3 model JSONs)
 │   ├── simulator/                # Click simulator (5 Luau scripts, 3 model JSONs)
-│   └── battlegrounds/            # PvP combat (4 Luau scripts, 3 model JSONs)
+│   ├── battlegrounds/            # PvP combat (4 Luau scripts, 3 model JSONs)
+│   └── rpg/                      # RPG adventure (5 Luau scripts, 3 model JSONs)
 └── package.json
 ```
 
@@ -112,10 +113,13 @@ Click-to-earn game with pet hatching, rebirth system, zone unlocks, and progress
 ### Battlegrounds
 PvP combat with classes (Warrior, Mage, Healer, Assassin), 5 abilities (Fireball, Ice Shard, Thunder Strike, Shield Bash, Heal Pulse), matchmaking queue, round-based combat, and kill rewards. Scripts: CombatManager, MatchManager, DataManager, BattleUI, BattleConfig.
 
+### RPG
+Adventure game with quests (kill/explore/collect), XP-based leveling with 1.5x scaling, enemy spawning with health bars, item shop (weapons, armor, potions), zone progression, and boss fights. Scripts: QuestManager, CombatManager, InventoryManager, DataManager, RPGUI, RPGConfig.
+
 ## Roadmap
 
 - [ ] Install Rust and verify full Tauri desktop build
-- [ ] More templates: RPG, Horror, Racing, Minigames
+- [ ] More templates: Horror, Racing, Minigames
 - [ ] 3D game preview using Three.js or Babylon.js
 - [ ] Real-time Roblox analytics from Creator Dashboard
 - [ ] Collaborative building (multiple users on one project)
