@@ -1,0 +1,52 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "MeadowFloor" },
+        "Size": { "Vector3": [80, 1, 80] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [120, 200, 100] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "SlimeSpawn1" },
+        "Size": { "Vector3": [3, 3, 3] },
+        "CFrame": { "CFrame": { "position": [-15, 3, -70], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["EnemySpawn", "Slime"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "SlimeSpawn2" },
+        "Size": { "Vector3": [3, 3, 3] },
+        "CFrame": { "CFrame": { "position": [12, 3, -85], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 230, 80] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["EnemySpawn", "Slime"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "HealingFountain" },
+        "Size": { "Vector3": [6, 2, 6] },
+        "CFrame": { "CFrame": { "position": [0, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 180, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["HealingFountain"]
+    }
+  ]
+}

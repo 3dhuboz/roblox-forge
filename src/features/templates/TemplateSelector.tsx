@@ -58,7 +58,7 @@ const templates: Template[] = [
     name: "RPG",
     description: "Adventure with quests, leveling, gear, and a world to explore.",
     icon: Map,
-    available: false,
+    available: true,
     color: "bg-blue-600",
   },
   {

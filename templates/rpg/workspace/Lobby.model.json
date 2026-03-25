@@ -1,0 +1,65 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Spawn" },
+        "Size": { "Vector3": [16, 1, 16] },
+        "CFrame": { "CFrame": { "position": [0, 1, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 160, 120] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "TownFloor" },
+        "Size": { "Vector3": [80, 2, 80] },
+        "CFrame": { "CFrame": { "position": [0, -0.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [160, 140, 100] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "QuestBoard" },
+        "Size": { "Vector3": [8, 6, 1] },
+        "CFrame": { "CFrame": { "position": [0, 4, -15], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 60, 40] },
+        "Material": { "Enum": 512 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["QuestBoard"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ShopNPC" },
+        "Size": { "Vector3": [3, 5, 3] },
+        "CFrame": { "CFrame": { "position": [15, 3, -10], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 180, 140] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["ShopNPC"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ZonePortal" },
+        "Size": { "Vector3": [10, 8, 2] },
+        "CFrame": { "CFrame": { "position": [0, 4.5, -30], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 80, 200] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.3 }
+      },
+      "tags": ["ZonePortal"]
+    }
+  ]
+}
