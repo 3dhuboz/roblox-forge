@@ -50,7 +50,7 @@ const templates: Template[] = [
     name: "Battlegrounds",
     description: "PvP combat with abilities, classes, and epic battles.",
     icon: Swords,
-    available: false,
+    available: true,
     color: "bg-red-600",
   },
   {

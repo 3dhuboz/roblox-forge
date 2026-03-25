@@ -1,0 +1,52 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Spawn" },
+        "Size": { "Vector3": [16, 1, 16] },
+        "CFrame": { "CFrame": { "position": [0, 1, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 120, 180] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LobbyFloor" },
+        "Size": { "Vector3": [80, 2, 80] },
+        "CFrame": { "CFrame": { "position": [0, -0.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [60, 60, 80] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ClassSelectBoard" },
+        "Size": { "Vector3": [14, 8, 1] },
+        "CFrame": { "CFrame": { "position": [0, 5, -20], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [40, 40, 70] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["ClassSelect"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "QueuePad" },
+        "Size": { "Vector3": [10, 1, 10] },
+        "CFrame": { "CFrame": { "position": [0, 1, -35], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 200, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["QueuePad"]
+    }
+  ]
+}

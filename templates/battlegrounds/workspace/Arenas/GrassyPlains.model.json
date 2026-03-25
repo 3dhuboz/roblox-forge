@@ -1,0 +1,73 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ArenaFloor" },
+        "Size": { "Vector3": [100, 1, 100] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 180, 80] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "TeamASpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [-35, 1.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 100, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "TeamBSpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [35, 1.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 50, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "CoverWall1" },
+        "Size": { "Vector3": [12, 6, 2] },
+        "CFrame": { "CFrame": { "position": [-15, 3.5, -110], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 140, 130] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "CoverWall2" },
+        "Size": { "Vector3": [12, 6, 2] },
+        "CFrame": { "CFrame": { "position": [15, 3.5, -130], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 140, 130] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "CenterPillar" },
+        "Size": { "Vector3": [4, 10, 4] },
+        "CFrame": { "CFrame": { "position": [0, 5.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [180, 160, 120] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    }
+  ]
+}

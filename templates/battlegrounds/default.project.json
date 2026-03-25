@@ -1,0 +1,51 @@
+{
+  "name": "My Battlegrounds",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Arenas": {
+        "$className": "Folder",
+        "$path": "workspace/Arenas"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "CombatManager": {
+        "$path": "src/server/CombatManager.server.luau"
+      },
+      "MatchManager": {
+        "$path": "src/server/MatchManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "BattleUI": {
+          "$path": "src/client/BattleUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "BattleConfig": {
+        "$path": "src/shared/BattleConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.3, 0.3, 0.35],
+        "Brightness": 2,
+        "ClockTime": 16
+      }
+    }
+  }
+}
