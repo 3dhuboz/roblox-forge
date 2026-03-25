@@ -10,10 +10,34 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load .env file from project root (one level up from src-tauri)
+    let _ = dotenvy::from_path(
+        std::env::current_dir()
+            .unwrap_or_default()
+            .join(".env"),
+    );
+    // Also try parent dir (when running from src-tauri)
+    let _ = dotenvy::from_path(
+        std::env::current_dir()
+            .unwrap_or_default()
+            .parent()
+            .map(|p| p.join(".env"))
+            .unwrap_or_default(),
+    );
+
+    // Pre-load API key from environment
+    let app_state = AppState::default();
+    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+        if !key.is_empty() {
+            *app_state.api_key.lock().unwrap() = Some(key);
+            eprintln!("[RobloxForge] API key loaded from .env");
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
-        .manage(AppState::default())
+        .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             commands::project::create_project,
             commands::project::get_project_state,
