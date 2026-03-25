@@ -6,7 +6,7 @@ RobloxForge lets anyone aged 14–50 design, build, and publish Roblox games thr
 
 ## Features
 
-- **5 Game Templates** — Obby, Tycoon, Simulator, Battlegrounds, RPG — each with full Luau scripts
+- **8 Game Templates** — Obby, Tycoon, Simulator, Battlegrounds, RPG, Horror, Racing, Minigames — each with full Luau scripts
 - **AI Game Builder** — Chat with AI to design your game. It generates Luau scripts and game structure in real time
 - **Guided Wizard** — Step-by-step builder for beginners: pick theme, difficulty, features, and generate
 - **Luau Script Editor** — Built-in editor with syntax highlighting for keywords, builtins, strings, comments
@@ -95,7 +95,10 @@ roblox-forge/
 │   ├── tycoon/                   # Factory tycoon (5 Luau scripts, 3 model JSONs)
 │   ├── simulator/                # Click simulator (5 Luau scripts, 3 model JSONs)
 │   ├── battlegrounds/            # PvP combat (4 Luau scripts, 3 model JSONs)
-│   └── rpg/                      # RPG adventure (5 Luau scripts, 3 model JSONs)
+│   ├── rpg/                      # RPG adventure (5 Luau scripts, 3 model JSONs)
+│   ├── horror/                   # Horror game (4 Luau scripts, 3 model JSONs)
+│   ├── racing/                   # Racing game (4 Luau scripts, 3 model JSONs)
+│   └── minigames/                # Minigame hub (4 Luau scripts, 3 model JSONs)
 └── package.json
 ```
 
@@ -116,10 +119,18 @@ PvP combat with classes (Warrior, Mage, Healer, Assassin), 5 abilities (Fireball
 ### RPG
 Adventure game with quests (kill/explore/collect), XP-based leveling with 1.5x scaling, enemy spawning with health bars, item shop (weapons, armor, potions), zone progression, and boss fights. Scripts: QuestManager, CombatManager, InventoryManager, DataManager, RPGUI, RPGConfig.
 
+### Horror
+Scary adventure with dark lighting, flashlight with draining battery, sprint stamina, puzzles (sequence and code), locked doors with keys, flickering lights, and jumpscare system. Scripts: HorrorManager, PuzzleManager, DataManager, HorrorUI, HorrorConfig.
+
+### Racing
+High-speed racing with vehicle garage (4 vehicles with different stats), lap-based tracks with checkpoints, boost pads, countdown starts, position tracking, and race rewards. Scripts: RaceManager, VehicleManager, DataManager, RacingUI, RaceConfig.
+
+### Minigames
+Rotating minigame hub with voting, intermission, round lifecycle, and 6 game modes (Floor is Lava, King of the Hill, Freeze Tag, Obby Race, Sword Fight, Simon Says). Scripts: RoundManager, MinigameLoader, DataManager, MinigameUI, MiniConfig.
+
 ## Roadmap
 
 - [ ] Install Rust and verify full Tauri desktop build
-- [ ] More templates: Horror, Racing, Minigames
 - [ ] 3D game preview using Three.js or Babylon.js
 - [ ] Real-time Roblox analytics from Creator Dashboard
 - [ ] Collaborative building (multiple users on one project)
