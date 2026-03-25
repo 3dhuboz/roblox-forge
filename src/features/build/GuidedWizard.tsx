@@ -516,8 +516,9 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
         {/* Step 1: Scale / Difficulty */}
         {wizardStep === 1 && (
           <div>
-            <h3 className="text-xl font-bold">{steps[1].subtitle}</h3>
-            <div className="mt-4 space-y-3">
+            <h3 className="text-lg font-bold text-white">{steps[1].subtitle}</h3>
+            <p className="mt-1 text-sm text-gray-400">Pick one!</p>
+            <div className="mt-4 space-y-2.5">
               {config.scales.map((d) => {
                 const selected = scale === d.id;
                 return (
@@ -526,15 +527,15 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
                     onClick={() => setScale(d.id)}
                     className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all ${
                       selected
-                        ? "border-indigo-500 bg-indigo-950/50 ring-2 ring-indigo-500/30"
-                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                        ? "border-indigo-500 bg-indigo-950/40 ring-2 ring-indigo-500/30"
+                        : "border-gray-800/60 bg-gray-900/60 hover:border-gray-700"
                     }`}
                   >
                     <div>
-                      <h4 className="font-semibold">{d.name}</h4>
-                      <p className="text-sm text-gray-400">{d.desc}</p>
+                      <h4 className="text-sm font-bold text-white">{d.name}</h4>
+                      <p className="mt-0.5 text-[13px] text-gray-400">{d.desc}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-gray-700 px-2.5 py-1 text-xs text-gray-300">
+                    <span className="shrink-0 rounded-lg bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300">
                       {d.count} {d.label}
                     </span>
                   </button>
@@ -547,8 +548,8 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
         {/* Step 2: Features */}
         {wizardStep === 2 && (
           <div>
-            <h3 className="text-xl font-bold">{steps[2].subtitle}</h3>
-            <p className="mt-1 text-sm text-gray-400">Pick as many as you want.</p>
+            <h3 className="text-lg font-bold text-white">{steps[2].subtitle}</h3>
+            <p className="mt-1 text-sm text-gray-400">Tap to add or remove. Pick as many as you want!</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {config.features.map((f) => {
                 const selected = selectedFeatures.includes(f.id);
@@ -556,14 +557,21 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
                   <button
                     key={f.id}
                     onClick={() => toggleFeature(f.id)}
-                    className={`rounded-xl border p-3 text-left transition-all ${
+                    className={`rounded-xl border p-3.5 text-left transition-all ${
                       selected
-                        ? "border-indigo-500 bg-indigo-950/50 text-white"
-                        : "border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600"
+                        ? "border-indigo-500 bg-indigo-950/40 ring-1 ring-indigo-500/30"
+                        : "border-gray-800/60 bg-gray-900/60 hover:border-gray-700"
                     }`}
                   >
-                    <h4 className="text-sm font-semibold">{f.name}</h4>
-                    <p className="mt-0.5 text-xs text-gray-500">{f.desc}</p>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center ${
+                        selected ? "border-indigo-500 bg-indigo-600" : "border-gray-600"
+                      }`}>
+                        {selected && <span className="text-[10px] text-white font-bold">\u2713</span>}
+                      </div>
+                      <h4 className="text-sm font-semibold text-white">{f.name}</h4>
+                    </div>
+                    <p className="mt-1 pl-6 text-xs text-gray-500">{f.desc}</p>
                   </button>
                 );
               })}
@@ -573,23 +581,24 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
 
         {/* Step 3: Generate */}
         {wizardStep === 3 && (
-          <div>
-            <h3 className="text-xl font-bold">Name your game</h3>
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl">
+              <Sparkles size={24} className="text-white" />
+            </div>
+            <h3 className="mt-4 text-lg font-bold text-white">Almost done! Name your game</h3>
             <input
               type="text"
               value={gameName}
               onChange={(e) => setGameName(e.target.value)}
               placeholder={config.namePlaceholder}
               autoFocus
-              className="mt-4 w-full rounded-xl border border-gray-700 bg-gray-800 px-5 py-3 text-lg text-white placeholder-gray-500 outline-none focus:border-indigo-500"
+              className="mt-4 w-full max-w-sm rounded-xl border border-gray-700/50 bg-gray-800/60 px-5 py-3 text-center text-lg text-white placeholder-gray-500 outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
             />
-            <div className="mt-6 rounded-xl bg-gray-800 p-4">
-              <h4 className="text-sm font-semibold text-gray-300">Summary</h4>
-              <div className="mt-2 space-y-1 text-sm text-gray-400">
-                <p>Theme: <span className="text-indigo-300">{selectedTheme?.name}</span></p>
-                <p>{steps[1].title}: <span className="text-indigo-300">{selectedScale?.name}</span></p>
-                <p>{selectedScale?.label}: <span className="text-indigo-300">{selectedScale?.count}</span></p>
-                <p>Features: <span className="text-indigo-300">{selectedFeatures.map((id) => config.features.find((f) => f.id === id)?.name).join(", ")}</span></p>
+            <div className="mt-5 w-full max-w-sm rounded-xl bg-gray-800/50 p-4 text-left">
+              <div className="space-y-1.5 text-[13px] text-gray-400">
+                <p>Style: <span className="font-medium text-white">{selectedTheme?.name}</span></p>
+                <p>Size: <span className="font-medium text-white">{selectedScale?.name} ({selectedScale?.count} {selectedScale?.label})</span></p>
+                <p>Includes: <span className="font-medium text-indigo-300">{selectedFeatures.map((id) => config.features.find((f) => f.id === id)?.name).join(", ")}</span></p>
               </div>
             </div>
           </div>
@@ -597,7 +606,7 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between border-t border-gray-800 px-6 py-4">
+      <div className="flex items-center justify-between border-t border-gray-800/40 px-6 py-4">
         {wizardStep > 0 ? (
           <button
             onClick={() => setWizardStep(wizardStep - 1)}
@@ -610,14 +619,14 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
             onClick={onComplete}
             className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:text-gray-300"
           >
-            Skip wizard
+            Skip to chat
           </button>
         )}
 
         {wizardStep < 3 ? (
           <button
             onClick={() => setWizardStep(wizardStep + 1)}
-            className="flex items-center gap-1 rounded-xl bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-500"
+            className="flex items-center gap-1 rounded-xl bg-indigo-600 px-6 py-2.5 font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500"
           >
             Next <ChevronRight size={16} />
           </button>
@@ -625,15 +634,15 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
           <button
             onClick={handleGenerate}
             disabled={isGenerating || isThinking}
-            className="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 font-semibold text-white hover:bg-green-500 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-7 py-3 text-[15px] font-bold text-white shadow-lg shadow-green-600/20 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50"
           >
             {isGenerating ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Generating...
+                <Loader2 size={18} className="animate-spin" /> Building...
               </>
             ) : (
               <>
-                <Sparkles size={18} /> Generate My Game
+                <Sparkles size={18} /> Build My Game!
               </>
             )}
           </button>
