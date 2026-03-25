@@ -9,6 +9,7 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { OnboardingFlow } from "./features/onboarding/OnboardingFlow";
 import { useUserStore } from "./stores/userStore";
 import { useKeyboardShortcuts } from "./lib/useKeyboardShortcuts";
+import { ToastContainer } from "./components/ToastContainer";
 
 function App() {
   const { profile } = useUserStore();
@@ -18,6 +19,7 @@ function App() {
     <div className="flex h-screen flex-col overflow-hidden bg-gray-950 text-white">
       <DevModeBanner />
       <div className="min-h-0 flex-1">{body}</div>
+      <ToastContainer />
     </div>
   );
 
