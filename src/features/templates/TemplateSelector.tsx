@@ -66,7 +66,7 @@ const templates: Template[] = [
     name: "Horror",
     description: "Scary adventures with puzzles, jumpscares, and dark atmospheres.",
     icon: Ghost,
-    available: false,
+    available: true,
     color: "bg-gray-600",
   },
   {
@@ -74,7 +74,7 @@ const templates: Template[] = [
     name: "Racing",
     description: "High-speed vehicle racing with tracks, upgrades, and multiplayer.",
     icon: Car,
-    available: false,
+    available: true,
     color: "bg-orange-600",
   },
   {
@@ -82,7 +82,7 @@ const templates: Template[] = [
     name: "Minigames",
     description: "A hub of fun mini-games that rotate every round.",
     icon: Dice1,
-    available: false,
+    available: true,
     color: "bg-pink-600",
   },
 ];

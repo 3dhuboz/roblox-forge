@@ -1,0 +1,53 @@
+{
+  "name": "My Horror Game",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Rooms": {
+        "$className": "Folder",
+        "$path": "workspace/Rooms"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "HorrorManager": {
+        "$path": "src/server/HorrorManager.server.luau"
+      },
+      "PuzzleManager": {
+        "$path": "src/server/PuzzleManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "HorrorUI": {
+          "$path": "src/client/HorrorUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "HorrorConfig": {
+        "$path": "src/shared/HorrorConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.05, 0.05, 0.08],
+        "Brightness": 0.5,
+        "ClockTime": 0,
+        "FogEnd": 120,
+        "FogColor": [0.02, 0.02, 0.04]
+      }
+    }
+  }
+}

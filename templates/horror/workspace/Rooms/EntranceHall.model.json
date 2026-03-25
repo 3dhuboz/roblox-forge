@@ -1,0 +1,62 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "HallFloor" },
+        "Size": { "Vector3": [20, 1, 30] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -50], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [40, 35, 30] },
+        "Material": { "Enum": 512 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "WallLeft" },
+        "Size": { "Vector3": [1, 12, 30] },
+        "CFrame": { "CFrame": { "position": [-10, 6.5, -50], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [45, 40, 38] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "WallRight" },
+        "Size": { "Vector3": [1, 12, 30] },
+        "CFrame": { "CFrame": { "position": [10, 6.5, -50], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [45, 40, 38] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "FlickeringLight" },
+        "Size": { "Vector3": [2, 1, 2] },
+        "CFrame": { "CFrame": { "position": [0, 11, -50], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 150] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["FlickeringLight"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LibraryDoor" },
+        "Size": { "Vector3": [5, 7, 1] },
+        "CFrame": { "CFrame": { "position": [0, 4, -65], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 35, 25] },
+        "Material": { "Enum": 512 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["Door"]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "My Racing Game",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Tracks": {
+        "$className": "Folder",
+        "$path": "workspace/Tracks"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "RaceManager": {
+        "$path": "src/server/RaceManager.server.luau"
+      },
+      "VehicleManager": {
+        "$path": "src/server/VehicleManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "RacingUI": {
+          "$path": "src/client/RacingUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "RaceConfig": {
+        "$path": "src/shared/RaceConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.45, 0.45, 0.5],
+        "Brightness": 2.5,
+        "ClockTime": 14
+      }
+    }
+  }
+}

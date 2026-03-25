@@ -1,0 +1,51 @@
+{
+  "name": "My Minigames",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Games": {
+        "$className": "Folder",
+        "$path": "workspace/Games"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "RoundManager": {
+        "$path": "src/server/RoundManager.server.luau"
+      },
+      "MinigameLoader": {
+        "$path": "src/server/MinigameLoader.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "MinigameUI": {
+          "$path": "src/client/MinigameUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "MiniConfig": {
+        "$path": "src/shared/MiniConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.5, 0.5, 0.55],
+        "Brightness": 2.5,
+        "ClockTime": 12
+      }
+    }
+  }
+}

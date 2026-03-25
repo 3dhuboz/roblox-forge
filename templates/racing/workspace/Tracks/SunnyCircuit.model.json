@@ -1,0 +1,88 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "TrackSurface" },
+        "Size": { "Vector3": [20, 1, 200] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [60, 60, 65] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "StartLine" },
+        "Size": { "Vector3": [20, 0.2, 2] },
+        "CFrame": { "CFrame": { "position": [0, 1, -22], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 255, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["StartLine"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Checkpoint1" },
+        "Size": { "Vector3": [20, 6, 1] },
+        "CFrame": { "CFrame": { "position": [0, 3.5, -60], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.5 }
+      },
+      "tags": ["Checkpoint"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Checkpoint2" },
+        "Size": { "Vector3": [20, 6, 1] },
+        "CFrame": { "CFrame": { "position": [0, 3.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.5 }
+      },
+      "tags": ["Checkpoint"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "BoostPad" },
+        "Size": { "Vector3": [8, 0.2, 4] },
+        "CFrame": { "CFrame": { "position": [0, 1, -90], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 200, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["BoostPad"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Barrier_L" },
+        "Size": { "Vector3": [1, 3, 200] },
+        "CFrame": { "CFrame": { "position": [-10.5, 2, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 200, 200] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Barrier_R" },
+        "Size": { "Vector3": [1, 3, 200] },
+        "CFrame": { "CFrame": { "position": [10.5, 2, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 200, 200] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true }
+      }
+    }
+  ]
+}

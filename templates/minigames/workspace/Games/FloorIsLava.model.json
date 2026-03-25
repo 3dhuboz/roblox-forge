@@ -1,0 +1,41 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Arena" },
+        "Size": { "Vector3": [40, 1, 40] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [180, 180, 200] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["DisappearFloor"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LavaBelow" },
+        "Size": { "Vector3": [50, 2, 50] },
+        "CFrame": { "CFrame": { "position": [0, -3, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 60, 20] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["KillBrick"]
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [0, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    }
+  ]
+}

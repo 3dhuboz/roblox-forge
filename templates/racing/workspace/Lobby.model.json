@@ -1,0 +1,52 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Spawn" },
+        "Size": { "Vector3": [16, 1, 16] },
+        "CFrame": { "CFrame": { "position": [0, 1, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 140, 160] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "GarageFloor" },
+        "Size": { "Vector3": [60, 2, 60] },
+        "CFrame": { "CFrame": { "position": [0, -0.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 80, 90] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "VehicleSelectPad" },
+        "Size": { "Vector3": [10, 1, 10] },
+        "CFrame": { "CFrame": { "position": [-15, 1, -10], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 150, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["VehicleSelect"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "RaceQueuePad" },
+        "Size": { "Vector3": [10, 1, 10] },
+        "CFrame": { "CFrame": { "position": [15, 1, -10], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 200, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["RaceQueue"]
+    }
+  ]
+}
