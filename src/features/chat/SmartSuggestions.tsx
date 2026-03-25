@@ -111,6 +111,58 @@ function tycoonProgress(messageCount: number): string[] {
   ];
 }
 
+// ── Simulator suggestions ──
+
+function simStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Add a big glowing orb I can click for coins",
+      "Create an egg that hatches into a random pet",
+      "Make an upgrade that increases my click power",
+      "Add a second zone that costs 1000 coins to enter",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Set up a click system with combo multipliers",
+      "Create 3 egg tiers: Common, Rare, and Legendary",
+      "Add a rebirth system at 50K coins for 2x multiplier",
+      "Design 4 zones with increasing coin multipliers",
+    ];
+  }
+  return [
+    "Build a click system with server-validated earnings and anti-exploit checks",
+    "Create a weighted pet RNG with pity system after 50 hatches",
+    "Implement a prestige system with gem rewards and permanent stat boosts",
+    "Design zone gates with CollectionService tags and smooth unlock transitions",
+  ];
+}
+
+function simProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a new pet egg with rare drops",
+      "Create a click power upgrade for 200 coins",
+      "Add particle effects when clicking orbs",
+      "Make a second zone with purple crystal theme",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a rebirth system",
+      "Create a pet trading system",
+      "Add a codes system for free rewards",
+      "Make a global leaderboard",
+    ];
+  }
+  return [
+    "Add an auto-clicker upgrade for gems",
+    "Create a seasonal event zone",
+    "Add pet fusion to combine duplicates",
+    "Review the progression balance",
+  ];
+}
+
 // ── Generic fallback ──
 
 function genericStarters(level: string): string[] {
@@ -148,6 +200,12 @@ export function SmartSuggestions({ onSelect, messageCount }: SmartSuggestionsPro
       return messageCount === 0
         ? tycoonStarters(level)
         : tycoonProgress(messageCount);
+    }
+
+    if (template === "simulator") {
+      return messageCount === 0
+        ? simStarters(level)
+        : simProgress(messageCount);
     }
 
     return genericStarters(level);
