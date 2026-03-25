@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ProjectInfo, ProjectState } from "../types/project";
 import type { ValidationIssue } from "../types/validation";
 import { projectCommands, validationCommands } from "../services/tauriCommands";
+import { useToastStore } from "./toastStore";
 
 interface ProjectStore {
   project: ProjectInfo | null;
@@ -29,8 +30,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       const project = await projectCommands.createProject(template, name);
       set({ project });
       await get().refreshProjectState();
+      useToastStore.getState().addToast("success", `Project "${name}" created!`);
     } catch (e) {
       set({ error: String(e) });
+      useToastStore.getState().addToast("error", `Failed to create project: ${e}`);
     } finally {
       set({ isLoading: false });
     }
@@ -53,8 +56,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     try {
       const issues = await validationCommands.validateProject(project.path);
       set({ validationIssues: issues });
+      const errors = issues.filter((i) => i.severity === "error").length;
+      if (errors === 0) {
+        useToastStore.getState().addToast("success", "Validation passed! Ready to publish.");
+      } else {
+        useToastStore.getState().addToast("warning", `Validation found ${errors} issue${errors > 1 ? "s" : ""}.`);
+      }
     } catch (e) {
       set({ error: String(e) });
+      useToastStore.getState().addToast("error", `Validation failed: ${e}`);
     }
   },
 
