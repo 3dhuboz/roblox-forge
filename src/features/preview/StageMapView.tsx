@@ -1,18 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import type { InstanceNode } from "../../types/project";
+import { Flag, Skull, Box, ArrowDown } from "lucide-react";
 
 interface PartVisual {
   name: string;
   className: string;
   x: number;
-  y: number;
-  width: number;
-  height: number;
+  z: number;
+  sizeX: number;
+  sizeZ: number;
   color: string;
   opacity: number;
   tags: string[];
   isCheckpoint: boolean;
+  isHazard: boolean;
 }
 
 interface StageVisual {
@@ -21,24 +23,30 @@ interface StageVisual {
   index: number;
 }
 
-function extractColor(node: InstanceNode): string {
+function extractRawColor(node: InstanceNode): [number, number, number] {
   const c = node.properties?.Color3uint8;
   if (c && typeof c === "object" && "Color3uint8" in c) {
-    const [r, g, b] = c.Color3uint8 as number[];
-    return `rgb(${r},${g},${b})`;
+    return c.Color3uint8 as [number, number, number];
   }
-  if (node.tags?.includes("KillBrick")) return "#ef4444";
-  if (node.className === "SpawnLocation") return "#22c55e";
-  return "#6366f1";
+  if (node.tags?.includes("KillBrick")) return [220, 50, 50];
+  if (node.className === "SpawnLocation") return [60, 200, 100];
+  return [100, 110, 200];
 }
 
-function extractSize(node: InstanceNode): { w: number; h: number } {
+function rgbToMuted([r, g, b]: [number, number, number]): string {
+  const mr = Math.round(r * 0.7 + 40);
+  const mg = Math.round(g * 0.7 + 40);
+  const mb = Math.round(b * 0.7 + 40);
+  return `rgb(${mr},${mg},${mb})`;
+}
+
+function extractSize(node: InstanceNode): { x: number; z: number } {
   const s = node.properties?.Size;
   if (s && typeof s === "object" && "Vector3" in s) {
-    const [x, _y, z] = s.Vector3 as number[];
-    return { w: Math.max(x * 4, 8), h: Math.max(z * 4, 8) };
+    const [sx, , sz] = s.Vector3 as number[];
+    return { x: sx, z: sz };
   }
-  return { w: 32, h: 32 };
+  return { x: 4, z: 4 };
 }
 
 function extractPosition(node: InstanceNode): { x: number; z: number } {
@@ -52,104 +60,211 @@ function extractPosition(node: InstanceNode): { x: number; z: number } {
   return { x: 0, z: 0 };
 }
 
+function collectParts(node: InstanceNode): PartVisual[] {
+  const pos = extractPosition(node);
+  const size = extractSize(node);
+  const rawColor = extractRawColor(node);
+  const isHazard = node.tags?.includes("KillBrick") || node.tags?.includes("Hazard") || false;
+  return [{
+    name: node.name,
+    className: node.className,
+    x: pos.x,
+    z: pos.z,
+    sizeX: size.x,
+    sizeZ: size.z,
+    color: rgbToMuted(rawColor),
+    opacity: 1 - ((node.properties?.Transparency as { Float32: number })?.Float32 ?? 0),
+    tags: node.tags || [],
+    isCheckpoint: node.className === "SpawnLocation",
+    isHazard,
+  }];
+}
+
 function buildStageVisuals(hierarchy: InstanceNode): StageVisual[] {
   const stages: StageVisual[] = [];
-
   const workspace = hierarchy.children.find((c) => c.className === "Workspace" || c.name === "Workspace");
   if (!workspace) return stages;
 
-  // Find Lobby
   const lobby = workspace.children.find((c) => c.name === "Lobby");
   if (lobby) {
-    stages.push({
-      name: "Lobby",
-      index: 0,
-      parts: lobby.children.map((child) => {
-        const size = extractSize(child);
-        const pos = extractPosition(child);
-        return {
-          name: child.name,
-          className: child.className,
-          x: pos.x * 4 + 100,
-          y: pos.z * 2 + 40,
-          width: size.w,
-          height: size.h,
-          color: extractColor(child),
-          opacity: 1 - (child.properties?.Transparency as number || 0),
-          tags: child.tags || [],
-          isCheckpoint: child.className === "SpawnLocation",
-        };
-      }),
-    });
+    const parts: PartVisual[] = [];
+    for (const child of lobby.children) parts.push(...collectParts(child));
+    stages.push({ name: "Lobby", index: 0, parts });
   }
 
-  // Find Stages folder
-  const stagesFolder = workspace.children.find((c) => c.name === "Stages");
+  const stagesFolder = workspace.children.find((c) => c.name === "Stages" || c.name === "Plots");
   if (stagesFolder) {
     const sorted = [...stagesFolder.children].sort((a, b) => {
       const numA = parseInt(a.name.replace(/\D/g, "")) || 0;
       const numB = parseInt(b.name.replace(/\D/g, "")) || 0;
       return numA - numB;
     });
-
     sorted.forEach((stage, i) => {
-      stages.push({
-        name: stage.name,
-        index: i + 1,
-        parts: stage.children.map((child) => {
-          const size = extractSize(child);
-          const pos = extractPosition(child);
-          return {
-            name: child.name,
-            className: child.className,
-            x: pos.x * 4 + 100,
-            y: pos.z * 2 + 40,
-            width: size.w,
-            height: size.h,
-            color: extractColor(child),
-            opacity: 1 - (child.properties?.Transparency as number || 0),
-            tags: child.tags || [],
-            isCheckpoint: child.className === "SpawnLocation",
-          };
-        }),
-      });
+      const parts: PartVisual[] = [];
+      for (const child of stage.children) parts.push(...collectParts(child));
+      stages.push({ name: stage.name, index: i + 1, parts });
     });
   }
 
   return stages;
 }
 
-const STAGE_COLORS = [
-  "from-indigo-900/40 to-indigo-950/20",
-  "from-green-900/40 to-green-950/20",
-  "from-amber-900/40 to-amber-950/20",
-  "from-red-900/40 to-red-950/20",
-  "from-purple-900/40 to-purple-950/20",
-  "from-cyan-900/40 to-cyan-950/20",
-  "from-pink-900/40 to-pink-950/20",
-  "from-orange-900/40 to-orange-950/20",
-  "from-teal-900/40 to-teal-950/20",
-  "from-blue-900/40 to-blue-950/20",
-  "from-rose-900/40 to-rose-950/20",
-  "from-lime-900/40 to-lime-950/20",
-  "from-yellow-900/40 to-yellow-950/20",
-];
+function StageCard({ stage }: { stage: StageVisual }) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  const partCount = stage.parts.length;
+  const checkpoints = stage.parts.filter((p) => p.isCheckpoint).length;
+  const hazards = stage.parts.filter((p) => p.isHazard).length;
 
-const STAGE_BORDERS = [
-  "border-indigo-800/60",
-  "border-green-800/60",
-  "border-amber-800/60",
-  "border-red-800/60",
-  "border-purple-800/60",
-  "border-cyan-800/60",
-  "border-pink-800/60",
-  "border-orange-800/60",
-  "border-teal-800/60",
-  "border-blue-800/60",
-  "border-rose-800/60",
-  "border-lime-800/60",
-  "border-yellow-800/60",
-];
+  // Compute bounding box for this stage
+  const PADDING = 4;
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const p of stage.parts) {
+    minX = Math.min(minX, p.x - p.sizeX / 2);
+    maxX = Math.max(maxX, p.x + p.sizeX / 2);
+    minZ = Math.min(minZ, p.z - p.sizeZ / 2);
+    maxZ = Math.max(maxZ, p.z + p.sizeZ / 2);
+  }
+  minX -= PADDING; maxX += PADDING; minZ -= PADDING; maxZ += PADDING;
+  const rangeX = Math.max(maxX - minX, 1);
+  const rangeZ = Math.max(maxZ - minZ, 1);
+
+  // Keep aspect ratio, fit into a fixed-height canvas
+  const CANVAS_W = 100; // percentage
+  const CANVAS_H = 180; // px
+  const scale = Math.min(CANVAS_W / rangeX, CANVAS_H / rangeZ) * 0.85;
+
+  const isLobby = stage.index === 0;
+
+  return (
+    <div className="rounded-xl border border-gray-800/80 bg-gray-900/60 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800/50">
+        <div className="flex items-center gap-2.5">
+          <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${isLobby ? "bg-emerald-600/30 text-emerald-300" : "bg-indigo-600/30 text-indigo-300"}`}>
+            {isLobby ? "L" : stage.index}
+          </span>
+          <span className="text-sm font-semibold text-gray-200">{stage.name}</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px]">
+          <span className="flex items-center gap-1 text-gray-500">
+            <Box size={11} /> {partCount}
+          </span>
+          {checkpoints > 0 && (
+            <span className="flex items-center gap-1 text-emerald-400/80">
+              <Flag size={11} /> {checkpoints}
+            </span>
+          )}
+          {hazards > 0 && (
+            <span className="flex items-center gap-1 text-red-400/80">
+              <Skull size={11} /> {hazards}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Top-down canvas */}
+      <div
+        className="relative mx-3 my-3 rounded-lg bg-gray-950/80 border border-gray-800/40 overflow-hidden"
+        style={{ height: `${CANVAS_H}px` }}
+      >
+        {/* Subtle dot grid */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id={`dots-${stage.name}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="10" cy="10" r="0.8" fill="white" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#dots-${stage.name})`} />
+        </svg>
+
+        {/* Render parts as top-down rectangles */}
+        {stage.parts.map((part, i) => {
+          const cx = ((part.x - minX) / rangeX) * 100;
+          const cy = ((part.z - minZ) / rangeZ) * 100;
+          const pw = Math.max(part.sizeX * scale, 6);
+          const ph = Math.max(part.sizeZ * scale, 6);
+          const isActive = hovered === part.name;
+
+          return (
+            <div
+              key={`${part.name}-${i}`}
+              className={`absolute transition-all duration-150 ${isActive ? "z-20 ring-2 ring-white/30" : "z-10"}`}
+              style={{
+                left: `calc(${cx}% - ${pw / 2}px)`,
+                top: `calc(${cy}% - ${ph / 2}px)`,
+                width: `${pw}px`,
+                height: `${ph}px`,
+                backgroundColor: part.color,
+                opacity: isActive ? 1 : Math.max(part.opacity * 0.85, 0.5),
+                borderRadius: part.isCheckpoint ? "50%" : part.isHazard ? "2px" : "3px",
+                border: part.isCheckpoint
+                  ? "2px solid rgba(74,222,128,0.6)"
+                  : part.isHazard
+                    ? "2px solid rgba(248,113,113,0.5)"
+                    : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: isActive
+                  ? `0 0 12px ${part.color}66`
+                  : part.isHazard
+                    ? "0 0 6px rgba(220,50,50,0.25)"
+                    : part.isCheckpoint
+                      ? "0 0 6px rgba(60,200,100,0.2)"
+                      : "none",
+                transform: isActive ? "scale(1.15)" : "scale(1)",
+              }}
+              onMouseEnter={() => setHovered(part.name)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              {/* Tooltip */}
+              {isActive && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-8 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-[10px] font-medium text-white shadow-lg border border-gray-700 pointer-events-none z-30">
+                  {part.name}
+                  {part.isCheckpoint && <span className="ml-1 text-emerald-400">checkpoint</span>}
+                  {part.isHazard && <span className="ml-1 text-red-400">hazard</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {stage.parts.length === 0 && (
+          <div className="flex h-full items-center justify-center text-xs text-gray-600">
+            Empty — ask AI to add parts
+          </div>
+        )}
+      </div>
+
+      {/* Part list */}
+      <div className="flex flex-wrap gap-1 px-3 pb-3">
+        {stage.parts.map((part, i) => (
+          <button
+            key={`pill-${i}`}
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition-colors ${
+              hovered === part.name
+                ? "bg-gray-700 text-white"
+                : "bg-gray-800/60 text-gray-500 hover:text-gray-300"
+            }`}
+            onMouseEnter={() => setHovered(part.name)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <span
+              className="inline-block h-2 w-2 rounded-sm"
+              style={{
+                backgroundColor: part.color,
+                border: part.isCheckpoint
+                  ? "1px solid rgba(74,222,128,0.6)"
+                  : part.isHazard
+                    ? "1px solid rgba(248,113,113,0.5)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                borderRadius: part.isCheckpoint ? "50%" : "2px",
+              }}
+            />
+            {part.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function StageMapView() {
   const { projectState } = useProjectStore();
@@ -169,149 +284,18 @@ export function StageMapView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-        <h3 className="font-semibold text-gray-300">Stage Map</h3>
-        <span className="text-xs text-gray-500">
-          {stageVisuals.length} sections
-        </span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="flex flex-col gap-3">
-          {stageVisuals.map((stage) => {
-            const colorIdx = stage.index % STAGE_COLORS.length;
-            const partCount = stage.parts.length;
-            const checkpoints = stage.parts.filter((p) => p.isCheckpoint).length;
-            const hazards = stage.parts.filter(
-              (p) => p.tags.includes("KillBrick") || p.tags.includes("Hazard"),
-            ).length;
-
-            return (
-              <div
-                key={stage.name}
-                className={`rounded-xl border bg-gradient-to-b p-4 ${STAGE_BORDERS[colorIdx]} ${STAGE_COLORS[colorIdx]}`}
-              >
-                {/* Stage header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gray-800 text-xs font-bold">
-                      {stage.index === 0 ? "L" : stage.index}
-                    </span>
-                    <span className="text-sm font-semibold">{stage.name}</span>
-                  </div>
-                  <div className="flex gap-2 text-xs text-gray-400">
-                    <span>{partCount} parts</span>
-                    {checkpoints > 0 && (
-                      <span className="text-green-400">
-                        {checkpoints} checkpoint{checkpoints > 1 ? "s" : ""}
-                      </span>
-                    )}
-                    {hazards > 0 && (
-                      <span className="text-red-400">
-                        {hazards} hazard{hazards > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex flex-col gap-2">
+          {stageVisuals.map((stage, i) => (
+            <div key={stage.name}>
+              <StageCard stage={stage} />
+              {i < stageVisuals.length - 1 && (
+                <div className="flex justify-center py-1">
+                  <ArrowDown size={14} className="text-gray-700" />
                 </div>
-
-                {/* Visual part layout */}
-                <div className="relative h-24 overflow-hidden rounded-lg bg-gray-950/60">
-                  {/* Grid lines */}
-                  <div className="absolute inset-0 opacity-10">
-                    {[...Array(10)].map((_, i) => (
-                      <div
-                        key={`v-${i}`}
-                        className="absolute top-0 h-full border-l border-gray-500"
-                        style={{ left: `${i * 10}%` }}
-                      />
-                    ))}
-                    {[...Array(4)].map((_, i) => (
-                      <div
-                        key={`h-${i}`}
-                        className="absolute left-0 w-full border-t border-gray-500"
-                        style={{ top: `${i * 33}%` }}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Parts */}
-                  {stage.parts.length > 0 ? (
-                    stage.parts.map((part, i) => {
-                      // Normalize positions to fit within the view
-                      const allX = stage.parts.map((p) => p.x);
-                      const allY = stage.parts.map((p) => p.y);
-                      const minX = Math.min(...allX) - 20;
-                      const maxX = Math.max(...allX) + 60;
-                      const minY = Math.min(...allY) - 10;
-                      const maxY = Math.max(...allY) + 40;
-                      const rangeX = Math.max(maxX - minX, 1);
-                      const rangeY = Math.max(maxY - minY, 1);
-
-                      const normX = ((part.x - minX) / rangeX) * 90 + 2;
-                      const normY = ((part.y - minY) / rangeY) * 70 + 5;
-                      const normW = Math.min((part.width / rangeX) * 90, 40);
-                      const normH = Math.min((part.height / rangeY) * 70, 30);
-
-                      return (
-                        <div
-                          key={`${part.name}-${i}`}
-                          className="group absolute rounded-sm border border-white/10 transition-all hover:z-10 hover:scale-110 hover:border-white/40"
-                          style={{
-                            left: `${normX}%`,
-                            top: `${normY}%`,
-                            width: `${Math.max(normW, 3)}%`,
-                            height: `${Math.max(normH, 12)}%`,
-                            backgroundColor: part.color,
-                            opacity: Math.max(part.opacity, 0.4),
-                          }}
-                          title={`${part.name} (${part.className})${part.tags.length > 0 ? ` [${part.tags.join(", ")}]` : ""}`}
-                        >
-                          {/* Checkpoint marker */}
-                          {part.isCheckpoint && (
-                            <div className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-gray-900 bg-green-400" />
-                          )}
-                          {/* Kill brick marker */}
-                          {part.tags.includes("KillBrick") && (
-                            <div className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-gray-900 bg-red-400" />
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-gray-600">
-                      Empty stage
-                    </div>
-                  )}
-                </div>
-
-                {/* Part legend row */}
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {stage.parts.map((part, i) => (
-                    <span
-                      key={`legend-${i}`}
-                      className="flex items-center gap-1 rounded-full bg-gray-800/80 px-2 py-0.5 text-[10px] text-gray-400"
-                    >
-                      <span
-                        className="inline-block h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: part.color }}
-                      />
-                      {part.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Flow connector */}
-          {stageVisuals.length > 1 && (
-            <div className="flex items-center justify-center py-1">
-              <span className="text-xs text-gray-600">
-                {stageVisuals.length - 1} stage
-                {stageVisuals.length - 1 > 1 ? "s" : ""} total
-              </span>
+              )}
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
