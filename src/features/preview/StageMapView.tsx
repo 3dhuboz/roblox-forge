@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import type { InstanceNode } from "../../types/project";
-import { Flag, Skull, Box, ArrowDown } from "lucide-react";
+import { Flag, Skull, Box, ArrowDown, Sparkles, Gamepad2 } from "lucide-react";
 
 interface PartVisual {
   name: string;
@@ -136,26 +136,30 @@ function StageCard({ stage }: { stage: StageVisual }) {
   const isLobby = stage.index === 0;
 
   return (
-    <div className="rounded-xl border border-gray-800/80 bg-gray-900/60 overflow-hidden">
+    <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/40">
         <div className="flex items-center gap-2.5">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${isLobby ? "bg-emerald-600/30 text-emerald-300" : "bg-indigo-600/30 text-indigo-300"}`}>
+          <span className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold shadow-sm ${
+            isLobby
+              ? "bg-gradient-to-br from-emerald-500 to-green-600 text-white"
+              : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+          }`}>
             {isLobby ? "L" : stage.index}
           </span>
-          <span className="text-sm font-semibold text-gray-200">{stage.name}</span>
+          <span className="text-[13px] font-bold text-gray-200">{stage.name}</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px]">
-          <span className="flex items-center gap-1 text-gray-500">
-            <Box size={11} /> {partCount}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 rounded-md bg-gray-800/60 px-2 py-0.5 text-[11px] text-gray-400">
+            <Box size={11} /> {partCount} parts
           </span>
           {checkpoints > 0 && (
-            <span className="flex items-center gap-1 text-emerald-400/80">
+            <span className="flex items-center gap-1 rounded-md bg-emerald-900/30 px-2 py-0.5 text-[11px] text-emerald-400">
               <Flag size={11} /> {checkpoints}
             </span>
           )}
           {hazards > 0 && (
-            <span className="flex items-center gap-1 text-red-400/80">
+            <span className="flex items-center gap-1 rounded-md bg-red-900/30 px-2 py-0.5 text-[11px] text-red-400">
               <Skull size={11} /> {hazards}
             </span>
           )}
@@ -164,7 +168,7 @@ function StageCard({ stage }: { stage: StageVisual }) {
 
       {/* Top-down canvas */}
       <div
-        className="relative mx-3 my-3 rounded-lg bg-gray-950/80 border border-gray-800/40 overflow-hidden"
+        className="relative mx-3 my-3 rounded-xl bg-gray-950/80 border border-gray-800/30 overflow-hidden"
         style={{ height: `${CANVAS_H}px` }}
       >
         {/* Subtle dot grid */}
@@ -216,10 +220,10 @@ function StageCard({ stage }: { stage: StageVisual }) {
             >
               {/* Tooltip */}
               {isActive && (
-                <div className="absolute left-1/2 -translate-x-1/2 -top-8 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-[10px] font-medium text-white shadow-lg border border-gray-700 pointer-events-none z-30">
+                <div className="absolute left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap rounded-lg bg-gray-800 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-xl border border-gray-700/50 pointer-events-none z-30">
                   {part.name}
-                  {part.isCheckpoint && <span className="ml-1 text-emerald-400">checkpoint</span>}
-                  {part.isHazard && <span className="ml-1 text-red-400">hazard</span>}
+                  {part.isCheckpoint && <span className="ml-1.5 text-emerald-400">spawn</span>}
+                  {part.isHazard && <span className="ml-1.5 text-red-400">danger!</span>}
                 </div>
               )}
             </div>
@@ -227,41 +231,44 @@ function StageCard({ stage }: { stage: StageVisual }) {
         })}
 
         {stage.parts.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-600">
-            Empty — ask AI to add parts
+          <div className="flex h-full flex-col items-center justify-center gap-1.5">
+            <Sparkles size={16} className="text-gray-600" />
+            <p className="text-xs text-gray-600">No parts yet — tell the AI what to add!</p>
           </div>
         )}
       </div>
 
       {/* Part list */}
-      <div className="flex flex-wrap gap-1 px-3 pb-3">
-        {stage.parts.map((part, i) => (
-          <button
-            key={`pill-${i}`}
-            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition-colors ${
-              hovered === part.name
-                ? "bg-gray-700 text-white"
-                : "bg-gray-800/60 text-gray-500 hover:text-gray-300"
-            }`}
-            onMouseEnter={() => setHovered(part.name)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-sm"
-              style={{
-                backgroundColor: part.color,
-                border: part.isCheckpoint
-                  ? "1px solid rgba(74,222,128,0.6)"
-                  : part.isHazard
-                    ? "1px solid rgba(248,113,113,0.5)"
-                    : "1px solid rgba(255,255,255,0.1)",
-                borderRadius: part.isCheckpoint ? "50%" : "2px",
-              }}
-            />
-            {part.name}
-          </button>
-        ))}
-      </div>
+      {stage.parts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+          {stage.parts.map((part, i) => (
+            <button
+              key={`pill-${i}`}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-all ${
+                hovered === part.name
+                  ? "bg-gray-700 text-white shadow-sm"
+                  : "bg-gray-800/50 text-gray-500 hover:text-gray-300 hover:bg-gray-800"
+              }`}
+              onMouseEnter={() => setHovered(part.name)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-sm"
+                style={{
+                  backgroundColor: part.color,
+                  border: part.isCheckpoint
+                    ? "1.5px solid rgba(74,222,128,0.6)"
+                    : part.isHazard
+                      ? "1.5px solid rgba(248,113,113,0.5)"
+                      : "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: part.isCheckpoint ? "50%" : "3px",
+                }}
+              />
+              {part.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -276,8 +283,12 @@ export function StageMapView() {
 
   if (!projectState || stageVisuals.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
-        <p>No stages to display yet.</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-500">
+        <Gamepad2 size={32} className="text-gray-700" />
+        <div className="text-center">
+          <p className="text-sm font-medium text-gray-400">No stages yet</p>
+          <p className="mt-0.5 text-xs text-gray-600">Start building and your game map will show up here!</p>
+        </div>
       </div>
     );
   }
@@ -285,13 +296,16 @@ export function StageMapView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto p-3">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {stageVisuals.map((stage, i) => (
             <div key={stage.name}>
               <StageCard stage={stage} />
               {i < stageVisuals.length - 1 && (
-                <div className="flex justify-center py-1">
-                  <ArrowDown size={14} className="text-gray-700" />
+                <div className="flex justify-center py-1.5">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="h-2 w-px bg-gray-800" />
+                    <ArrowDown size={12} className="text-gray-700" />
+                  </div>
                 </div>
               )}
             </div>

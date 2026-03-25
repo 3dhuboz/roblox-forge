@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, FileCode, Box, Folder, Map, List } from "lucide-react";
+import { ChevronRight, ChevronDown, FileCode, Box, Folder, Map, List, Loader2 } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { StageMapView } from "./StageMapView";
 import type { InstanceNode } from "../../types/project";
@@ -12,38 +12,39 @@ export function GamePreview() {
 
   if (!projectState) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
-        <p>Loading project...</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-500">
+        <Loader2 size={24} className="animate-spin text-indigo-400" />
+        <p className="text-sm">Loading your game...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-        <div className="flex items-center gap-1 rounded-lg bg-gray-800 p-0.5">
+    <div className="flex h-full flex-col bg-gray-950">
+      <div className="flex items-center justify-between border-b border-gray-800/40 px-4 py-3">
+        <div className="flex items-center gap-1 rounded-xl bg-gray-800/60 p-1">
           <button
             onClick={() => setTab("map")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all ${
               tab === "map"
-                ? "bg-indigo-600 text-white"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            <Map size={13} /> Map
+            <Map size={14} /> Game Map
           </button>
           <button
             onClick={() => setTab("tree")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-all ${
               tab === "tree"
-                ? "bg-indigo-600 text-white"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            <List size={13} /> Tree
+            <List size={14} /> Parts List
           </button>
         </div>
-        <span className="text-xs text-gray-500">
+        <span className="rounded-lg bg-gray-800/50 px-2.5 py-1 text-xs font-medium text-gray-400">
           {projectState.stageCount} stages
         </span>
       </div>
@@ -109,7 +110,7 @@ function InstanceTreeNode({
     <div>
       <button
         onClick={() => hasChildren && setExpanded(!expanded)}
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-sm hover:bg-gray-800/50`}
+        className={`flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-gray-800/50`}
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
       >
         {hasChildren ? (
@@ -122,8 +123,8 @@ function InstanceTreeNode({
           <span className="w-3.5 shrink-0" />
         )}
         {getIcon()}
-        <span className={getClassColor()}>{node.name}</span>
-        <span className="ml-auto text-xs text-gray-600">{node.className}</span>
+        <span className={`font-medium ${getClassColor()}`}>{node.name}</span>
+        <span className="ml-auto rounded bg-gray-800/60 px-1.5 py-0.5 text-[10px] text-gray-600">{node.className}</span>
       </button>
       {expanded &&
         hasChildren &&
