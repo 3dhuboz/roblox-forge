@@ -30,10 +30,6 @@ fn generate_state() -> String {
     hex::encode(&bytes)
 }
 
-fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
-}
-
 mod hex {
     pub fn encode(bytes: &[u8]) -> String {
         bytes.iter().map(|b| format!("{:02x}", b)).collect()
