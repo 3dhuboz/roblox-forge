@@ -122,6 +122,7 @@ export function BuildPage() {
           {showWizard ? (
             <GuidedWizard
               projectPath={project.path}
+              templateType={project.template}
               onComplete={() => {
                 setWizardDone(true);
                 setMode("chat");

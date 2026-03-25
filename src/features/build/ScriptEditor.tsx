@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FileCode, Save, X, ChevronDown } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { projectCommands } from "../../services/tauriCommands";
+import { tokenizeLuau, getTokenClass } from "../../lib/luauHighlight";
 import type { ScriptFile } from "../../types/project";
 
 interface ScriptEditorProps {
@@ -16,6 +17,7 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scripts.length > 0 && !activeScript) {
@@ -153,52 +155,68 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
 
       {/* Editor area */}
       <div className="relative flex-1 overflow-hidden">
-        {/* Line numbers + content */}
-        <div className="flex h-full">
+        <div className="flex h-full overflow-auto pb-6" ref={editorScrollRef}>
           {/* Line numbers */}
-          <div className="flex shrink-0 flex-col overflow-hidden border-r border-gray-800 bg-gray-950 px-2 pt-3 text-right font-mono text-xs leading-5 text-gray-600 select-none">
+          <div className="sticky left-0 z-10 flex shrink-0 flex-col border-r border-gray-800 bg-gray-950 px-2 pt-3 text-right font-mono text-xs leading-5 text-gray-600 select-none">
             {editedContent.split("\n").map((_, i) => (
               <div key={i}>{i + 1}</div>
             ))}
           </div>
 
-          {/* Textarea */}
-          <textarea
-            value={editedContent}
-            onChange={(e) => {
-              setEditedContent(e.target.value);
-              setIsDirty(true);
-            }}
-            onKeyDown={(e) => {
-              // Ctrl+S to save
-              if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-                e.preventDefault();
-                handleSave();
-              }
-              // Tab key inserts tab character
-              if (e.key === "Tab") {
-                e.preventDefault();
-                const start = e.currentTarget.selectionStart;
-                const end = e.currentTarget.selectionEnd;
-                const value = e.currentTarget.value;
-                setEditedContent(
-                  value.substring(0, start) + "\t" + value.substring(end),
-                );
+          {/* Overlay: highlighted code (read-only) + invisible textarea */}
+          <div className="relative flex-1 min-w-0">
+            {/* Highlighted layer */}
+            <pre
+              className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre px-3 pt-3 font-mono text-sm leading-5"
+              aria-hidden="true"
+            >
+              {editedContent.split("\n").map((line, i) => (
+                <div key={i}>
+                  {tokenizeLuau(line).map((tok, j) => (
+                    <span key={j} className={getTokenClass(tok.type)}>
+                      {tok.text}
+                    </span>
+                  ))}
+                  {line === "" && "\n"}
+                </div>
+              ))}
+            </pre>
+
+            {/* Transparent textarea for editing */}
+            <textarea
+              value={editedContent}
+              onChange={(e) => {
+                setEditedContent(e.target.value);
                 setIsDirty(true);
-                // Restore cursor position after React re-render
-                requestAnimationFrame(() => {
-                  e.currentTarget.selectionStart = start + 1;
-                  e.currentTarget.selectionEnd = start + 1;
-                });
-              }
-            }}
-            spellCheck={false}
-            className="flex-1 resize-none bg-gray-950 px-3 pt-3 font-mono text-sm leading-5 text-gray-200 outline-none"
-          />
+              }}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                  e.preventDefault();
+                  handleSave();
+                }
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  const start = e.currentTarget.selectionStart;
+                  const end = e.currentTarget.selectionEnd;
+                  const value = e.currentTarget.value;
+                  setEditedContent(
+                    value.substring(0, start) + "\t" + value.substring(end),
+                  );
+                  setIsDirty(true);
+                  requestAnimationFrame(() => {
+                    e.currentTarget.selectionStart = start + 1;
+                    e.currentTarget.selectionEnd = start + 1;
+                  });
+                }
+              }}
+              spellCheck={false}
+              className="relative z-[1] h-full w-full resize-none bg-transparent px-3 pt-3 font-mono text-sm leading-5 text-transparent caret-white outline-none selection:bg-indigo-500/30"
+            />
+          </div>
         </div>
 
         {/* File path indicator */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 bg-gray-900/90 px-3 py-1 text-[10px] text-gray-500">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 bg-gray-900/95 px-3 py-1 text-[10px] text-gray-500 z-20">
           {activeScript?.relativePath}
           {isDirty && " (modified)"}
         </div>
