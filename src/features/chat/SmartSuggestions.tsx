@@ -267,6 +267,162 @@ function rpgProgress(messageCount: number): string[] {
   ];
 }
 
+// ── Horror suggestions ──
+
+function horrorStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Add a flashlight I can turn on and off",
+      "Make a dark room with a locked door",
+      "Add a jumpscare when I open a door",
+      "Create a puzzle to unlock the basement",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Create 4 rooms connected by locked doors with key puzzles",
+      "Add a flashlight system with battery drain",
+      "Design a code puzzle using clues hidden in notes",
+      "Add flickering lights and ambient horror sounds",
+    ];
+  }
+  return [
+    "Implement a monster AI with pathfinding and detection radius",
+    "Create a stamina system with sprint drain and passive regen",
+    "Design multi-step puzzles with environmental clues",
+    "Build a dynamic jumpscare system with cooldowns and probability",
+  ];
+}
+
+function horrorProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a battery pickup for the flashlight",
+      "Create a code lock puzzle — the answer is 1847",
+      "Add a creepy note on the wall with a clue",
+      "Make the lights flicker randomly",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a monster that chases the player",
+      "Create a hiding mechanic — crouch under desks",
+      "Add a second floor with a staircase",
+      "Make a jumpscare when picking up the key",
+    ];
+  }
+  return [
+    "Add multiple endings based on choices",
+    "Create a timer — escape before it runs out",
+    "Add a co-op mode for 2-4 players",
+    "Review the pacing and scare placement",
+  ];
+}
+
+// ── Racing suggestions ──
+
+function racingStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Make a simple oval track I can race on",
+      "Add a countdown before the race starts",
+      "Create a boost pad that makes me go faster",
+      "Add a finish line that shows my time",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Create a track with turns, elevation, and barriers",
+      "Add 4 vehicles with different speed and handling",
+      "Build a 3-lap race with checkpoint validation",
+      "Add a garage where I can buy and select vehicles",
+    ];
+  }
+  return [
+    "Implement server-authoritative lap validation with checkpoint ordering",
+    "Create a vehicle physics system with drift mechanics",
+    "Design a ranked matchmaking system with ELO",
+    "Build a replay system that records ghost runs",
+  ];
+}
+
+function racingProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a second track with a mountain theme",
+      "Create a speed boost pickup on the track",
+      "Add barriers so cars can't cut corners",
+      "Make a lap counter HUD in the top center",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a vehicle upgrade system",
+      "Create powerups — boost, shield, oil slick",
+      "Add a best times leaderboard",
+      "Make a matchmaking queue for multiplayer races",
+    ];
+  }
+  return [
+    "Add vehicle customization — paint and decals",
+    "Create a championship mode with multiple tracks",
+    "Add drift scoring for bonus coins",
+    "Review track balance and vehicle stats",
+  ];
+}
+
+// ── Minigames suggestions ──
+
+function miniStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Make a 'Floor is Lava' mini-game",
+      "Add a voting screen so players pick the next game",
+      "Create a lobby with a timer showing next round",
+      "Add coins for winning a round",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Create 4 mini-games: lava, king of hill, tag, obby race",
+      "Add a round system with intermission and voting",
+      "Design an elimination mechanic for survival games",
+      "Add a results screen showing placement and rewards",
+    ];
+  }
+  return [
+    "Implement a round lifecycle with state machine transitions",
+    "Create a modular minigame loader that dynamically loads arenas",
+    "Design a weighted voting system with recently-played exclusion",
+    "Build a title progression system based on cumulative wins",
+  ];
+}
+
+function miniProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a 'King of the Hill' mini-game",
+      "Create a spectator mode for eliminated players",
+      "Make the floor shrink over time in Floor is Lava",
+      "Add sound effects for countdown and elimination",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a Freeze Tag mini-game",
+      "Create team-based mini-games",
+      "Add titles: Rookie, Champion, Legend",
+      "Make a private lobby system for friends",
+    ];
+  }
+  return [
+    "Add a Sword Fight mini-game",
+    "Create seasonal event mini-games",
+    "Add a tournament bracket mode",
+    "Review the game variety and round pacing",
+  ];
+}
+
 // ── Generic fallback ──
 
 function genericStarters(level: string): string[] {
@@ -322,6 +478,24 @@ export function SmartSuggestions({ onSelect, messageCount }: SmartSuggestionsPro
       return messageCount === 0
         ? rpgStarters(level)
         : rpgProgress(messageCount);
+    }
+
+    if (template === "horror") {
+      return messageCount === 0
+        ? horrorStarters(level)
+        : horrorProgress(messageCount);
+    }
+
+    if (template === "racing") {
+      return messageCount === 0
+        ? racingStarters(level)
+        : racingProgress(messageCount);
+    }
+
+    if (template === "minigames") {
+      return messageCount === 0
+        ? miniStarters(level)
+        : miniProgress(messageCount);
     }
 
     return genericStarters(level);

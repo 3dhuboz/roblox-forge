@@ -674,6 +674,204 @@ function rpgResponse(lower: string): AiResponse | null {
   return null;
 }
 
+// ── Horror responses ──
+
+function horrorResponse(lower: string): AiResponse | null {
+  if (matches(lower, "flashlight", "light", "torch", "battery")) {
+    return {
+      message: "Added a flashlight system! Press F to toggle. Battery drains at 2%/sec when on. Find Battery pickups in rooms to recharge. When it dies, you're in total darkness...",
+      changes: [
+        { type: "modify_script", description: "Added flashlight toggle to HorrorManager" },
+        { type: "modify_script", description: "Added battery HUD to HorrorUI" },
+      ],
+    };
+  }
+  if (matches(lower, "puzzle", "code", "lock", "riddle")) {
+    return {
+      message: "Added a code lock puzzle! The door has a 4-digit keypad. Clue: 'The year it began' — the answer is 1847. Players find the clue on a note in the previous room.",
+      changes: [
+        { type: "modify_script", description: "Added code puzzle to PuzzleManager" },
+        { type: "update_config", description: "Added puzzle_basement to HorrorConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "jumpscare", "scare", "fright", "shock")) {
+    return {
+      message: "Added jumpscares! 20% chance when opening doors, 10% in hallways, 15% on item pickup. Each has a cooldown so they don't spam. The screen flashes black with a sound sting.",
+      changes: [
+        { type: "update_config", description: "Added 3 jumpscare triggers to HorrorConfig" },
+        { type: "modify_script", description: "Added jumpscare overlay to HorrorUI" },
+      ],
+    };
+  }
+  if (matches(lower, "room", "door", "corridor", "hallway")) {
+    return {
+      message: "Added a new room — the Library! Dark wooden shelves, flickering candle light, and a locked door to the Basement. The key is hidden behind a book puzzle.",
+      changes: [
+        { type: "add_stage", description: "Added Library room" },
+        { type: "add_part", description: "Added locked door + bookshelf puzzle" },
+      ],
+    };
+  }
+  if (matches(lower, "monster", "creature", "chase", "enemy")) {
+    return {
+      message: "Added a monster! It patrols between rooms and chases players within 30 studs. Sprint (Shift) to escape, but stamina drains fast. Hide behind furniture to break line of sight.",
+      changes: [
+        { type: "modify_script", description: "Added monster AI to HorrorManager" },
+        { type: "add_part", description: "Added Monster entity with patrol path" },
+      ],
+    };
+  }
+  if (matches(lower, "note", "lore", "story", "clue")) {
+    return {
+      message: "Added lore notes! 'They sealed it below...' in the Entrance Hall and 'The code is the year it began.' in the Basement. Collectible notes tell the backstory.",
+      changes: [
+        { type: "update_config", description: "Added 2 lore notes to HorrorConfig.Items" },
+        { type: "add_part", description: "Added note pickups to rooms" },
+      ],
+    };
+  }
+  if (matches(lower, "dark", "fog", "atmosphere", "ambient")) {
+    return {
+      message: "Darkened the atmosphere! ClockTime set to 0 (midnight), fog distance 120, ambient lighting nearly black. Added eerie ambient sound loop and distant thunder.",
+      changes: [
+        { type: "set_property", description: "Updated Lighting: dark, foggy, midnight" },
+        { type: "modify_script", description: "Added ambient audio loop" },
+      ],
+    };
+  }
+  return null;
+}
+
+// ── Racing responses ──
+
+function racingResponse(lower: string): AiResponse | null {
+  if (matches(lower, "track", "road", "circuit", "course")) {
+    return {
+      message: "Built 'Sunny Circuit' — a 200-stud track with barriers, 2 checkpoints, a boost pad, and a start/finish line. 3 laps per race with time tracking.",
+      changes: [
+        { type: "add_stage", description: "Added SunnyCircuit track" },
+        { type: "add_part", description: "Added barriers, checkpoints, and boost pad" },
+      ],
+    };
+  }
+  if (matches(lower, "vehicle", "car", "kart", "garage")) {
+    return {
+      message: "Added 4 vehicles! Starter Kart (free, 80 speed), Sport Car (500 coins, 120 speed), Super Racer (2000 coins, 160 speed), Hyper GT (10000 coins, 200 speed). Each has different handling.",
+      changes: [
+        { type: "update_config", description: "Added 4 vehicles to RaceConfig" },
+        { type: "modify_script", description: "Updated VehicleManager with garage UI" },
+      ],
+    };
+  }
+  if (matches(lower, "boost", "speed", "turbo", "nitro")) {
+    return {
+      message: "Added boost pads! Cyan glowing strips on the track that give 1.5x speed for 3 seconds. Also added a NOS powerup pickup that activates with spacebar.",
+      changes: [
+        { type: "add_part", description: "Added BoostPad to track" },
+        { type: "update_config", description: "Added Boost powerup to RaceConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "lap", "checkpoint", "finish", "race")) {
+    return {
+      message: "Set up lap system! 3 laps per race with yellow checkpoint gates. Players must hit all checkpoints in order — no cutting corners! Finish line triggers time recording.",
+      changes: [
+        { type: "modify_script", description: "Updated RaceManager with lap validation" },
+        { type: "add_part", description: "Added checkpoint gates to track" },
+      ],
+    };
+  }
+  if (matches(lower, "countdown", "start", "3 2 1", "ready")) {
+    return {
+      message: "Added a 3-2-1-GO! countdown sequence! Big numbers appear on screen, then 'GO!' with a green flash. All racers are frozen during countdown.",
+      changes: [
+        { type: "modify_script", description: "Added countdown to RaceManager" },
+        { type: "modify_script", description: "Added countdown overlay to RacingUI" },
+      ],
+    };
+  }
+  if (matches(lower, "reward", "prize", "win", "coin")) {
+    return {
+      message: "Set up race rewards! 1st place: 200 coins, 2nd: 100, 3rd: 50, finish: 25. Plus 10 coins per completed lap. Coins can be spent in the vehicle garage.",
+      changes: [
+        { type: "update_config", description: "Set rewards in RaceConfig" },
+        { type: "modify_script", description: "Added reward distribution to RaceManager" },
+      ],
+    };
+  }
+  return null;
+}
+
+// ── Minigames responses ──
+
+function miniResponse(lower: string): AiResponse | null {
+  if (matches(lower, "floor", "lava", "survival", "shrink")) {
+    return {
+      message: "Added 'Floor is Lava'! Players stand on a platform that shrinks over time. Lava below kills on touch. Last player standing wins 100 coins!",
+      changes: [
+        { type: "add_stage", description: "Added FloorIsLava arena" },
+        { type: "modify_script", description: "Added floor shrink logic to MinigameLoader" },
+      ],
+    };
+  }
+  if (matches(lower, "vote", "voting", "pick", "choose")) {
+    return {
+      message: "Added map voting! During intermission, 3 random mini-games appear on the vote board. Players click to vote. Most votes wins. Ties pick randomly.",
+      changes: [
+        { type: "modify_script", description: "Added voting to RoundManager" },
+        { type: "add_part", description: "Added VoteBoard to Lobby" },
+      ],
+    };
+  }
+  if (matches(lower, "round", "intermission", "timer", "cycle")) {
+    return {
+      message: "Set up the round system! 15s intermission → 10s voting → teleport to arena → play → results → repeat. Timer displays above the lobby.",
+      changes: [
+        { type: "modify_script", description: "Updated RoundManager lifecycle" },
+        { type: "add_part", description: "Added TimerDisplay to Lobby" },
+      ],
+    };
+  }
+  if (matches(lower, "king", "hill", "platform", "stand")) {
+    return {
+      message: "Added 'King of the Hill'! A raised platform in the center — stay on it the longest to win. Players can push each other off. 60-second rounds.",
+      changes: [
+        { type: "add_stage", description: "Added KingOfTheHill arena" },
+        { type: "modify_script", description: "Added time-on-hill tracking" },
+      ],
+    };
+  }
+  if (matches(lower, "tag", "freeze", "it", "chase")) {
+    return {
+      message: "Added 'Freeze Tag'! One player is 'it' and freezes others on touch. Unfrozen players can touch frozen ones to unfreeze them. 90-second rounds.",
+      changes: [
+        { type: "add_stage", description: "Added FreezeTag arena" },
+        { type: "modify_script", description: "Added freeze/unfreeze mechanics" },
+      ],
+    };
+  }
+  if (matches(lower, "eliminat", "out", "last", "winner")) {
+    return {
+      message: "Added elimination logic! When a player dies or falls, they're marked as eliminated and enter spectator mode. Last player standing wins the round.",
+      changes: [
+        { type: "modify_script", description: "Added elimination tracking to RoundManager" },
+        { type: "modify_script", description: "Added eliminated overlay to MinigameUI" },
+      ],
+    };
+  }
+  if (matches(lower, "reward", "coin", "prize", "title")) {
+    return {
+      message: "Set up rewards! Win: 100 coins, 2nd: 50, 3rd: 25, participation: 10. Plus titles that unlock with wins: Rookie (0), Competitor (10), Champion (50), Legend (100).",
+      changes: [
+        { type: "update_config", description: "Set rewards and titles in MiniConfig" },
+        { type: "modify_script", description: "Added title system to DataManager" },
+      ],
+    };
+  }
+  return null;
+}
+
 // ── Universal responses ──
 
 function universalResponse(lower: string): AiResponse | null {
@@ -715,6 +913,9 @@ export function mockSendChatMessage(message: string): AiResponse {
     simResponse(lower) ??
     bgResponse(lower) ??
     rpgResponse(lower) ??
+    horrorResponse(lower) ??
+    racingResponse(lower) ??
+    miniResponse(lower) ??
     universalResponse(lower);
 
   if (resp) return resp;

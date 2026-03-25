@@ -178,9 +178,156 @@ const rpgFeatures = [
   { id: "pets", name: "Companions", desc: "Recruit companions that fight alongside you" },
 ];
 
+// ── Horror config ──
+
+const horrorThemes: Theme[] = [
+  { id: "mansion", name: "Haunted Mansion", icon: Factory, color: "bg-gray-700", prompt: "haunted mansion-themed with creaking doors, dusty rooms, portraits with moving eyes, and cobwebs" },
+  { id: "asylum", name: "Abandoned Asylum", icon: Wrench, color: "bg-slate-600", prompt: "abandoned asylum-themed with padded cells, flickering fluorescent lights, and medical equipment" },
+  { id: "forest", name: "Dark Forest", icon: TreePine, color: "bg-green-900", prompt: "dark forest-themed with fog, twisted trees, glowing eyes in the bushes, and an abandoned cabin" },
+  { id: "school", name: "Haunted School", icon: Pickaxe, color: "bg-amber-800", prompt: "haunted school-themed with empty classrooms, chalk that writes itself, and locker jumpscares" },
+  { id: "ship", name: "Ghost Ship", icon: Candy, color: "bg-cyan-900", prompt: "ghost ship-themed with creaking wood, foggy decks, ghostly sailors, and underwater sounds" },
+  { id: "underground", name: "Underground Lab", icon: Zap, color: "bg-red-900", prompt: "underground lab-themed with broken experiments, emergency lights, containment breaches, and alarms" },
+];
+
+const horrorScales = [
+  { id: "short", name: "Short Scare", count: 3, label: "rooms", desc: "3 rooms, 1 puzzle, quick playthrough — 5-10 minutes" },
+  { id: "medium", name: "Full Investigation", count: 6, label: "rooms", desc: "6 rooms, 3 puzzles, keys, multiple jumpscares" },
+  { id: "long", name: "Deep Horror", count: 10, label: "rooms", desc: "10 rooms, complex puzzles, multiple endings, boss encounter" },
+  { id: "extreme", name: "Nightmare Mode", count: 15, label: "rooms", desc: "Permadeath, limited batteries, monster AI that hunts you" },
+];
+
+const horrorFeatures = [
+  { id: "flashlight", name: "Flashlight", desc: "Battery-powered light source that drains over time" },
+  { id: "puzzles", name: "Puzzles", desc: "Code locks, sequence puzzles, and hidden clues" },
+  { id: "jumpscares", name: "Jumpscares", desc: "Random scare events triggered by exploration" },
+  { id: "keys", name: "Key System", desc: "Locked doors requiring keys found in other rooms" },
+  { id: "stamina", name: "Sprint & Stamina", desc: "Limited sprinting with stamina drain and regen" },
+  { id: "notes", name: "Lore Notes", desc: "Collectible story notes scattered through rooms" },
+  { id: "monster", name: "Monster AI", desc: "A creature that patrols and chases the player" },
+  { id: "multiplayer", name: "Co-op Mode", desc: "2-4 players exploring together" },
+];
+
+// ── Racing config ──
+
+const racingThemes: Theme[] = [
+  { id: "street", name: "Street Racing", icon: Flame, color: "bg-orange-600", prompt: "street racing-themed with city roads, neon lights, drifting, and nighttime vibes" },
+  { id: "offroad", name: "Off-Road", icon: TreePine, color: "bg-green-700", prompt: "off-road-themed with dirt tracks, mud, jumps, and rugged terrain" },
+  { id: "futuristic", name: "Futuristic", icon: Zap, color: "bg-cyan-600", prompt: "futuristic-themed with hover vehicles, neon tracks, speed tunnels, and anti-gravity sections" },
+  { id: "kart", name: "Kart Racing", icon: Star, color: "bg-red-500", prompt: "kart racing-themed with colorful tracks, item pickups, banana peels, and boost mushrooms" },
+  { id: "drag", name: "Drag Racing", icon: Sparkles, color: "bg-yellow-600", prompt: "drag racing-themed with straight-line speed, gear shifting, NOS, and reaction time starts" },
+  { id: "rally", name: "Rally", icon: Pickaxe, color: "bg-amber-700", prompt: "rally-themed with winding mountain roads, co-driver callouts, and weather effects" },
+];
+
+const racingScales = [
+  { id: "quick", name: "Quick Race", count: 1, label: "tracks", desc: "1 track, 3 laps, basic vehicles — quick fun" },
+  { id: "circuit", name: "Circuit Series", count: 3, label: "tracks", desc: "3 tracks, vehicle shop, boost pads" },
+  { id: "championship", name: "Championship", count: 6, label: "tracks", desc: "6 tracks, rankings, vehicle upgrades, powerups" },
+  { id: "openworld", name: "Open World", count: 10, label: "tracks", desc: "Free roam + 10 race events, garage, customization" },
+];
+
+const racingFeatures = [
+  { id: "vehicles", name: "Vehicle Garage", desc: "Multiple vehicles with different speed/handling stats" },
+  { id: "laps", name: "Lap System", desc: "Multi-lap races with checkpoint validation" },
+  { id: "boost", name: "Boost Pads", desc: "Speed boost zones on the track" },
+  { id: "powerups", name: "Powerups", desc: "Boost, shield, and oil slick pickups" },
+  { id: "countdown", name: "Race Countdown", desc: "3-2-1-GO! start sequence" },
+  { id: "leaderboard", name: "Best Times", desc: "Track best lap times and race records" },
+  { id: "customization", name: "Customization", desc: "Paint colors, decals, and wheel options" },
+  { id: "matchmaking", name: "Matchmaking", desc: "Auto-queue with ranked and casual races" },
+];
+
+// ── Minigames config ──
+
+const miniThemes: Theme[] = [
+  { id: "party", name: "Party Games", icon: Star, color: "bg-pink-500", prompt: "party games-themed with colorful arenas, confetti, balloons, and upbeat music" },
+  { id: "survival", name: "Survival Games", icon: Flame, color: "bg-red-600", prompt: "survival-themed with shrinking arenas, lava floors, and last-one-standing elimination" },
+  { id: "challenge", name: "Challenge Show", icon: Zap, color: "bg-purple-600", prompt: "game show-themed with obstacle courses, trivia, and elimination rounds" },
+  { id: "sports", name: "Sports Mix", icon: Candy, color: "bg-green-500", prompt: "sports-themed with soccer, basketball, dodgeball, and swimming mini-games" },
+  { id: "creative", name: "Creative Games", icon: Palette, color: "bg-indigo-500", prompt: "creative-themed with build battles, drawing games, and fashion shows" },
+  { id: "chaos", name: "Total Chaos", icon: Sparkles, color: "bg-orange-500", prompt: "chaotic-themed with random modifiers, gravity changes, size shifts, and wacky physics" },
+];
+
+const miniScales = [
+  { id: "small", name: "Quick Party", count: 3, label: "games", desc: "3 mini-games, fast rounds, simple rules" },
+  { id: "medium", name: "Game Night", count: 6, label: "games", desc: "6 mini-games, voting, intermission lobby" },
+  { id: "large", name: "Mega Collection", count: 10, label: "games", desc: "10 mini-games, titles, seasonal events" },
+  { id: "massive", name: "Ultimate Hub", count: 20, label: "games", desc: "20+ mini-games, custom lobbies, tournaments" },
+];
+
+const miniFeatures = [
+  { id: "voting", name: "Map Voting", desc: "Players vote on the next mini-game each round" },
+  { id: "rounds", name: "Round System", desc: "Intermission → vote → play → results cycle" },
+  { id: "elimination", name: "Elimination", desc: "Players get eliminated until one winner remains" },
+  { id: "teams", name: "Team Modes", desc: "Some games split players into teams" },
+  { id: "rewards", name: "Coin Rewards", desc: "Earn coins for winning, placing, and participating" },
+  { id: "titles", name: "Titles & Ranks", desc: "Unlock titles based on total wins" },
+  { id: "spectate", name: "Spectator Mode", desc: "Watch the game after being eliminated" },
+  { id: "custom", name: "Custom Games", desc: "Create private lobbies with friends" },
+];
+
 // ── Template-agnostic wizard ──
 
 function getConfig(templateType: string) {
+  if (templateType === "horror") {
+    return {
+      themes: horrorThemes,
+      scales: horrorScales,
+      features: horrorFeatures,
+      stepLabels: [
+        { title: "Setting", subtitle: "Where does the horror take place?" },
+        { title: "Intensity", subtitle: "How scary should it be?" },
+        { title: "Mechanics", subtitle: "What horror systems?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "mansion",
+      defaultFeatures: ["flashlight", "puzzles", "jumpscares"],
+      buildPrompt: (theme: Theme, scale: typeof horrorScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} horror game called "${name || "My Horror Game"}" with ${scale.count} rooms. Make it ${theme.prompt}. Include these systems: ${features}. Create dark atmosphere with fog, flickering lights, and ambient sounds. Puzzles should gate progression between rooms.`,
+      namePlaceholder: "The Haunted Mansion",
+      scaleLabel: "rooms",
+    };
+  }
+
+  if (templateType === "racing") {
+    return {
+      themes: racingThemes,
+      scales: racingScales,
+      features: racingFeatures,
+      stepLabels: [
+        { title: "Style", subtitle: "What kind of racing?" },
+        { title: "Scale", subtitle: "How many tracks?" },
+        { title: "Features", subtitle: "What racing systems?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "kart",
+      defaultFeatures: ["vehicles", "laps", "boost"],
+      buildPrompt: (theme: Theme, scale: typeof racingScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} racing game called "${name || "My Racing Game"}" with ${scale.count} tracks. Make it ${theme.prompt}. Include these systems: ${features}. Create tracks with checkpoints, a vehicle garage in the lobby, and race rewards.`,
+      namePlaceholder: "Speed Legends",
+      scaleLabel: "tracks",
+    };
+  }
+
+  if (templateType === "minigames") {
+    return {
+      themes: miniThemes,
+      scales: miniScales,
+      features: miniFeatures,
+      stepLabels: [
+        { title: "Vibe", subtitle: "What kind of mini-games?" },
+        { title: "Scale", subtitle: "How many games?" },
+        { title: "Systems", subtitle: "What hub features?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "party",
+      defaultFeatures: ["voting", "rounds", "rewards"],
+      buildPrompt: (theme: Theme, scale: typeof miniScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} minigame hub called "${name || "My Minigames"}" with ${scale.count} games. Make it ${theme.prompt}. Include these systems: ${features}. Create a lobby with a voting board, intermission timer, and automatic round rotation.`,
+      namePlaceholder: "Party Games Hub",
+      scaleLabel: "games",
+    };
+  }
+
   if (templateType === "rpg") {
     return {
       themes: rpgThemes,
