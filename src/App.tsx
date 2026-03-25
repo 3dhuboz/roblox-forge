@@ -8,9 +8,11 @@ import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { OnboardingFlow } from "./features/onboarding/OnboardingFlow";
 import { useUserStore } from "./stores/userStore";
+import { useKeyboardShortcuts } from "./lib/useKeyboardShortcuts";
 
 function App() {
   const { profile } = useUserStore();
+  useKeyboardShortcuts();
 
   const shell = (body: React.ReactNode) => (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-950 text-white">
