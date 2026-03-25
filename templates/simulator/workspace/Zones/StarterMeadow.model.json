@@ -1,0 +1,53 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ZoneFloor" },
+        "Size": { "Vector3": [50, 1, 50] },
+        "CFrame": { "CFrame": { "position": [0, 0.5, -60], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [120, 200, 120] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ClickOrb1" },
+        "Size": { "Vector3": [4, 4, 4] },
+        "CFrame": { "CFrame": { "position": [-10, 4, -55], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["ClickOrb"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ClickOrb2" },
+        "Size": { "Vector3": [4, 4, 4] },
+        "CFrame": { "CFrame": { "position": [10, 4, -65], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 255, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["ClickOrb"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ZoneGate" },
+        "Size": { "Vector3": [10, 8, 2] },
+        "CFrame": { "CFrame": { "position": [0, 4.5, -35], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 160, 80] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.3 }
+      },
+      "tags": ["ZoneGate"]
+    }
+  ]
+}

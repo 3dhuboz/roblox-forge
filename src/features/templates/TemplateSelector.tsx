@@ -42,7 +42,7 @@ const templates: Template[] = [
     name: "Simulator",
     description: "Click, collect, and upgrade! With pets, rebirths, and endless progression.",
     icon: Zap,
-    available: false,
+    available: true,
     color: "bg-purple-600",
   },
   {

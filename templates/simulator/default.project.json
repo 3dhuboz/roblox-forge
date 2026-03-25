@@ -1,0 +1,54 @@
+{
+  "name": "My Simulator",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Zones": {
+        "$className": "Folder",
+        "$path": "workspace/Zones"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "ClickManager": {
+        "$path": "src/server/ClickManager.server.luau"
+      },
+      "PetManager": {
+        "$path": "src/server/PetManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      },
+      "RebirthManager": {
+        "$path": "src/server/RebirthManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "SimulatorUI": {
+          "$path": "src/client/SimulatorUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "SimConfig": {
+        "$path": "src/shared/SimConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.5, 0.5, 0.55],
+        "Brightness": 2.5,
+        "ClockTime": 12
+      }
+    }
+  }
+}
