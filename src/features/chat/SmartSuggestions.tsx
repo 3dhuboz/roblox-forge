@@ -1,4 +1,3 @@
-import { Lightbulb } from "lucide-react";
 import { useUserStore } from "../../stores/userStore";
 import { useProjectStore } from "../../stores/projectStore";
 
@@ -504,14 +503,13 @@ export function SmartSuggestions({ onSelect, messageCount }: SmartSuggestionsPro
   const suggestions = getSuggestions();
 
   return (
-    <div className="flex items-start gap-2 px-4 py-3">
-      <Lightbulb size={14} className="mt-0.5 shrink-0 text-yellow-500" />
-      <div className="flex flex-wrap gap-1.5">
+    <div className="px-5 py-3">
+      <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion) => (
           <button
             key={suggestion}
             onClick={() => onSelect(suggestion)}
-            className="rounded-full border border-gray-700 bg-gray-800/80 px-3 py-1 text-xs text-gray-300 transition-colors hover:border-indigo-500/50 hover:bg-indigo-950/30 hover:text-indigo-300"
+            className="rounded-xl border border-gray-700/40 bg-gray-800/50 px-4 py-2.5 text-[13px] text-gray-300 transition-all hover:border-indigo-500/40 hover:bg-indigo-950/30 hover:text-indigo-200 hover:shadow-md hover:shadow-indigo-500/5 active:scale-[0.97]"
           >
             {suggestion}
           </button>

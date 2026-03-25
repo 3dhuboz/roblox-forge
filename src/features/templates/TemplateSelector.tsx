@@ -186,31 +186,31 @@ export function TemplateSelector() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-gray-800 px-8 py-6">
-        <h1 className="text-3xl font-bold">
-          {profile.displayName ? `Hey ${profile.displayName}!` : "What do you want to build?"}
+      <div className="px-8 pt-8 pb-2">
+        <h1 className="text-2xl font-bold text-white">
+          {profile.displayName ? `What should we make, ${profile.displayName}?` : "What do you want to build?"}
         </h1>
-        <p className="mt-2 text-gray-400">
-          Pick a game type and AI will help you build it from scratch.
+        <p className="mt-1.5 text-sm text-gray-400">
+          Pick a game and tell the AI what you want. It handles the code!
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto px-8 py-4">
         {/* Continue current project */}
         {hasOpenProject && (
-          <div className="mb-8">
+          <div className="mb-6">
             <button
               onClick={() => navigate("/build")}
-              className="flex w-full items-center gap-4 rounded-xl border border-indigo-800/60 bg-indigo-950/30 p-5 text-left transition-all hover:bg-indigo-950/50"
+              className="group flex w-full items-center gap-4 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 to-purple-950/40 p-5 text-left transition-all hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10"
             >
-              <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${TEMPLATE_COLOR_MAP[project!.template] || "bg-indigo-600"}`}>
-                {(() => { const Icon = TEMPLATE_ICON_MAP[project!.template] || Mountain; return <Icon size={24} className="text-white" />; })()}
+              <div className={`flex h-14 w-14 items-center justify-center rounded-xl shadow-lg ${TEMPLATE_COLOR_MAP[project!.template] || "bg-indigo-600"}`}>
+                {(() => { const Icon = TEMPLATE_ICON_MAP[project!.template] || Mountain; return <Icon size={26} className="text-white" />; })()}
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">{project!.name}</h3>
-                <p className="text-sm text-gray-400">Continue building your {project!.template}</p>
+                <h3 className="text-lg font-bold text-white">{project!.name}</h3>
+                <p className="text-sm text-indigo-300/70">Keep building your {project!.template}</p>
               </div>
-              <span className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">
+              <span className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 group-hover:bg-indigo-500">
                 Continue
               </span>
             </button>
@@ -260,11 +260,11 @@ export function TemplateSelector() {
 
         {/* New game heading */}
         {(recentProjects.length > 0 || hasOpenProject) && (
-          <h2 className="mb-3 text-sm font-semibold text-gray-400">New Game</h2>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Start Something New</h2>
         )}
 
         {/* Template grid */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
           {templates.map((template) => {
             const Icon = template.icon;
             const isSelected = selectedTemplate === template.id;
@@ -273,49 +273,63 @@ export function TemplateSelector() {
                 key={template.id}
                 onClick={() => handleTemplateClick(template)}
                 disabled={!template.available}
-                className={`group relative flex flex-col items-start rounded-xl border p-5 text-left transition-all ${
+                className={`group relative flex flex-col rounded-2xl border p-0 text-left transition-all overflow-hidden ${
                   isSelected
-                    ? "border-indigo-500 bg-indigo-950/50 ring-2 ring-indigo-500"
+                    ? "border-indigo-500 ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-500/10"
                     : template.available
-                      ? "border-gray-800 bg-gray-900 hover:border-gray-700 hover:bg-gray-850"
-                      : "cursor-not-allowed border-gray-800/50 bg-gray-900/50 opacity-50"
+                      ? "border-gray-800/60 hover:border-gray-700 hover:shadow-md hover:shadow-black/20"
+                      : "cursor-not-allowed border-gray-800/30 opacity-40"
                 }`}
               >
-                {!template.available && (
-                  <span className="absolute right-3 top-3 rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-300">
-                    Coming Soon
-                  </span>
-                )}
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-lg ${template.color}`}
-                >
-                  <Icon size={24} className="text-white" />
+                {/* Color banner */}
+                <div className={`flex h-20 items-center justify-center ${template.color}`}>
+                  <Icon size={36} className="text-white/90" strokeWidth={1.5} />
                 </div>
-                <h3 className="mt-3 text-lg font-semibold">{template.name}</h3>
-                <p className="mt-1 text-sm text-gray-400 leading-relaxed">
-                  {template.description}
-                </p>
+
+                {/* Info */}
+                <div className="bg-gray-900/90 p-4">
+                  <h3 className="text-base font-bold text-white">{template.name}</h3>
+                  <p className="mt-1 text-[13px] leading-snug text-gray-400">
+                    {template.description}
+                  </p>
+                </div>
+
+                {/* Selected indicator */}
+                {isSelected && (
+                  <div className="absolute right-3 top-3 rounded-full bg-indigo-600 px-2.5 py-0.5 text-[10px] font-bold text-white shadow">
+                    Selected
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Name input + create button */}
+      {/* Name input + create */}
       {showNameInput && (
-        <div className="border-t border-gray-800 bg-gray-900 px-8 py-5">
-          <div className="flex items-center gap-4">
+        <div className="border-t border-gray-800/50 bg-gray-900/80 px-8 py-5 backdrop-blur">
+          <div className="mx-auto flex max-w-xl items-end gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-gray-300">
-                Game Name
+              <label className="mb-1.5 block text-sm font-semibold text-white">
+                Name your game
               </label>
               <input
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                placeholder={selectedTemplate === "tycoon" ? "My Factory Empire" : "My Awesome Obby"}
+                placeholder={
+                  selectedTemplate === "tycoon" ? "My Factory Empire"
+                    : selectedTemplate === "rpg" ? "Dragon Quest Adventure"
+                    : selectedTemplate === "horror" ? "The Haunted Mansion"
+                    : selectedTemplate === "racing" ? "Speed Legends"
+                    : selectedTemplate === "minigames" ? "Party Games Hub"
+                    : selectedTemplate === "battlegrounds" ? "Epic Battles"
+                    : selectedTemplate === "simulator" ? "Pet Simulator X"
+                    : "My Awesome Obby"
+                }
                 autoFocus
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-3 text-[15px] text-white placeholder-gray-500 outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreate();
                 }}
@@ -324,9 +338,9 @@ export function TemplateSelector() {
             <button
               onClick={handleCreate}
               disabled={!projectName.trim() || isLoading}
-              className="mt-6 rounded-lg bg-indigo-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-indigo-600 px-6 py-3 text-[15px] font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
-              {isLoading ? "Creating..." : "Start Building"}
+              {isLoading ? "Creating..." : "Let's Go!"}
             </button>
           </div>
         </div>
