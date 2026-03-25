@@ -1,0 +1,54 @@
+{
+  "name": "My Tycoon",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "Gravity": 196.2
+      },
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Plots": {
+        "$className": "Folder",
+        "$path": "workspace/Plots"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "TycoonManager": {
+        "$path": "src/server/TycoonManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      },
+      "IncomeManager": {
+        "$path": "src/server/IncomeManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "TycoonUI": {
+          "$path": "src/client/TycoonUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "TycoonConfig": {
+        "$path": "src/shared/TycoonConfig.luau"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.4, 0.4, 0.4],
+        "Brightness": 2,
+        "ClockTime": 14
+      }
+    }
+  }
+}

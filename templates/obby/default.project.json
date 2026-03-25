@@ -1,0 +1,57 @@
+{
+  "name": "ObbyGame",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "StageManager": {
+        "$path": "src/server/StageManager.server.luau"
+      },
+      "DataManager": {
+        "$path": "src/server/DataManager.server.luau"
+      },
+      "LeaderboardManager": {
+        "$path": "src/server/LeaderboardManager.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "ObbyUI": {
+          "$path": "src/client/ObbyUI.client.luau"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "ObbyConfig": {
+        "$path": "src/shared/ObbyConfig.luau"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "Lobby": {
+        "$path": "workspace/Lobby.model.json"
+      },
+      "Stages": {
+        "$path": "workspace/Stages"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui"
+    },
+    "SoundService": {
+      "$className": "SoundService"
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.5, 0.5, 0.5],
+        "Brightness": 2,
+        "ClockTime": 12,
+        "FogEnd": 1000
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "NarrowBridge" },
+        "Size": { "Vector3": [2.0, 1.0, 20.0] },
+        "CFrame": { "CFrame": { "position": [8.0, 14.0, 80.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 200, 50] },
+        "Material": { "Enum": 512 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform4" },
+        "Size": { "Vector3": [5.0, 1.0, 5.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 17.0, 100.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [170, 85, 255] },
+        "Material": { "Enum": 256 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform5" },
+        "Size": { "Vector3": [4.0, 1.0, 4.0] },
+        "CFrame": { "CFrame": { "position": [-8.0, 20.0, 115.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [170, 85, 255] },
+        "Material": { "Enum": 256 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform6" },
+        "Size": { "Vector3": [4.0, 1.0, 4.0] },
+        "CFrame": { "CFrame": { "position": [6.0, 23.0, 125.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [170, 85, 255] },
+        "Material": { "Enum": 256 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "KillBrick2" },
+        "Size": { "Vector3": [30.0, 1.0, 30.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 10.0, 110.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 50, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["KillBrick"] }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "KillBrick3" },
+        "Size": { "Vector3": [24.0, 1.0, 20.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 12.0, 80.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 50, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["KillBrick"] }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Checkpoint2" },
+        "Size": { "Vector3": [10.0, 1.0, 10.0] },
+        "CFrame": { "CFrame": { "position": [6.0, 23.0, 135.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 255, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    }
+  ]
+}

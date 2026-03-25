@@ -1,0 +1,61 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "LobbySpawn" },
+        "Size": { "Vector3": [20.0, 1.0, 20.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 0.5, 0.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 200, 100] },
+        "Material": { "Enum": 256 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Floor" },
+        "Size": { "Vector3": [80.0, 2.0, 80.0] },
+        "CFrame": { "CFrame": { "position": [0.0, -0.5, 0.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [160, 160, 160] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "StartSign" },
+        "Size": { "Vector3": [12.0, 6.0, 1.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 4.0, -10.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 50, 200] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "children": [
+        {
+          "className": "SurfaceGui",
+          "properties": {
+            "Face": { "Enum": 5 }
+          },
+          "children": [
+            {
+              "className": "TextLabel",
+              "properties": {
+                "Name": { "String": "Title" },
+                "Size": { "UDim2": [[1, 0], [1, 0]] },
+                "BackgroundTransparency": { "Float32": 1.0 },
+                "Text": { "String": "START HERE!" },
+                "TextColor3": { "Color3": [1.0, 1.0, 1.0] },
+                "TextScaled": { "Bool": true },
+                "Font": { "Enum": 28 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

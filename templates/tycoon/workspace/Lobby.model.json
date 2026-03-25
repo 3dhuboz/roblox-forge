@@ -1,0 +1,62 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Spawn" },
+        "Size": { "Vector3": [16, 1, 16] },
+        "CFrame": { "CFrame": { "position": [0, 1, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [180, 220, 180] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LobbyFloor" },
+        "Size": { "Vector3": [80, 2, 80] },
+        "CFrame": { "CFrame": { "position": [0, -0.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [120, 160, 120] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "WelcomeSign" },
+        "Size": { "Vector3": [12, 6, 1] },
+        "CFrame": { "CFrame": { "position": [0, 4, -12], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [60, 60, 100] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "children": [
+        {
+          "className": "SurfaceGui",
+          "properties": {
+            "Name": { "String": "SignGui" },
+            "Face": { "Enum": 5 }
+          },
+          "children": [
+            {
+              "className": "TextLabel",
+              "properties": {
+                "Name": { "String": "Title" },
+                "Size": { "UDim2": [[1, 0], [1, 0]] },
+                "BackgroundTransparency": { "Float32": 1.0 },
+                "Text": { "String": "Welcome to My Tycoon!" },
+                "TextColor3": { "Color3uint8": [255, 255, 255] },
+                "TextScaled": { "Bool": true },
+                "Font": { "Enum": 10 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

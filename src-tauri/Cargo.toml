@@ -1,0 +1,33 @@
+[package]
+name = "roblox-forge"
+version = "0.1.0"
+description = "AI-Powered Roblox Game Builder"
+authors = ["Steve"]
+edition = "2021"
+
+[lib]
+name = "roblox_forge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+sha2 = "0.10"
+base64 = "0.22"
+rand = "0.9"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+thiserror = "2"
+anyhow = "1"
+dirs = "6"
+fs_extra = "1.3"
+open = "5"
+urlencoding = "2"
