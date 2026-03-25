@@ -464,47 +464,31 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
   const selectedScale = config.scales.find((d) => d.id === scale);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Progress bar */}
-      <div className="border-b border-gray-800 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Sparkles size={20} className="text-indigo-400" />
-          <h3 className="font-semibold">Game Builder Wizard</h3>
+    <div className="flex h-full flex-col bg-gray-950">
+      {/* Simple progress */}
+      <div className="flex items-center gap-3 border-b border-gray-800/40 px-6 py-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
+          <Sparkles size={16} className="text-white" />
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          {steps.map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
-              {i > 0 && <div className="h-px w-6 bg-gray-700" />}
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                    i === wizardStep
-                      ? "bg-indigo-600 text-white"
-                      : i < wizardStep
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-700 text-gray-400"
-                  }`}
-                >
-                  {i < wizardStep ? "\u2713" : i + 1}
-                </div>
-                <span
-                  className={`text-xs ${i === wizardStep ? "text-white" : "text-gray-500"}`}
-                >
-                  {s.title}
-                </span>
-              </div>
-            </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-white">{steps[wizardStep].subtitle}</p>
+          <p className="text-[11px] text-gray-500">Step {wizardStep + 1} of {steps.length}</p>
+        </div>
+        <div className="flex gap-1">
+          {steps.map((_, i) => (
+            <div key={i} className={`h-1.5 w-6 rounded-full ${i <= wizardStep ? "bg-indigo-500" : "bg-gray-800"}`} />
           ))}
         </div>
       </div>
 
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* Step 0: Theme selection */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        {/* Step 0: Theme */}
         {wizardStep === 0 && (
           <div>
-            <h3 className="text-xl font-bold">{steps[0].subtitle}</h3>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <h3 className="text-lg font-bold text-white">{steps[0].subtitle}</h3>
+            <p className="mt-1 text-sm text-gray-400">Tap the one you like best!</p>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
               {config.themes.map((t) => {
                 const Icon = t.icon;
                 const selected = theme === t.id;
@@ -512,16 +496,16 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
                   <button
                     key={t.id}
                     onClick={() => setTheme(t.id)}
-                    className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+                    className={`flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${
                       selected
-                        ? "border-indigo-500 bg-indigo-950/50 ring-2 ring-indigo-500/30"
-                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                        ? "border-indigo-500 bg-indigo-950/40 ring-2 ring-indigo-500/30"
+                        : "border-gray-800/60 bg-gray-900/60 hover:border-gray-700"
                     }`}
                   >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${t.color}`}>
-                      <Icon size={20} />
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.color} shadow`}>
+                      <Icon size={20} className="text-white" />
                     </div>
-                    <span className="font-medium">{t.name}</span>
+                    <span className="text-sm font-semibold text-white">{t.name}</span>
                   </button>
                 );
               })}
