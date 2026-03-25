@@ -296,74 +296,275 @@ export function mockWriteFile(
 
 let mockMessageCount = 0;
 
-export function mockSendChatMessage(message: string): AiResponse {
-  mockMessageCount++;
-  const lower = message.toLowerCase();
+// ── Keyword matchers ──
 
-  // Simulate intelligent responses based on user input
-  if (lower.includes("add") && lower.includes("stage")) {
+function matches(lower: string, ...keywords: string[]): boolean {
+  return keywords.some((k) => lower.includes(k));
+}
+
+// ── Obby responses ──
+
+function obbyResponse(lower: string): AiResponse | null {
+  if (matches(lower, "stage") && matches(lower, "add", "new", "more", "create")) {
     return {
-      message:
-        "I've added a new stage to your obby! It has some tricky platforms and a checkpoint at the end. Try asking me to add specific obstacles like spinning bars or disappearing blocks!",
+      message: "Added a new stage with varied platforms and a checkpoint at the end. Each stage gets progressively harder — want me to add specific obstacles like spinning bars or disappearing blocks?",
       changes: [
-        { type: "add_stage", description: "Added Stage3 with 4 parts and a checkpoint" },
+        { type: "add_stage", description: "Added Stage3 with 5 parts and a checkpoint" },
         { type: "update_config", description: "Updated MaxStages to 3" },
       ],
     };
   }
-
-  if (lower.includes("kill") || lower.includes("lava")) {
+  if (matches(lower, "kill", "lava", "hazard", "danger")) {
     return {
-      message:
-        "Added some lava kill bricks! They glow red with Neon material. Players who touch them will respawn at their last checkpoint.",
+      message: "Added lava kill bricks with red Neon material. Players who touch them respawn at their last checkpoint. I placed them between platforms to make the jumps trickier.",
       changes: [
         { type: "add_part", description: "Added LavaBrick1 to Stage2" },
         { type: "add_part", description: "Added LavaBrick2 to Stage2" },
       ],
     };
   }
-
-  if (lower.includes("moving") || lower.includes("platform")) {
+  if (matches(lower, "moving", "slide", "tween")) {
     return {
-      message:
-        "Added a moving platform that slides back and forth using TweenService. The platform takes 2 seconds per trip and pauses briefly at each end.",
+      message: "Added a moving platform using TweenService — it slides 20 studs back and forth over 2 seconds with a brief pause at each end. Great for timing-based jumps!",
       changes: [
         { type: "add_part", description: "Added MovingPlatform to Stage1" },
-        { type: "modify_script", description: "Updated StageManager with platform animation" },
+        { type: "modify_script", description: "Updated StageManager with TweenService animation" },
       ],
     };
   }
-
-  if (lower.includes("color") || lower.includes("colour") || lower.includes("neon")) {
+  if (matches(lower, "spinning", "spin", "rotat")) {
     return {
-      message:
-        "Updated the platform colors! Stage 1 now uses cool blues and purples with Neon material for a space feel. Stage 2 has warm oranges and reds.",
+      message: "Added a spinning obstacle bar! It rotates on a Heartbeat loop at 90°/sec. Players need to time their jumps to avoid getting knocked off.",
       changes: [
-        { type: "set_property", description: "Updated colors across 8 parts" },
+        { type: "add_part", description: "Added SpinBar to Stage2" },
+        { type: "modify_script", description: "Added rotation script using RunService.Heartbeat" },
       ],
     };
   }
-
-  if (lower.includes("checkpoint")) {
+  if (matches(lower, "disappear", "vanish", "invisible")) {
     return {
-      message:
-        "Added checkpoints to every stage. Each checkpoint is a green SpawnLocation that saves the player's progress. They'll respawn here if they fall!",
+      message: "Added disappearing blocks that cycle between visible and invisible every 2 seconds. The timing is staggered so players need to memorize the pattern!",
       changes: [
-        { type: "add_part", description: "Added checkpoints to all stages" },
+        { type: "add_part", description: "Added DisappearBlock1-3 to Stage2" },
+        { type: "modify_script", description: "Added visibility toggle script" },
       ],
     };
   }
+  if (matches(lower, "checkpoint", "spawn", "save")) {
+    return {
+      message: "Added checkpoints to every stage — green SpawnLocations that save progress. Players respawn here instead of the beginning!",
+      changes: [{ type: "add_part", description: "Added checkpoints to all stages" }],
+    };
+  }
+  if (matches(lower, "color", "colour", "neon", "glow", "theme")) {
+    return {
+      message: "Updated colors! Stage 1 uses cool blues and purples with Neon material. Stage 2 has warm oranges and reds. The checkpoints stay green for visibility.",
+      changes: [{ type: "set_property", description: "Updated colors across 8 parts" }],
+    };
+  }
+  if (matches(lower, "trampoline", "bounce", "jump pad")) {
+    return {
+      message: "Added a trampoline pad! When players land on it, their HumanoidRootPart gets a 120-stud upward velocity boost. Great for reaching high platforms.",
+      changes: [
+        { type: "add_part", description: "Added Trampoline to Stage1" },
+        { type: "modify_script", description: "Added bounce handling via CollectionService tag" },
+      ],
+    };
+  }
+  return null;
+}
 
-  // Default helpful response
+// ── Tycoon responses ──
+
+function tycoonResponse(lower: string): AiResponse | null {
+  if (matches(lower, "dropper", "produce", "machine")) {
+    return {
+      message: "Added a new dropper machine! It produces glowing ore every 2 seconds that rolls onto the conveyor belt. Each ore is worth $1 base value (affected by your multipliers).",
+      changes: [
+        { type: "add_part", description: "Added OreDropper to Plot1" },
+        { type: "modify_script", description: "Updated TycoonManager dropper loop" },
+      ],
+    };
+  }
+  if (matches(lower, "conveyor", "belt", "transport")) {
+    return {
+      message: "Extended the conveyor belt! It now runs 30 studs at speed 12. Items slide smoothly from dropper to collector using AssemblyLinearVelocity.",
+      changes: [
+        { type: "add_part", description: "Added Conveyor2 to Plot1" },
+        { type: "set_property", description: "Set AssemblyLinearVelocity on conveyors" },
+      ],
+    };
+  }
+  if (matches(lower, "upgrade", "boost", "faster", "double", "2x")) {
+    return {
+      message: "Added a new upgrade button! It costs $500 and doubles your dropper speed. The button glows blue and disappears after purchase.",
+      changes: [
+        { type: "add_part", description: "Added UpgradeButton2 to Plot1" },
+        { type: "update_config", description: "Added 'Double Speed' to TycoonConfig.Upgrades" },
+      ],
+    };
+  }
+  if (matches(lower, "rebirth", "prestige", "reset")) {
+    return {
+      message: "Added rebirth system! At $50,000 you can rebirth for a permanent 2x multiplier and 10 gems. All cash and upgrades reset but gems and rebirths are permanent.",
+      changes: [
+        { type: "modify_script", description: "Added rebirth logic to IncomeManager" },
+        { type: "update_config", description: "Added rebirth tiers to TycoonConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "collector", "collect", "earn")) {
+    return {
+      message: "Upgraded the collector! It now has a larger hitbox (8x4x8) and shows a particle effect when items are collected. Cash is added instantly on touch.",
+      changes: [
+        { type: "set_property", description: "Resized Collector to 8x4x8" },
+        { type: "add_part", description: "Added ParticleEmitter to Collector" },
+      ],
+    };
+  }
+  if (matches(lower, "gamepass", "game pass", "robux", "premium")) {
+    return {
+      message: "Added a Game Pass setup! I've created a '2x Cash' pass structure. In the desktop app, you'd link this to your actual Game Pass ID from the Creator Dashboard.",
+      changes: [
+        { type: "modify_script", description: "Added game pass check to TycoonManager" },
+        { type: "update_config", description: "Added GamePasses section to config" },
+      ],
+    };
+  }
+  return null;
+}
+
+// ── Simulator responses ──
+
+function simResponse(lower: string): AiResponse | null {
+  if (matches(lower, "click", "orb", "tap", "earn")) {
+    return {
+      message: "Set up the click system! Tap the glowing orbs to earn coins. Each click gives you coins equal to your Click Power (starts at 1). The orb pulses when clicked for satisfying feedback.",
+      changes: [
+        { type: "add_part", description: "Added ClickOrb to Lobby" },
+        { type: "modify_script", description: "Updated ClickManager with visual feedback" },
+      ],
+    };
+  }
+  if (matches(lower, "pet", "egg", "hatch")) {
+    return {
+      message: "Added an egg hatching station! Costs 100 coins per hatch. You can get: Basic Cat (60% common, 1.2x boost), Lucky Dog (30% common, 1.3x), Crystal Fox (8% rare, 2x), or Golden Dragon (2% legendary, 5x)!",
+      changes: [
+        { type: "add_part", description: "Added EggHatchPad to Lobby" },
+        { type: "modify_script", description: "Updated PetManager with weighted RNG" },
+      ],
+    };
+  }
+  if (matches(lower, "rebirth", "prestige", "reset")) {
+    return {
+      message: "Added rebirth system! At 50K coins, rebirth for a permanent 2x multiplier and 10 gems. Coins and upgrades reset, but pets and gems stay forever.",
+      changes: [
+        { type: "modify_script", description: "Updated RebirthManager with tier 1" },
+        { type: "update_config", description: "Added rebirth config" },
+      ],
+    };
+  }
+  if (matches(lower, "zone", "area", "world", "unlock")) {
+    return {
+      message: "Added a new zone! 'Crystal Caves' unlocks at 1,000 coins and gives 3x coin multiplier. It has a purple crystal theme with new orbs to click.",
+      changes: [
+        { type: "add_stage", description: "Added CrystalCaves zone" },
+        { type: "add_part", description: "Added ZoneGate with 1000 coin requirement" },
+      ],
+    };
+  }
+  if (matches(lower, "upgrade", "power", "auto", "multiplier")) {
+    return {
+      message: "Added upgrades! Click Power +1 (50 coins), Auto Click (500 coins — earns passively at half rate), 2x Coins (10 gems), Extra Pet Slot (25 gems).",
+      changes: [
+        { type: "modify_script", description: "Added upgrade shop to ClickManager" },
+        { type: "update_config", description: "Added 4 upgrades to SimConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "leaderboard", "rank", "top")) {
+    return {
+      message: "Added a global leaderboard showing top 100 players by total coins earned! Uses an OrderedDataStore that updates every 60 seconds.",
+      changes: [
+        { type: "modify_script", description: "Added LeaderboardService script" },
+        { type: "add_part", description: "Added LeaderboardDisplay to Lobby" },
+      ],
+    };
+  }
+  if (matches(lower, "code", "redeem", "promo")) {
+    return {
+      message: "Added a codes system! Players can redeem codes for free coins and gems. I've set up 3 starter codes: 'LAUNCH' (500 coins), 'PETS' (free egg), 'GEMS5' (5 gems).",
+      changes: [
+        { type: "modify_script", description: "Added CodesManager server script" },
+        { type: "update_config", description: "Added active codes to SimConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "trading", "trade")) {
+    return {
+      message: "Added pet trading! Players can request a trade by clicking another player. Both see a trade UI showing offered pets. Both must confirm before the swap happens server-side.",
+      changes: [
+        { type: "modify_script", description: "Added TradingManager server script" },
+        { type: "modify_script", description: "Added trading UI to SimulatorUI" },
+      ],
+    };
+  }
+  return null;
+}
+
+// ── Universal responses ──
+
+function universalResponse(lower: string): AiResponse | null {
+  if (matches(lower, "sound", "audio", "music", "sfx")) {
+    return {
+      message: "Added sound effects! Click sounds on interaction, a cash register 'cha-ching' on earnings, and ambient background music. All volumes are adjustable.",
+      changes: [{ type: "modify_script", description: "Added SoundService configuration" }],
+    };
+  }
+  if (matches(lower, "particle", "effect", "visual", "sparkle")) {
+    return {
+      message: "Added particle effects! Sparkles on checkpoints, fire particles on hazards, and a coin burst when earning. Makes everything feel more polished.",
+      changes: [{ type: "add_part", description: "Added ParticleEmitters to key objects" }],
+    };
+  }
+  if (matches(lower, "gui", "ui", "hud", "display", "screen")) {
+    return {
+      message: "Updated the HUD! Added a cleaner layout with rounded frames, animated number transitions, and better contrast. The font uses GothamBold for a modern Roblox feel.",
+      changes: [{ type: "modify_script", description: "Redesigned client HUD layout" }],
+    };
+  }
+  if (matches(lower, "lighting", "sky", "atmosphere", "time")) {
+    return {
+      message: "Updated the lighting! Set ClockTime to 14 for warm afternoon light, added an Atmosphere with slight haze, and a Bloom effect for glowing Neon materials.",
+      changes: [{ type: "set_property", description: "Updated Lighting properties and added post-processing" }],
+    };
+  }
+  return null;
+}
+
+export function mockSendChatMessage(message: string): AiResponse {
+  mockMessageCount++;
+  const lower = message.toLowerCase();
+
+  // Try template-specific responses first, then universal
+  const resp =
+    obbyResponse(lower) ??
+    tycoonResponse(lower) ??
+    simResponse(lower) ??
+    universalResponse(lower);
+
+  if (resp) return resp;
+
+  // Fallback
   const tips = [
-    "Try saying 'add a new stage with spinning obstacles' or 'make the platforms neon blue'!",
-    "You can ask me to add kill bricks, moving platforms, trampolines, or conveyor belts.",
-    "Want to customize colors? Try 'make stage 1 purple and glowing'.",
-    "I can add checkpoints, speed boosts, or even a secret shortcut between stages!",
+    "Try describing what you want — 'add spinning obstacles' or 'make it neon themed'!",
+    "I can add kill bricks, moving platforms, pets, upgrades, rebirths, and more.",
+    "Want sounds or particles? Try 'add sound effects' or 'add sparkle particles'.",
+    "I can help with UI too — try 'update the HUD' or 'add a leaderboard'.",
   ];
 
   return {
-    message: `Got it! In the full desktop app, I'd make those changes to your game files right now. For this browser preview, here's a tip: ${tips[mockMessageCount % tips.length]}`,
+    message: `Interesting idea! Here's what I can do: ${tips[mockMessageCount % tips.length]}`,
     changes: [],
   };
 }
