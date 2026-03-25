@@ -6,139 +6,103 @@ import { GamePreview } from "../preview/GamePreview";
 import { GuidedWizard } from "./GuidedWizard";
 import { ScriptEditor } from "./ScriptEditor";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wand2, MessageSquare, HelpCircle, FileCode, Eye } from "lucide-react";
+import { ArrowLeft, Map, FileCode } from "lucide-react";
 
-type RightPanel = "preview" | "scripts";
+type RightTab = "map" | "code";
 
 export function BuildPage() {
   const { project, projectState } = useProjectStore();
   const { profile } = useUserStore();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"wizard" | "chat">(
-    profile.preferGuidedMode ? "wizard" : "chat",
-  );
   const [wizardDone, setWizardDone] = useState(false);
-  const [rightPanel, setRightPanel] = useState<RightPanel>("preview");
+  const [rightTab, setRightTab] = useState<RightTab>("map");
 
   if (!project) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-gray-400">
-        <p className="text-lg">No project open.</p>
+      <div className="flex h-full flex-col items-center justify-center gap-6 px-8 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600/20">
+          <Map size={40} className="text-indigo-400" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">No game yet</h2>
+          <p className="mt-2 text-gray-400">Pick a game type to start building!</p>
+        </div>
         <button
           onClick={() => navigate("/")}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500"
+          className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-500"
         >
-          Pick a Template
+          Choose a Game Type
         </button>
       </div>
     );
   }
 
-  // Show guided wizard for beginners on first creation
-  const showWizard = mode === "wizard" && !wizardDone;
+  const showWizard = profile.preferGuidedMode && !wizardDone;
+  const isAdvanced = profile.experienceLevel === "advanced";
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-gray-800 px-6 py-3">
+      {/* Simple header */}
+      <div className="flex items-center gap-3 border-b border-gray-800/60 px-5 py-2.5">
         <button
           onClick={() => navigate("/")}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"
+          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-white"
         >
           <ArrowLeft size={18} />
         </button>
-        <h2 className="text-lg font-semibold">{project.name}</h2>
-        <span className="rounded-full bg-gray-800 px-2.5 py-0.5 text-xs text-gray-400">
-          {project.template}
-        </span>
-        {projectState && (
-          <span className="rounded-full bg-indigo-900/50 px-2.5 py-0.5 text-xs text-indigo-300">
-            {projectState.stageCount} stages
-          </span>
-        )}
-
-        {/* Left panel mode toggle */}
-        <div className="ml-auto flex items-center gap-1 rounded-lg bg-gray-800 p-1">
-          <button
-            onClick={() => { setMode("wizard"); setWizardDone(false); }}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              mode === "wizard" && !wizardDone
-                ? "bg-indigo-600 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Wand2 size={14} /> Wizard
-          </button>
-          <button
-            onClick={() => { setMode("chat"); setWizardDone(true); }}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              mode === "chat" || wizardDone
-                ? "bg-indigo-600 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <MessageSquare size={14} /> Chat
-          </button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-white">{project.name}</h2>
+          {projectState && projectState.stageCount > 0 && (
+            <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-300">
+              {projectState.stageCount} {project.template === "obby" ? "stages" : project.template === "rpg" ? "zones" : "parts"}
+            </span>
+          )}
         </div>
 
-        {/* Right panel toggle */}
-        <div className="flex items-center gap-1 rounded-lg bg-gray-800 p-1">
-          <button
-            onClick={() => setRightPanel("preview")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              rightPanel === "preview"
-                ? "bg-indigo-600 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Eye size={14} /> Preview
-          </button>
-          <button
-            onClick={() => setRightPanel("scripts")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              rightPanel === "scripts"
-                ? "bg-indigo-600 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <FileCode size={14} /> Scripts
-          </button>
-        </div>
-
-        {profile.showTooltips && (
-          <button
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-gray-300"
-            title="Help"
-          >
-            <HelpCircle size={18} />
-          </button>
+        {/* Only show code tab for intermediate+ users */}
+        {isAdvanced && (
+          <div className="ml-auto flex items-center gap-1 rounded-lg bg-gray-800/50 p-0.5">
+            <button
+              onClick={() => setRightTab("map")}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium ${
+                rightTab === "map" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <Map size={12} /> Game Map
+            </button>
+            <button
+              onClick={() => setRightTab("code")}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium ${
+                rightTab === "code" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <FileCode size={12} /> Code
+            </button>
+          </div>
         )}
       </div>
 
       {/* Main area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel: Wizard or Chat */}
-        <div className="flex w-1/2 flex-col border-r border-gray-800">
+        {/* Left: Chat is always the main interaction */}
+        <div className="flex flex-1 flex-col border-r border-gray-800/40">
           {showWizard ? (
             <GuidedWizard
               projectPath={project.path}
               templateType={project.template}
-              onComplete={() => {
-                setWizardDone(true);
-                setMode("chat");
-              }}
+              onComplete={() => setWizardDone(true)}
             />
           ) : (
             <ChatPanel projectPath={project.path} />
           )}
         </div>
 
-        {/* Right panel: Preview or Scripts */}
-        <div className="flex w-1/2 flex-col">
-          {rightPanel === "preview" ? (
-            <GamePreview />
-          ) : (
+        {/* Right: Game preview (always visible, code only for advanced) */}
+        <div className="hidden w-[380px] flex-col lg:flex">
+          {rightTab === "code" && isAdvanced ? (
             <ScriptEditor projectPath={project.path} />
+          ) : (
+            <GamePreview />
           )}
         </div>
       </div>

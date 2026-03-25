@@ -1,64 +1,44 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Gamepad2, Rocket, Settings, Hammer, BarChart3 } from "lucide-react";
 
 const navItems = [
-  { path: "/", icon: Gamepad2, label: "Templates", shortcut: "Ctrl+1" },
-  { path: "/build", icon: Hammer, label: "Build", shortcut: "Ctrl+2" },
-  { path: "/publish", icon: Rocket, label: "Publish", shortcut: "Ctrl+3" },
-  { path: "/dashboard", icon: BarChart3, label: "Dashboard", shortcut: "Ctrl+4" },
-  { path: "/settings", icon: Settings, label: "Settings", shortcut: "Ctrl+5" },
+  { path: "/", icon: Gamepad2, label: "Create" },
+  { path: "/build", icon: Hammer, label: "Build" },
+  { path: "/publish", icon: Rocket, label: "Share" },
+  { path: "/dashboard", icon: BarChart3, label: "Stats" },
+  { path: "/settings", icon: Settings, label: "Settings" },
 ];
-
-function NavTooltip({ label, shortcut, visible }: { label: string; shortcut: string; visible: boolean }) {
-  if (!visible) return null;
-  return (
-    <div className="absolute left-14 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 shadow-xl">
-      <p className="text-xs font-medium text-white">{label}</p>
-      <p className="text-[10px] text-gray-400">{shortcut}</p>
-    </div>
-  );
-}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
   return (
     <div className="flex h-full min-h-0 bg-gray-950 text-white">
       {/* Sidebar */}
-      <aside className="flex w-16 flex-col items-center border-r border-gray-800 bg-gray-900 py-4">
-        <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white text-sm">
+      <aside className="flex w-[72px] flex-col items-center border-r border-gray-800/60 bg-gray-900/80 py-3">
+        <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-black text-white shadow-lg shadow-indigo-500/20">
           RF
         </div>
-        <nav className="flex flex-1 flex-col gap-2">
-          {navItems.map(({ path, icon: Icon, label, shortcut }) => {
+        <nav className="flex flex-1 flex-col gap-1">
+          {navItems.map(({ path, icon: Icon, label }) => {
             const isActive =
               location.pathname === path ||
               (path !== "/" && location.pathname.startsWith(path));
             return (
-              <div
+              <Link
                 key={path}
-                className="relative"
-                onMouseEnter={() => setHoveredPath(path)}
-                onMouseLeave={() => setHoveredPath(null)}
+                to={path}
+                className={`group flex w-14 flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition-all ${
+                  isActive
+                    ? "bg-indigo-600/20 text-indigo-300"
+                    : "text-gray-500 hover:bg-gray-800/60 hover:text-gray-300"
+                }`}
               >
-                <Link
-                  to={path}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                  }`}
-                >
-                  <Icon size={20} />
-                </Link>
-                <NavTooltip
-                  label={label}
-                  shortcut={shortcut}
-                  visible={hoveredPath === path}
-                />
-              </div>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                <span className={`text-[9px] font-medium leading-none ${isActive ? "text-indigo-300" : "text-gray-500 group-hover:text-gray-400"}`}>
+                  {label}
+                </span>
+              </Link>
             );
           })}
         </nav>
