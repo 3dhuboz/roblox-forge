@@ -120,9 +120,58 @@ const simFeatures = [
   { id: "leaderboard", name: "Leaderboard", desc: "Global rankings for coins and rebirths" },
 ];
 
+// ── Battlegrounds config ──
+
+const bgThemes: Theme[] = [
+  { id: "medieval", name: "Medieval", icon: Flame, color: "bg-amber-700", prompt: "medieval-themed with stone castles, swords, shields, and torchlit arenas" },
+  { id: "scifi", name: "Sci-Fi", icon: Zap, color: "bg-cyan-600", prompt: "sci-fi-themed with laser weapons, force fields, hovering platforms, and neon arenas" },
+  { id: "anime", name: "Anime", icon: Star, color: "bg-pink-600", prompt: "anime-inspired with flashy ability effects, power auras, and dramatic battlefields" },
+  { id: "elemental", name: "Elemental", icon: Sparkles, color: "bg-indigo-600", prompt: "elemental-themed with fire, ice, lightning, and earth powers in nature arenas" },
+  { id: "pirate", name: "Pirates", icon: Candy, color: "bg-orange-600", prompt: "pirate-themed with ship battles, cannon abilities, treasure islands, and ocean arenas" },
+  { id: "ninja", name: "Ninja", icon: Wrench, color: "bg-gray-600", prompt: "ninja-themed with stealth abilities, shuriken throws, smoke bombs, and rooftop arenas" },
+];
+
+const bgScales = [
+  { id: "quick", name: "Quick Brawl", count: 3, label: "abilities", desc: "Fast rounds, 3 abilities, 1 arena — jump straight into action" },
+  { id: "standard", name: "Standard", count: 5, label: "abilities", desc: "4 classes, 5 abilities, 2 arenas, ranked matchmaking" },
+  { id: "competitive", name: "Competitive", count: 8, label: "abilities", desc: "Full class system, 8 abilities, team modes, ranked seasons" },
+  { id: "massive", name: "War Mode", count: 12, label: "abilities", desc: "16 players, vehicles, objectives, multiple maps, clan wars" },
+];
+
+const bgFeatures = [
+  { id: "classes", name: "Class System", desc: "Warrior, Mage, Healer, Assassin with unique stats" },
+  { id: "abilities", name: "Abilities", desc: "Fireball, Ice Shard, Thunder Strike, Shield Bash, Heal" },
+  { id: "matchmaking", name: "Matchmaking", desc: "Auto-queue with ranked and casual modes" },
+  { id: "killfeed", name: "Kill Feed", desc: "Real-time kill notifications on screen" },
+  { id: "respawn", name: "Respawn System", desc: "Timed respawn with invulnerability frames" },
+  { id: "leaderboard", name: "Leaderboard", desc: "Track kills, deaths, wins, and K/D ratio" },
+  { id: "rewards", name: "Kill Rewards", desc: "Earn coins for kills, assists, and wins" },
+  { id: "cosmetics", name: "Cosmetics", desc: "Unlock skins, effects, and titles with coins" },
+];
+
 // ── Template-agnostic wizard ──
 
 function getConfig(templateType: string) {
+  if (templateType === "battlegrounds") {
+    return {
+      themes: bgThemes,
+      scales: bgScales,
+      features: bgFeatures,
+      stepLabels: [
+        { title: "Style", subtitle: "What kind of combat?" },
+        { title: "Scale", subtitle: "How intense?" },
+        { title: "Systems", subtitle: "What battle features?" },
+        { title: "Generate", subtitle: "Name it and let AI build it!" },
+      ],
+      defaultTheme: "elemental",
+      defaultFeatures: ["classes", "abilities", "matchmaking"],
+      buildPrompt: (theme: Theme, scale: typeof bgScales[0], features: string[], name: string) =>
+        `Create a ${scale.name.toLowerCase()} battlegrounds game called "${name || "My Battlegrounds"}" with ${scale.count} abilities. Make it ${theme.prompt}. Include these systems: ${features}. Create distinct classes with unique health/speed/abilities. Add a matchmaking queue and round-based combat with kill rewards.`,
+      namePlaceholder: "My Epic Battlegrounds",
+      scaleLabel: "abilities",
+    };
+  }
+
   if (templateType === "simulator") {
     return {
       themes: simThemes,

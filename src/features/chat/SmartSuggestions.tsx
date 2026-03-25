@@ -163,6 +163,58 @@ function simProgress(messageCount: number): string[] {
   ];
 }
 
+// ── Battlegrounds suggestions ──
+
+function bgStarters(level: string): string[] {
+  if (level === "beginner") {
+    return [
+      "Add a fireball ability I can shoot",
+      "Create 2 teams with different spawn points",
+      "Make a simple arena with some cover walls",
+      "Add a health bar that shows my HP",
+    ];
+  }
+  if (level === "intermediate") {
+    return [
+      "Create 4 classes: Warrior, Mage, Healer, Assassin",
+      "Add 5 abilities with different cooldowns and ranges",
+      "Build a matchmaking queue with round timers",
+      "Design an arena with cover, high ground, and flanking routes",
+    ];
+  }
+  return [
+    "Implement server-authoritative hit detection with lag compensation",
+    "Create a class system with distinct stat profiles and ability loadouts",
+    "Design a ranked matchmaking system with ELO-based pairing",
+    "Build a projectile system using BodyVelocity with collision raycasting",
+  ];
+}
+
+function bgProgress(messageCount: number): string[] {
+  if (messageCount < 6) {
+    return [
+      "Add a new ability — ice shard that slows enemies",
+      "Create a second arena with a lava theme",
+      "Add kill rewards — 25 coins per elimination",
+      "Make the health bar change color as HP drops",
+    ];
+  }
+  if (messageCount < 12) {
+    return [
+      "Add a kill feed in the top right corner",
+      "Create a respawn system with 5-second timer",
+      "Add a round-end screen showing MVP",
+      "Make a leaderboard for kills and wins",
+    ];
+  }
+  return [
+    "Add a cosmetics shop for skins and effects",
+    "Create a team deathmatch mode",
+    "Add an ultimate ability with long cooldown",
+    "Review class balance and damage numbers",
+  ];
+}
+
 // ── Generic fallback ──
 
 function genericStarters(level: string): string[] {
@@ -206,6 +258,12 @@ export function SmartSuggestions({ onSelect, messageCount }: SmartSuggestionsPro
       return messageCount === 0
         ? simStarters(level)
         : simProgress(messageCount);
+    }
+
+    if (template === "battlegrounds") {
+      return messageCount === 0
+        ? bgStarters(level)
+        : bgProgress(messageCount);
     }
 
     return genericStarters(level);

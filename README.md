@@ -6,7 +6,7 @@ RobloxForge lets anyone aged 14–50 design, build, and publish Roblox games thr
 
 ## Features
 
-- **3 Game Templates** — Obby (obstacle course), Tycoon (factory builder), Simulator (click-to-earn + pets)
+- **4 Game Templates** — Obby (obstacle course), Tycoon (factory builder), Simulator (click-to-earn + pets), Battlegrounds (PvP combat)
 - **AI Game Builder** — Chat with AI to design your game. It generates Luau scripts and game structure in real time
 - **Guided Wizard** — Step-by-step builder for beginners: pick theme, difficulty, features, and generate
 - **Luau Script Editor** — Built-in editor with syntax highlighting for keywords, builtins, strings, comments
@@ -93,7 +93,8 @@ roblox-forge/
 ├── templates/                    # Game templates (Rojo format)
 │   ├── obby/                     # Obstacle course (6 Luau scripts, 4 model JSONs)
 │   ├── tycoon/                   # Factory tycoon (5 Luau scripts, 3 model JSONs)
-│   └── simulator/                # Click simulator (5 Luau scripts, 3 model JSONs)
+│   ├── simulator/                # Click simulator (5 Luau scripts, 3 model JSONs)
+│   └── battlegrounds/            # PvP combat (4 Luau scripts, 3 model JSONs)
 └── package.json
 ```
 
@@ -108,10 +109,13 @@ Factory builder with droppers, conveyors, collectors, upgrade buttons, and incom
 ### Simulator
 Click-to-earn game with pet hatching, rebirth system, zone unlocks, and progression. Scripts: ClickManager, PetManager, RebirthManager, DataManager, SimulatorUI, SimConfig.
 
+### Battlegrounds
+PvP combat with classes (Warrior, Mage, Healer, Assassin), 5 abilities (Fireball, Ice Shard, Thunder Strike, Shield Bash, Heal Pulse), matchmaking queue, round-based combat, and kill rewards. Scripts: CombatManager, MatchManager, DataManager, BattleUI, BattleConfig.
+
 ## Roadmap
 
 - [ ] Install Rust and verify full Tauri desktop build
-- [ ] More templates: Battlegrounds, RPG, Horror, Racing, Minigames
+- [ ] More templates: RPG, Horror, Racing, Minigames
 - [ ] 3D game preview using Three.js or Babylon.js
 - [ ] Real-time Roblox analytics from Creator Dashboard
 - [ ] Collaborative building (multiple users on one project)
