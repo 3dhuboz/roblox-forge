@@ -596,6 +596,84 @@ function bgResponse(lower: string): AiResponse | null {
   return null;
 }
 
+// ── RPG responses ──
+
+function rpgResponse(lower: string): AiResponse | null {
+  if (matches(lower, "quest", "mission", "task")) {
+    return {
+      message: "Added a quest! 'Slime Slayer' — defeat 5 slimes in the Starter Meadow for 50 XP and 25 gold. Players accept it from the quest board in town.",
+      changes: [
+        { type: "update_config", description: "Added 'Slime Slayer' quest to RPGConfig" },
+        { type: "modify_script", description: "Updated QuestManager with kill tracking" },
+      ],
+    };
+  }
+  if (matches(lower, "enemy", "monster", "slime", "goblin", "mob")) {
+    return {
+      message: "Added enemies! Slimes (30 HP, 5 dmg, 15 XP) spawn in Starter Meadow. They glow green with Neon material and have a health bar billboard above them.",
+      changes: [
+        { type: "add_part", description: "Added SlimeSpawn points to StarterMeadow" },
+        { type: "modify_script", description: "Updated CombatManager with enemy spawning" },
+      ],
+    };
+  }
+  if (matches(lower, "boss", "guardian", "dragon")) {
+    return {
+      message: "Added a boss fight! The Forest Guardian has 300 HP, 25 damage, and drops 200 XP + 100 gold. It's larger than normal enemies and has a 60-second respawn.",
+      changes: [
+        { type: "update_config", description: "Added ForestGuardian to RPGConfig.Enemies" },
+        { type: "add_part", description: "Added BossSpawn to DarkForest zone" },
+      ],
+    };
+  }
+  if (matches(lower, "level", "xp", "experience", "progress")) {
+    return {
+      message: "Set up leveling! 100 XP for level 2, scaling 1.5x per level (150 for L3, 225 for L4...). Each level gives +15 HP, +3 damage, +2 defense. Max level 50.",
+      changes: [
+        { type: "modify_script", description: "Updated CombatManager with level-up logic" },
+        { type: "update_config", description: "Set XP curve in RPGConfig" },
+      ],
+    };
+  }
+  if (matches(lower, "shop", "buy", "item", "sword", "armor", "potion")) {
+    return {
+      message: "Added an item shop! Wooden Sword (+5 dmg, 50g), Iron Sword (+15 dmg, 200g), Leather Armor (+5 def, 75g), Iron Armor (+15 def, 300g), Health Potion (heal 50, 20g).",
+      changes: [
+        { type: "modify_script", description: "Updated InventoryManager with buy/equip logic" },
+        { type: "update_config", description: "Added 5 items to RPGConfig.Items" },
+      ],
+    };
+  }
+  if (matches(lower, "zone", "area", "forest", "mountain", "world")) {
+    return {
+      message: "Added a new zone! 'Dark Forest' unlocks at level 3 with Goblins (60 HP, 12 dmg, 30 XP). It has darker lighting and a green-brown terrain.",
+      changes: [
+        { type: "add_stage", description: "Added DarkForest zone" },
+        { type: "update_config", description: "Added zone to RPGConfig.Zones" },
+      ],
+    };
+  }
+  if (matches(lower, "heal", "fountain", "health", "restore")) {
+    return {
+      message: "Added a healing fountain in each zone! Stand on it to restore full HP over 3 seconds. It glows blue with a water particle effect.",
+      changes: [
+        { type: "add_part", description: "Added HealingFountain to zones" },
+        { type: "modify_script", description: "Added healing logic via CollectionService tag" },
+      ],
+    };
+  }
+  if (matches(lower, "inventory", "equip", "gear", "bag")) {
+    return {
+      message: "Set up the inventory system! Players can buy items from the shop NPC, equip weapons and armor from their bag, and use consumables like health potions in combat.",
+      changes: [
+        { type: "modify_script", description: "Updated InventoryManager with equip system" },
+        { type: "modify_script", description: "Added inventory UI to RPGUI" },
+      ],
+    };
+  }
+  return null;
+}
+
 // ── Universal responses ──
 
 function universalResponse(lower: string): AiResponse | null {
@@ -636,6 +714,7 @@ export function mockSendChatMessage(message: string): AiResponse {
     tycoonResponse(lower) ??
     simResponse(lower) ??
     bgResponse(lower) ??
+    rpgResponse(lower) ??
     universalResponse(lower);
 
   if (resp) return resp;
