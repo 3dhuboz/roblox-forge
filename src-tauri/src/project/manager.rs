@@ -2,6 +2,7 @@ use crate::commands::project::{InstanceNode, ProjectInfo, ProjectState, ScriptFi
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 fn get_projects_dir() -> Result<PathBuf> {
     let data_dir = dirs::data_dir()
@@ -297,12 +298,13 @@ fn parse_model_json(model: &serde_json::Value, name: &str) -> InstanceNode {
             arr.iter()
                 .enumerate()
                 .map(|(i, child)| {
+                    let fallback = format!("Child{}", i);
                     let child_name = child
                         .get("properties")
                         .and_then(|p| p.get("Name"))
                         .and_then(|n| n.get("String"))
                         .and_then(|s| s.as_str())
-                        .unwrap_or(&format!("Child{}", i));
+                        .unwrap_or(&fallback);
                     parse_model_json(child, child_name)
                 })
                 .collect()

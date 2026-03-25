@@ -2,7 +2,7 @@ mod client;
 mod commands;
 mod prompt;
 
-use crate::commands::ai::{AiChange, AiResponse, ChatMessage};
+use crate::commands::ai::{AiResponse, ChatMessage};
 use anyhow::Result;
 
 pub async fn process_message(

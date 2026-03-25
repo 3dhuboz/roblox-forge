@@ -27,7 +27,7 @@ fn generate_code_challenge(verifier: &str) -> String {
 fn generate_state() -> String {
     let mut bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut bytes);
-    hex::encode(bytes)
+    hex::encode(&bytes)
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
