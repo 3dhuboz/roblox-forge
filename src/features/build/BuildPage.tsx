@@ -3,7 +3,7 @@ import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
 import { Map, Sparkles, X } from "lucide-react";
 import { ElementPalette } from "../builder/ElementPalette";
-import { GameCanvas } from "../builder/GameCanvas";
+import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { PropertiesPanel } from "../builder/PropertiesPanel";
 import { BuilderToolbar } from "../builder/BuilderToolbar";
 import { ChatPanel } from "../chat/ChatPanel";
@@ -48,7 +48,7 @@ export function BuildPage() {
 
         {/* Center: Game Canvas (Viewport) */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          <GameCanvas />
+          <GameCanvas3D />
 
           {/* AI Assist drawer (collapsible from bottom) */}
           {aiOpen && (
