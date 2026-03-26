@@ -1,22 +1,17 @@
 import { useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
-import { useUserStore } from "../../stores/userStore";
-import { ChatPanel } from "../chat/ChatPanel";
-import { VisualScenePreview } from "../preview/VisualScenePreview";
-import { GamePreview } from "../preview/GamePreview";
-import { GuidedWizard } from "./GuidedWizard";
-import { ScriptEditor } from "./ScriptEditor";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Map, FileCode, Eye, MessageCircle, List } from "lucide-react";
-
-type ViewTab = "world" | "map" | "code";
+import { Map, Sparkles, X } from "lucide-react";
+import { ElementPalette } from "../builder/ElementPalette";
+import { GameCanvas } from "../builder/GameCanvas";
+import { PropertiesPanel } from "../builder/PropertiesPanel";
+import { BuilderToolbar } from "../builder/BuilderToolbar";
+import { ChatPanel } from "../chat/ChatPanel";
 
 export function BuildPage() {
-  const { project, projectState } = useProjectStore();
-  const { profile } = useUserStore();
+  const { project } = useProjectStore();
   const navigate = useNavigate();
-  const [wizardDone, setWizardDone] = useState(false);
-  const [viewTab, setViewTab] = useState<ViewTab>("world");
+  const [aiOpen, setAiOpen] = useState(false);
 
   if (!project) {
     return (
@@ -38,86 +33,47 @@ export function BuildPage() {
     );
   }
 
-  const showWizard = profile.preferGuidedMode && !wizardDone;
-  const isAdvanced = profile.experienceLevel === "advanced";
-
   return (
     <div className="flex h-full flex-col bg-gray-950">
-      {/* Compact header */}
-      <div className="flex items-center gap-3 border-b border-gray-800/40 px-4 py-2">
-        <button
-          onClick={() => navigate("/")}
-          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-white"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <h2 className="text-[13px] font-bold text-white">{project.name}</h2>
-        {projectState && projectState.stageCount > 0 && (
-          <span className="rounded-md bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
-            {projectState.stageCount} {project.template === "obby" ? "stages" : project.template === "rpg" ? "zones" : "parts"}
-          </span>
-        )}
+      {/* Toolbar */}
+      <BuilderToolbar
+        gameName={project.name}
+        onAiAssist={() => setAiOpen(!aiOpen)}
+      />
 
-        {/* View tabs */}
-        <div className="ml-auto flex items-center gap-1 rounded-xl bg-gray-800/50 p-0.5">
-          <button
-            onClick={() => setViewTab("world")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all ${
-              viewTab === "world" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            <Eye size={12} /> World
-          </button>
-          <button
-            onClick={() => setViewTab("map")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all ${
-              viewTab === "map" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            <List size={12} /> Stages
-          </button>
-          {isAdvanced && (
-            <button
-              onClick={() => setViewTab("code")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all ${
-                viewTab === "code" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <FileCode size={12} /> Code
-            </button>
+      {/* Main studio layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Element Palette (Toolbox) */}
+        <ElementPalette />
+
+        {/* Center: Game Canvas (Viewport) */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <GameCanvas />
+
+          {/* AI Assist drawer (collapsible from bottom) */}
+          {aiOpen && (
+            <div className="flex flex-col border-t border-gray-800/40" style={{ height: "280px" }}>
+              <div className="flex items-center justify-between border-b border-gray-800/30 px-4 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={13} className="text-indigo-400" />
+                  <span className="text-[11px] font-bold text-gray-400">AI Assistant</span>
+                </div>
+                <button
+                  onClick={() => setAiOpen(false)}
+                  className="rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-white"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <ChatPanel projectPath={project.path} />
+              </div>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Main area: Visual preview on top, chat/wizard below */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top: Game world visualization (dominant) */}
-        <div className="relative flex-[3] border-b border-gray-800/40 overflow-hidden">
-          {viewTab === "world" && <VisualScenePreview />}
-          {viewTab === "map" && <GamePreview />}
-          {viewTab === "code" && isAdvanced && <ScriptEditor projectPath={project.path} />}
-        </div>
-
-        {/* Bottom: Chat or Wizard (interaction layer) */}
-        <div className="flex flex-[2] flex-col overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-gray-800/30 px-4 py-1.5">
-            <MessageCircle size={12} className="text-indigo-400" />
-            <span className="text-[11px] font-bold text-gray-400">
-              {showWizard ? "Game Setup" : "AI Builder"}
-            </span>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            {showWizard ? (
-              <GuidedWizard
-                projectPath={project.path}
-                templateType={project.template}
-                onComplete={() => setWizardDone(true)}
-              />
-            ) : (
-              <ChatPanel projectPath={project.path} />
-            )}
-          </div>
-        </div>
+        {/* Right: Properties Panel */}
+        <PropertiesPanel />
       </div>
     </div>
   );
