@@ -272,46 +272,54 @@ function CanvasIsoItem({ el }: { el: CanvasElement }) {
   return <IsoBlock el={el} isSelected={isSelected} onMouseDown={handleMouseDown} />;
 }
 
-// ── Main Canvas with 3D perspective ──
+// ── Main Canvas — FLAT for reliable interaction, isometric VISUALS ──
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { elements, tool, placingItem, addElement, selectElement, setPlacingItem, setTool, zoom } = useCanvasStore();
   const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
+  // Convert screen coords to canvas coords (accounts for scroll + zoom)
+  const toCanvas = useCallback((clientX: number, clientY: number) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
+    return {
+      x: (clientX - rect.left) / zoom,
+      y: (clientY - rect.top) / zoom,
+    };
+  }, [zoom]);
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    const { x, y } = toCanvas(e.clientX, e.clientY);
     if (tool === "place" && placingItem) {
       addElement(placingItem, x - placingItem.defaultWidth / 2, y - placingItem.defaultHeight / 2);
       return;
     }
     selectElement(null);
-  }, [tool, placingItem, addElement, selectElement, zoom]);
+  }, [tool, placingItem, addElement, selectElement, toCanvas]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const data = e.dataTransfer.getData("application/palette-item");
-    if (!data || !canvasRef.current) return;
+    if (!data) return;
     const item: PaletteItem = JSON.parse(data);
-    const rect = canvasRef.current.getBoundingClientRect();
-    addElement(item, (e.clientX - rect.left) / zoom - item.defaultWidth / 2, (e.clientY - rect.top) / zoom - item.defaultHeight / 2);
+    const { x, y } = toCanvas(e.clientX, e.clientY);
+    addElement(item, x - item.defaultWidth / 2, y - item.defaultHeight / 2);
     setTool("select");
     setPlacingItem(null);
-  }, [addElement, setTool, setPlacingItem, zoom]);
+  }, [addElement, setTool, setPlacingItem, toCanvas]);
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; };
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (tool !== "place" || !placingItem || !canvasRef.current) { setGhostPos(null); return; }
-    const rect = canvasRef.current.getBoundingClientRect();
+    if (tool !== "place" || !placingItem) { setGhostPos(null); return; }
+    const { x, y } = toCanvas(e.clientX, e.clientY);
     setGhostPos({
-      x: Math.round(((e.clientX - rect.left) / zoom - placingItem.defaultWidth / 2) / GRID) * GRID,
-      y: Math.round(((e.clientY - rect.top) / zoom - placingItem.defaultHeight / 2) / GRID) * GRID,
+      x: Math.round((x - placingItem.defaultWidth / 2) / GRID) * GRID,
+      y: Math.round((y - placingItem.defaultHeight / 2) / GRID) * GRID,
     });
-  }, [tool, placingItem, zoom]);
+  }, [tool, placingItem, toCanvas]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -326,79 +334,96 @@ export function GameCanvas() {
   }, [setPlacingItem, setTool, selectElement]);
 
   return (
-    <div className="relative flex-1 overflow-auto" style={{ background: "linear-gradient(180deg, #87CEEB 0%, #B8D4E8 60%, #8FBC8F 60.5%, #6B8E5A 100%)" }}>
-      {/* 3D viewport wrapper */}
-      <div style={{ perspective: "1200px", perspectiveOrigin: "50% 35%", width: "100%", height: "100%", overflow: "hidden" }}>
-        {/* Ground plane (tilted to create 3D perspective) */}
-        <div
-          ref={canvasRef}
-          className={`relative ${tool === "place" || tool === "delete" ? "cursor-crosshair" : "cursor-default"}`}
-          style={{
-            width: `${PLANE_W}px`,
-            height: `${PLANE_H}px`,
-            transform: `rotateX(55deg) scale(${zoom})`,
-            transformOrigin: "50% 0%",
-            transformStyle: "preserve-3d",
-            margin: "200px auto 0",
-          }}
-          onClick={handleCanvasClick}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => setGhostPos(null)}
-        >
-          {/* Green ground surface */}
-          <div className="absolute inset-0" style={{
-            background: "linear-gradient(180deg, #5a9e3e 0%, #4a8e34 20%, #3d7a2c 50%, #2d5a1e 100%)",
-            borderRadius: "8px",
+    <div ref={scrollRef} className="relative flex-1 overflow-auto bg-gray-800">
+      {/* Flat scrollable canvas — NO CSS 3D transforms so mouse coords are accurate */}
+      <div
+        ref={canvasRef}
+        className={`relative ${tool === "place" || tool === "delete" ? "cursor-crosshair" : "cursor-default"}`}
+        style={{
+          width: `${PLANE_W}px`,
+          height: `${PLANE_H}px`,
+          transform: `scale(${zoom})`,
+          transformOrigin: "0 0",
+        }}
+        onClick={handleCanvasClick}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setGhostPos(null)}
+      >
+        {/* ── Sky (top 45%) ── */}
+        <div className="absolute left-0 right-0 top-0" style={{
+          height: "45%",
+          background: "linear-gradient(180deg, #4a90d9 0%, #87CEEB 40%, #B0E0E6 70%, #d4edfa 100%)",
+        }}>
+          {/* Sun */}
+          <div className="absolute pointer-events-none" style={{
+            top: "30px", right: "120px", width: "50px", height: "50px",
+            background: "radial-gradient(circle, #fde047, #facc15 40%, transparent 70%)",
+            borderRadius: "50%",
+            boxShadow: "0 0 30px rgba(253,224,71,0.5)",
           }} />
+          {/* Clouds */}
+          {[{ x: 80, y: 40 }, { x: 350, y: 20 }, { x: 650, y: 55 }, { x: 1000, y: 30 }, { x: 1300, y: 50 }].map((c, i) => (
+            <div key={`c${i}`} className="absolute pointer-events-none" style={{ left: c.x, top: c.y }}>
+              <div className="rounded-full bg-white/70" style={{ width: "60px", height: "22px" }} />
+              <div className="absolute rounded-full bg-white/80" style={{ width: "40px", height: "26px", top: "-8px", left: "10px" }} />
+            </div>
+          ))}
+          {/* Distant mountains */}
+          <svg className="absolute bottom-0 left-0 right-0 pointer-events-none" viewBox={`0 0 ${PLANE_W} 80`} preserveAspectRatio="none" style={{ height: "60px" }}>
+            <polygon points={`0,80 50,30 150,50 280,15 400,45 520,10 680,35 800,20 950,50 1100,25 1250,40 1400,18 1600,80`} fill="#7ba87e" opacity="0.5" />
+            <polygon points={`0,80 100,45 250,60 400,30 550,55 700,28 850,48 1000,35 1200,55 1400,30 1600,80`} fill="#6b9a6e" opacity="0.4" />
+          </svg>
+        </div>
 
-          {/* Grid lines on ground */}
+        {/* ── Ground (bottom 55%) ── */}
+        <div className="absolute left-0 right-0 bottom-0" style={{ height: "55%" }}>
+          {/* Green grass surface */}
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(180deg, #5cb85c 0%, #4a9e4a 15%, #3d8a3d 40%, #2d6e2d 70%, #1e521e 100%)",
+          }} />
+          {/* Grid on ground */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <pattern id="isoGrid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
-                <path d={`M ${GRID} 0 L 0 0 0 ${GRID}`} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+              <pattern id="gGrid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
+                <path d={`M ${GRID} 0 L 0 0 0 ${GRID}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#isoGrid)" />
+            <rect width="100%" height="100%" fill="url(#gGrid)" />
           </svg>
-
-          {/* Grass texture overlay */}
+          {/* Grass texture dots */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            backgroundImage: "radial-gradient(circle at 20px 20px, rgba(100,180,60,0.15) 1px, transparent 3px)",
-            backgroundSize: "25px 25px",
+            backgroundImage: "radial-gradient(circle, rgba(100,200,60,0.12) 1px, transparent 2px)",
+            backgroundSize: "18px 18px",
           }} />
-
-          {/* Elements rendered as 3D isometric blocks — lifted above the plane */}
-          <div style={{ transformStyle: "preserve-3d" }}>
-            {elements.map((el) => (
-              <div key={el.id} style={{ transform: "translateZ(0px)", transformStyle: "preserve-3d" }}>
-                <CanvasIsoItem el={el} />
-              </div>
-            ))}
-          </div>
-
-          {/* Ghost preview */}
-          {ghostPos && placingItem && (
-            <div className="absolute pointer-events-none" style={{
-              left: `${ghostPos.x}px`, top: `${ghostPos.y}px`,
-              width: `${placingItem.defaultWidth}px`, height: `${placingItem.defaultHeight}px`,
-              backgroundColor: `${placingItem.color}44`,
-              border: "2px dashed rgba(255,255,255,0.5)",
-              borderRadius: "4px",
-            }} />
-          )}
-
-          {/* Empty state */}
-          {elements.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ transform: "rotateX(-55deg)", transformOrigin: "50% 50%" }}>
-              <div className="text-center rounded-2xl bg-black/40 backdrop-blur-sm px-10 py-6 border border-white/20">
-                <p className="text-[16px] font-bold text-white">Drag parts onto this ground to start building</p>
-                <p className="mt-2 text-[13px] text-white/60">This is your game world — add terrain, platforms, characters!</p>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* ── Elements (isometric SVG blocks) ── */}
+        {elements.map((el) => (
+          <CanvasIsoItem key={el.id} el={el} />
+        ))}
+
+        {/* Ghost preview when placing */}
+        {ghostPos && placingItem && (
+          <div className="absolute pointer-events-none z-30" style={{
+            left: `${ghostPos.x}px`, top: `${ghostPos.y}px`,
+            width: `${placingItem.defaultWidth}px`, height: `${placingItem.defaultHeight}px`,
+            backgroundColor: `${placingItem.color}55`,
+            border: "2px dashed rgba(255,255,255,0.5)",
+            borderRadius: "4px",
+          }} />
+        )}
+
+        {/* Empty state hint */}
+        {elements.length === 0 && (
+          <div className="absolute pointer-events-none" style={{ top: "38%", left: "50%", transform: "translate(-50%, -50%)" }}>
+            <div className="text-center rounded-2xl bg-black/30 backdrop-blur-sm px-10 py-6 border border-white/15 shadow-xl">
+              <p className="text-[16px] font-bold text-white/90">Drag parts here to build your game</p>
+              <p className="mt-2 text-[13px] text-white/50">Pick from the Toolbox on the left — place ground, platforms, enemies, and more</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
