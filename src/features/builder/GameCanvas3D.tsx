@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useCanvasStore, type CanvasElement, type PaletteItem } from "../../stores/canvasStore";
@@ -355,6 +355,131 @@ function DropOverlay() {
   );
 }
 
+// ── Sky Dome ──
+
+function SkyDome() {
+  return (
+    <mesh>
+      <sphereGeometry args={[50, 32, 16]} />
+      <meshBasicMaterial side={THREE.BackSide}>
+        <canvasTexture
+          attach="map"
+          image={(() => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext("2d")!;
+            const g = ctx.createLinearGradient(0, 0, 0, 512);
+            g.addColorStop(0, "#1e40af");
+            g.addColorStop(0.3, "#3b82f6");
+            g.addColorStop(0.5, "#60a5fa");
+            g.addColorStop(0.7, "#93c5fd");
+            g.addColorStop(0.85, "#bae6fd");
+            g.addColorStop(1, "#e0f2fe");
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, 512, 512);
+            return canvas;
+          })()}
+        />
+      </meshBasicMaterial>
+    </mesh>
+  );
+}
+
+// ── Decorative background scenery ──
+
+function BackgroundScenery() {
+  // Deterministic positions for background trees and rocks
+  const bgTrees = [
+    [-15, 0, -10], [-12, 0, -8], [-18, 0, -6], [15, 0, -9], [12, 0, -11],
+    [17, 0, -7], [-14, 0, 10], [-16, 0, 8], [14, 0, 9], [16, 0, 11],
+    [-10, 0, -12], [10, 0, -12], [0, 0, -13], [5, 0, -11], [-5, 0, -11],
+    [-18, 0, 0], [18, 0, 0], [-17, 0, 5], [17, 0, -5],
+  ];
+  const bgRocks = [
+    [-13, 0, -5], [13, 0, -6], [-11, 0, 7], [11, 0, 8],
+    [-16, 0, 3], [16, 0, -3], [0, 0, -14], [-8, 0, -13],
+  ];
+
+  return (
+    <group>
+      {bgTrees.map(([x, _y, z], i) => (
+        <group key={`bgt${i}`} position={[x, 0, z]}>
+          <mesh position={[0, 0.8, 0]} castShadow>
+            <cylinderGeometry args={[0.1, 0.15, 1.6, 6]} />
+            <meshStandardMaterial color="#6b3a1f" />
+          </mesh>
+          <mesh position={[0, 1.8 + (i % 3) * 0.2, 0]} castShadow>
+            <sphereGeometry args={[0.6 + (i % 2) * 0.2, 6, 6]} />
+            <meshStandardMaterial color={i % 3 === 0 ? "#16a34a" : i % 3 === 1 ? "#15803d" : "#22c55e"} flatShading />
+          </mesh>
+        </group>
+      ))}
+      {bgRocks.map(([x, _y, z], i) => (
+        <mesh key={`bgr${i}`} position={[x, 0.25, z]} rotation={[0, i * 1.2, 0]} castShadow>
+          <dodecahedronGeometry args={[0.3 + (i % 3) * 0.15, 0]} />
+          <meshStandardMaterial color={i % 2 === 0 ? "#78716c" : "#6b7280"} flatShading />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ── Draggable element wrapper ──
+
+function DraggableElement3D({ el }: { el: CanvasElement }) {
+  const { selectedId, tool, moveElement } = useCanvasStore();
+  const isSelected = selectedId === el.id;
+  const groupRef = useRef<THREE.Group>(null);
+  const { raycaster, camera, pointer } = useThree();
+  const [isDragging, setIsDragging] = useState(false);
+  const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+  const dragOffset = useRef(new THREE.Vector3());
+
+  useFrame(() => {
+    if (!isDragging || !groupRef.current) return;
+    raycaster.setFromCamera(pointer, camera);
+    const intersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane.current, intersect);
+    if (intersect) {
+      const newX = intersect.x * 50 + 700 - dragOffset.current.x;
+      const newZ = intersect.z * 50 + 350 - dragOffset.current.z;
+      moveElement(el.id, Math.round(newX / 20) * 20, Math.round(newZ / 20) * 20);
+    }
+  });
+
+  const handlePointerDown = (e: any) => {
+    if (tool !== "select" && tool !== "move") return;
+    if (!isSelected) return;
+    e.stopPropagation();
+    setIsDragging(true);
+    (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+    // Calculate offset so object doesn't jump
+    const worldX = (el.x - 700) / 50;
+    const worldZ = (el.y - 350) / 50;
+    raycaster.setFromCamera(pointer, camera);
+    const intersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane.current, intersect);
+    if (intersect) {
+      dragOffset.current.set(intersect.x * 50 + 700 - el.x, 0, intersect.z * 50 + 350 - el.y);
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      const { elements, undoStack } = useCanvasStore.getState();
+      useCanvasStore.setState({ undoStack: [...undoStack, elements], redoStack: [] });
+    }
+  };
+
+  return (
+    <group ref={groupRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
+      <Element3D el={el} />
+    </group>
+  );
+}
+
 // ── Scene Setup ──
 
 function SceneContent() {
@@ -362,58 +487,76 @@ function SceneContent() {
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.5} />
+      {/* Lighting — richer setup */}
+      <ambientLight intensity={0.4} />
+      <hemisphereLight args={["#87CEEB", "#4a8c3f", 0.6]} />
       <directionalLight
-        position={[10, 15, 10]}
-        intensity={1.2}
+        position={[10, 20, 10]}
+        intensity={1.5}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-far={60}
+        shadow-camera-left={-25}
+        shadow-camera-right={25}
+        shadow-camera-top={25}
+        shadow-camera-bottom={-25}
+        shadow-bias={-0.0005}
       />
-      <directionalLight position={[-5, 8, -5]} intensity={0.3} />
+      <directionalLight position={[-8, 10, -8]} intensity={0.3} color="#b0c4de" />
 
       {/* Sky */}
-      <color attach="background" args={["#87CEEB"]} />
-      <fog attach="fog" args={["#87CEEB", 25, 60]} />
+      <SkyDome />
+      <fog attach="fog" args={["#c0daf0", 30, 55]} />
 
-      {/* Ground */}
+      {/* Ground — larger with edge walls */}
       <GroundPlane />
 
-      {/* Grid on ground */}
+      {/* Baseplate edge walls to make it feel like a Roblox baseplate */}
+      {[
+        { pos: [0, -0.5, -14] as [number, number, number], scale: [40, 1, 0.2] as [number, number, number] },
+        { pos: [0, -0.5, 14] as [number, number, number], scale: [40, 1, 0.2] as [number, number, number] },
+        { pos: [-20, -0.5, 0] as [number, number, number], scale: [0.2, 1, 28] as [number, number, number] },
+        { pos: [20, -0.5, 0] as [number, number, number], scale: [0.2, 1, 28] as [number, number, number] },
+      ].map((wall, i) => (
+        <mesh key={`wall${i}`} position={wall.pos} castShadow>
+          <boxGeometry args={wall.scale} />
+          <meshStandardMaterial color="#3d7a2c" />
+        </mesh>
+      ))}
+
+      {/* Grid on ground — Roblox Studio style */}
       <Grid
         args={[40, 28]}
-        position={[0, 0.01, 0]}
-        cellSize={1}
-        cellThickness={0.5}
+        position={[0, 0.02, 0]}
+        cellSize={2}
+        cellThickness={0.6}
         cellColor="#5a9e4a"
-        sectionSize={4}
-        sectionThickness={1}
+        sectionSize={8}
+        sectionThickness={1.2}
         sectionColor="#3d7a2c"
-        fadeDistance={30}
+        fadeDistance={40}
         infiniteGrid={false}
       />
+
+      {/* Background scenery — trees and rocks around the edges */}
+      <BackgroundScenery />
 
       {/* Camera controls */}
       <OrbitControls
         makeDefault
-        minPolarAngle={0.2}
-        maxPolarAngle={Math.PI / 2.2}
-        minDistance={5}
-        maxDistance={40}
+        minPolarAngle={0.1}
+        maxPolarAngle={Math.PI / 2.1}
+        minDistance={3}
+        maxDistance={45}
         target={[0, 0, 0]}
         enableDamping
-        dampingFactor={0.1}
+        dampingFactor={0.08}
       />
 
-      {/* Render all elements */}
+      {/* Render all user-placed elements */}
       {elements.map((el) => (
-        <Element3D key={el.id} el={el} />
+        <DraggableElement3D key={el.id} el={el} />
       ))}
     </>
   );
@@ -422,25 +565,43 @@ function SceneContent() {
 // ── Main Export ──
 
 export function GameCanvas3D() {
+  const { elements } = useCanvasStore();
+
   return (
     <div className="relative flex-1">
       <DropOverlay />
       <Canvas
         shadows
-        camera={{ position: [12, 10, 12], fov: 50, near: 0.1, far: 100 }}
+        camera={{ position: [14, 12, 14], fov: 45, near: 0.1, far: 120 }}
         style={{ width: "100%", height: "100%" }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
-          gl.toneMappingExposure = 1.2;
+          gl.toneMappingExposure = 1.1;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
         <SceneContent />
       </Canvas>
 
-      {/* Part count overlay */}
-      <div className="absolute top-3 left-3 rounded-lg bg-black/40 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/70">
-        Scroll to zoom · Right-click drag to rotate · Middle-click to pan
+      {/* Controls overlay */}
+      <div className="absolute top-3 left-3 flex items-center gap-3">
+        <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
+          <span className="font-bold text-indigo-300">Scroll</span> zoom · <span className="font-bold text-indigo-300">Right-drag</span> rotate · <span className="font-bold text-indigo-300">Middle-drag</span> pan
+        </div>
+        <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
+          <span className="font-bold text-green-300">{elements.length}</span> parts placed
+        </div>
       </div>
+
+      {/* Empty state prompt */}
+      {elements.length === 0 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+          <div className="rounded-xl bg-black/50 backdrop-blur-sm px-6 py-3 text-center border border-white/10 shadow-xl">
+            <p className="text-[14px] font-bold text-white">Drag parts from the Toolbox to start building</p>
+            <p className="mt-1 text-[12px] text-white/50">Click on the ground to place · Select and drag to move</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
