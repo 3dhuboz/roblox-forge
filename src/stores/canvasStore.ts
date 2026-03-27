@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
 
 // ── Types ──
 
@@ -31,6 +32,7 @@ export interface CanvasElement {
   locked: boolean;
   visible: boolean;
   properties: Record<string, unknown>;
+  logic: GameLogicProperties;
 }
 
 // ── Palette catalog (Roblox Studio Toolbox equivalent) ──
@@ -107,8 +109,10 @@ interface CanvasStore {
   canvasOffset: { x: number; y: number };
   undoStack: CanvasElement[][];
   redoStack: CanvasElement[][];
+  template: string;
 
   // Actions
+  setTemplate: (template: string) => void;
   addElement: (item: PaletteItem, x: number, y: number) => void;
   removeElement: (id: string) => void;
   updateElement: (id: string, changes: Partial<CanvasElement>) => void;
@@ -144,9 +148,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   canvasOffset: { x: 0, y: 0 },
   undoStack: [],
   redoStack: [],
+  template: "obby",
+
+  setTemplate: (template) => set({ template }),
 
   addElement: (item, x, y) => {
-    const { elements, gridSnap } = get();
+    const { elements, gridSnap, template } = get();
     const snappedX = snapToGrid(x, gridSnap);
     const snappedY = snapToGrid(y, gridSnap);
     const el: CanvasElement = {
@@ -164,6 +171,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       locked: false,
       visible: true,
       properties: {},
+      logic: getDefaultLogic(item.type, template),
     };
     set({
       elements: [...elements, el],
