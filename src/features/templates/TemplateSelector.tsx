@@ -142,254 +142,243 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-// ── Mini scene illustrations for each template ──
+// ── Roblox-style R6 character (blocky, used in thumbnails) ──
+
+function RobloxChar({ color, x, bottom, size = 1, flip = false }: { color: string; x: string; bottom: string; size?: number; flip?: boolean }) {
+  const s = size;
+  return (
+    <div className="absolute" style={{ left: x, bottom, transform: flip ? "scaleX(-1)" : "none" }}>
+      {/* Head */}
+      <div style={{ width: `${10*s}px`, height: `${10*s}px`, background: "#f5c076", borderRadius: "2px", marginLeft: `${2*s}px` }} />
+      {/* Eyes */}
+      <div className="absolute" style={{ width: `${2*s}px`, height: `${2*s}px`, background: "#222", borderRadius: "50%", top: `${3*s}px`, left: `${4*s}px` }} />
+      <div className="absolute" style={{ width: `${2*s}px`, height: `${2*s}px`, background: "#222", borderRadius: "50%", top: `${3*s}px`, left: `${8*s}px` }} />
+      {/* Torso */}
+      <div style={{ width: `${14*s}px`, height: `${12*s}px`, background: color, borderRadius: "2px" }} />
+      {/* Arms */}
+      <div className="absolute" style={{ width: `${4*s}px`, height: `${12*s}px`, background: color, left: `${-4*s}px`, top: `${10*s}px`, borderRadius: "2px" }} />
+      <div className="absolute" style={{ width: `${4*s}px`, height: `${12*s}px`, background: color, right: `${-4*s}px`, top: `${10*s}px`, borderRadius: "2px" }} />
+      {/* Legs */}
+      <div style={{ display: "flex", gap: `${1*s}px` }}>
+        <div style={{ width: `${6*s}px`, height: `${10*s}px`, background: color, filter: "brightness(0.75)", borderRadius: "2px" }} />
+        <div style={{ width: `${6*s}px`, height: `${10*s}px`, background: color, filter: "brightness(0.75)", borderRadius: "2px" }} />
+      </div>
+    </div>
+  );
+}
+
+// ── Roblox-style scene illustrations for template cards ──
 
 function TemplateScene({ id }: { id: string }) {
   switch (id) {
     case "obby":
       return (
         <div className="absolute inset-0">
-          {/* Sky */}
-          <div className="absolute inset-0 bg-gradient-to-b from-sky-400 to-green-400/30" />
-          {/* Platforms */}
-          <div className="absolute bottom-4 left-3 h-3 w-12 rounded bg-indigo-400 shadow-md" />
-          <div className="absolute bottom-8 left-16 h-3 w-10 rounded bg-cyan-400 shadow-md" />
-          <div className="absolute bottom-14 left-8 h-3 w-14 rounded bg-pink-400 shadow-md" />
-          <div className="absolute bottom-10 right-10 h-3 w-10 rounded bg-yellow-400 shadow-md" />
-          <div className="absolute bottom-18 right-6 h-3 w-12 rounded bg-purple-400 shadow-md" />
-          {/* Kill brick */}
-          <div className="absolute bottom-6 left-[45%] h-2 w-6 rounded-sm bg-red-500 shadow" />
-          {/* Checkpoint flag */}
-          <div className="absolute bottom-3 right-8">
-            <div className="h-16 w-0.5 bg-gray-300" />
-            <div className="absolute top-0 left-0.5 h-4 w-6 bg-green-400" style={{ clipPath: "polygon(0 0, 100% 20%, 100% 80%, 0 100%)" }} />
-          </div>
-          {/* Coins */}
-          {[20, 40, 55, 70].map((l, i) => (
-            <div key={i} className="absolute rounded-full bg-yellow-300 shadow" style={{ width: "6px", height: "6px", bottom: `${16 + i * 6}px`, left: `${l}%` }} />
+          {/* Radial light burst */}
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 80%, #00ff8840, transparent 60%)" }} />
+          {/* Neon platforms staircase */}
+          <div className="absolute bottom-2 left-[5%] h-4 w-[25%] rounded" style={{ background: "linear-gradient(90deg, #00ff88, #00cc66)", boxShadow: "0 0 12px #00ff8866" }} />
+          <div className="absolute bottom-8 left-[20%] h-4 w-[22%] rounded" style={{ background: "linear-gradient(90deg, #00bbff, #0088ff)", boxShadow: "0 0 12px #00bbff66" }} />
+          <div className="absolute bottom-14 left-[10%] h-4 w-[20%] rounded" style={{ background: "linear-gradient(90deg, #ff44cc, #ff0088)", boxShadow: "0 0 12px #ff44cc66" }} />
+          <div className="absolute bottom-20 right-[15%] h-4 w-[22%] rounded" style={{ background: "linear-gradient(90deg, #ffaa00, #ff8800)", boxShadow: "0 0 12px #ffaa0066" }} />
+          {/* Kill brick (red glow) */}
+          <div className="absolute bottom-5 left-[48%] h-3 w-[12%] rounded-sm" style={{ background: "#ff0000", boxShadow: "0 0 10px #ff000088" }} />
+          {/* Character jumping */}
+          <RobloxChar color="#3b82f6" x="30%" bottom="26px" size={1.8} />
+          {/* Coins trail */}
+          {[35, 50, 62, 74].map((l, i) => (
+            <div key={i} className="absolute rounded-full" style={{ width: "8px", height: "8px", background: "#ffd700", boxShadow: "0 0 6px #ffd70088", bottom: `${20 + i * 10}px`, left: `${l}%` }} />
           ))}
-          {/* Character silhouette */}
-          <div className="absolute bottom-7 left-4">
-            <div className="h-3 w-2 rounded-sm bg-blue-600" />
-            <div className="mx-auto -mt-0.5 h-2 w-2 rounded-full bg-yellow-300" />
+          {/* Checkpoint flag */}
+          <div className="absolute bottom-2 right-[10%]">
+            <div style={{ width: "2px", height: "28px", background: "#ccc" }} />
+            <div className="absolute top-0 left-0.5" style={{ width: "16px", height: "10px", background: "#00ff00", boxShadow: "0 0 8px #00ff0066", clipPath: "polygon(0 0, 100% 20%, 100% 80%, 0 100%)" }} />
           </div>
         </div>
       );
     case "tycoon":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-amber-300/40 to-amber-800/30" />
-          {/* Factory building */}
-          <div className="absolute bottom-3 left-4 h-14 w-16 rounded-t bg-gray-500/80">
-            <div className="absolute -top-3 left-2 h-6 w-3 rounded-t bg-gray-400" />
-            <div className="absolute -top-5 left-7 h-8 w-3 rounded-t bg-gray-400" />
-            {/* Windows */}
-            <div className="absolute bottom-3 left-1.5 grid grid-cols-3 gap-1">
-              {[0,1,2,3,4,5].map(i => <div key={i} className="h-2 w-2 rounded-sm bg-yellow-300/70" />)}
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 70%, #ffd70040, transparent 60%)" }} />
+          {/* Factory silhouette */}
+          <div className="absolute bottom-0 left-[5%] h-[55%] w-[35%] rounded-t" style={{ background: "linear-gradient(180deg, #666, #444)" }}>
+            <div className="absolute -top-4 left-2 h-8 w-4 rounded-t bg-gray-500" />
+            <div className="absolute -top-6 left-8 h-10 w-4 rounded-t bg-gray-500" />
+            <div className="absolute -top-3 right-2 h-7 w-3 rounded-t bg-gray-500" />
+            {/* Smoke */}
+            <div className="absolute -top-8 left-3 h-3 w-3 rounded-full bg-gray-400/30" />
+            <div className="absolute -top-10 left-9 h-4 w-4 rounded-full bg-gray-400/20" />
+          </div>
+          {/* Money rain */}
+          {[25, 40, 55, 68, 80, 90].map((l, i) => (
+            <div key={i} className="absolute rounded-full" style={{ width: "10px", height: "10px", background: "#ffd700", boxShadow: "0 0 8px #ffd70088", top: `${8 + i * 14}px`, left: `${l}%` }}>
+              <span className="flex items-center justify-center text-[6px] font-bold text-amber-800">$</span>
             </div>
-          </div>
-          {/* Machine */}
-          <div className="absolute bottom-3 right-8 h-8 w-8 rounded bg-gray-400/80">
-            <div className="absolute -top-2 left-2 h-3 w-4 rounded bg-yellow-500" />
-          </div>
-          {/* Conveyor belt */}
-          <div className="absolute bottom-3 left-24 h-1.5 w-20 rounded bg-gray-600">
-            {[0,5,10,15].map(i => <div key={i} className="absolute top-0 h-1.5 w-1 bg-gray-500" style={{ left: `${i * 5 + 2}px` }} />)}
-          </div>
-          {/* Coins falling */}
-          {[30, 50, 65, 80].map((l, i) => (
-            <div key={i} className="absolute rounded-full bg-yellow-400 shadow-sm" style={{ width: "8px", height: "8px", top: `${20 + i * 12}px`, left: `${l}%` }} />
           ))}
-          {/* Dollar signs */}
-          <div className="absolute top-3 right-4 text-lg font-bold text-yellow-300/50">$$$</div>
+          {/* Character with money */}
+          <RobloxChar color="#22c55e" x="60%" bottom="4px" size={2} />
+          {/* Upgrade arrow */}
+          <div className="absolute top-3 right-4 text-xl" style={{ color: "#00ff88", textShadow: "0 0 10px #00ff8888" }}>⬆</div>
         </div>
       );
     case "simulator":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/40 to-indigo-700/30" />
-          {/* Pets */}
-          <div className="absolute bottom-6 left-6 h-5 w-5 rounded-full bg-pink-400 shadow">
-            <div className="absolute top-1 left-1 h-1 w-1 rounded-full bg-black" />
-            <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-black" />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 60%, #aa55ff40, transparent 50%), radial-gradient(ellipse at 70% 40%, #ff55aa30, transparent 50%)" }} />
+          {/* Big pet (golden) */}
+          <div className="absolute bottom-3 right-[15%]" style={{ width: "32px", height: "32px", background: "radial-gradient(circle at 40% 35%, #ffd700, #ff8c00)", borderRadius: "40%", boxShadow: "0 0 15px #ffd70066" }}>
+            <div className="absolute" style={{ top: "8px", left: "6px", width: "5px", height: "5px", background: "#222", borderRadius: "50%" }} />
+            <div className="absolute" style={{ top: "8px", right: "6px", width: "5px", height: "5px", background: "#222", borderRadius: "50%" }} />
+            <div className="absolute" style={{ bottom: "6px", left: "50%", transform: "translateX(-50%)", width: "8px", height: "3px", background: "#222", borderRadius: "0 0 4px 4px" }} />
           </div>
-          <div className="absolute bottom-4 left-16 h-6 w-6 rounded-full bg-cyan-400 shadow">
-            <div className="absolute top-1.5 left-1 h-1 w-1 rounded-full bg-black" />
-            <div className="absolute top-1.5 right-1 h-1 w-1 rounded-full bg-black" />
-          </div>
-          <div className="absolute bottom-8 right-12 h-7 w-7 rounded-full bg-yellow-400 shadow">
-            <div className="absolute top-2 left-1.5 h-1 w-1 rounded-full bg-black" />
-            <div className="absolute top-2 right-1.5 h-1 w-1 rounded-full bg-black" />
-          </div>
-          {/* Coins + gems scattered */}
-          {[15, 30, 45, 60, 75, 85].map((l, i) => (
-            <div key={i} className={`absolute rounded-full shadow ${i % 3 === 0 ? "bg-purple-400" : "bg-yellow-400"}`}
-              style={{ width: i % 3 === 0 ? "7px" : "5px", height: i % 3 === 0 ? "7px" : "5px", top: `${15 + (i * 11) % 40}px`, left: `${l}%` }} />
+          {/* Small pets */}
+          <div className="absolute bottom-6 left-[15%] h-5 w-5 rounded-full shadow" style={{ background: "#ff69b4", boxShadow: "0 0 8px #ff69b466" }} />
+          <div className="absolute bottom-4 left-[30%] h-4 w-4 rounded-full shadow" style={{ background: "#00ddff", boxShadow: "0 0 8px #00ddff66" }} />
+          {/* Character */}
+          <RobloxChar color="#8b5cf6" x="42%" bottom="4px" size={1.8} />
+          {/* Floating gems + coins */}
+          {[10, 25, 60, 82].map((l, i) => (
+            <div key={i} className="absolute" style={{
+              width: i % 2 === 0 ? "8px" : "10px", height: i % 2 === 0 ? "8px" : "10px",
+              background: i % 2 === 0 ? "#ffd700" : "#aa55ff",
+              borderRadius: i % 2 === 0 ? "50%" : "2px",
+              transform: i % 2 === 1 ? "rotate(45deg)" : "none",
+              boxShadow: `0 0 8px ${i % 2 === 0 ? "#ffd70088" : "#aa55ff88"}`,
+              top: `${12 + (i * 18) % 40}px`, left: `${l}%`,
+            }} />
           ))}
-          {/* Sparkle effects */}
-          <div className="absolute top-4 left-8 text-white/40 text-xs">✨</div>
-          <div className="absolute top-6 right-10 text-white/30 text-sm">✨</div>
-          <div className="absolute bottom-12 left-[50%] text-white/40 text-xs">⭐</div>
-          {/* Progress bar */}
-          <div className="absolute top-3 left-4 right-4 h-2 rounded-full bg-white/10">
-            <div className="h-2 w-3/5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400" />
-          </div>
+          {/* Sparkles */}
+          <div className="absolute top-2 left-[20%] text-sm" style={{ textShadow: "0 0 8px #fff" }}>✨</div>
+          <div className="absolute top-4 right-[25%] text-lg" style={{ textShadow: "0 0 8px #fff" }}>✨</div>
         </div>
       );
     case "battlegrounds":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-red-900/60 to-red-950/40" />
-          {/* Arena floor */}
-          <div className="absolute bottom-0 inset-x-0 h-10 bg-red-800/40 rounded-t" />
-          {/* Arena walls */}
-          <div className="absolute bottom-3 left-3 h-12 w-1.5 bg-red-400/60 rounded" />
-          <div className="absolute bottom-3 right-3 h-12 w-1.5 bg-red-400/60 rounded" />
-          {/* Crossed swords */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-3xl opacity-40">⚔️</div>
-          {/* Fighters */}
-          <div className="absolute bottom-6 left-8">
-            <div className="h-5 w-3 rounded-sm bg-blue-500" />
-            <div className="mx-auto -mt-0.5 h-3 w-3 rounded-full bg-blue-300" />
-          </div>
-          <div className="absolute bottom-6 right-8">
-            <div className="h-5 w-3 rounded-sm bg-red-500" />
-            <div className="mx-auto -mt-0.5 h-3 w-3 rounded-full bg-red-300" />
-          </div>
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 50%, #ff440030, transparent 50%)" }} />
+          {/* Arena ground */}
+          <div className="absolute bottom-0 inset-x-0 h-[30%]" style={{ background: "linear-gradient(180deg, #4a2020, #2a1010)" }} />
+          {/* Blue fighter */}
+          <RobloxChar color="#3b82f6" x="15%" bottom="14px" size={2.2} />
+          {/* Red fighter */}
+          <RobloxChar color="#ef4444" x="60%" bottom="14px" size={2.2} flip />
+          {/* Clash effect center */}
+          <div className="absolute top-[35%] left-1/2 -translate-x-1/2" style={{ width: "20px", height: "20px", background: "radial-gradient(circle, #ffff00, #ff8800, transparent)", borderRadius: "50%", boxShadow: "0 0 20px #ffaa0088" }} />
+          {/* VS text */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-lg font-black" style={{ color: "#ff4444", textShadow: "0 0 10px #ff000088, 2px 2px 0 #000" }}>VS</div>
           {/* Health bars */}
-          <div className="absolute top-3 left-4 h-1.5 w-12 rounded bg-gray-800"><div className="h-1.5 w-8 rounded bg-green-500" /></div>
-          <div className="absolute top-3 right-4 h-1.5 w-12 rounded bg-gray-800"><div className="h-1.5 w-6 rounded bg-green-500" /></div>
-          {/* Impact flash */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-yellow-400/30" />
+          <div className="absolute top-3 left-3 h-2 w-[30%] rounded-full bg-gray-800"><div className="h-2 w-[75%] rounded-full" style={{ background: "linear-gradient(90deg, #00ff00, #88ff00)", boxShadow: "0 0 6px #00ff0066" }} /></div>
+          <div className="absolute top-3 right-3 h-2 w-[30%] rounded-full bg-gray-800"><div className="h-2 w-[55%] rounded-full float-right" style={{ background: "linear-gradient(90deg, #ff8800, #ff0000)", boxShadow: "0 0 6px #ff000066" }} /></div>
         </div>
       );
     case "rpg":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-600/40 to-green-800/30" />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 30%, #4488ff30, transparent 50%), radial-gradient(ellipse at 70% 70%, #44ff4420, transparent 50%)" }} />
+          {/* Green ground */}
+          <div className="absolute bottom-0 inset-x-0 h-[25%]" style={{ background: "linear-gradient(180deg, #2d6a2d, #1a4a1a)" }} />
           {/* Castle */}
-          <div className="absolute bottom-3 left-4">
-            <div className="h-14 w-12 bg-gray-400/80 rounded-t">
-              {/* Battlements */}
-              <div className="flex gap-1 -mt-1.5">
-                <div className="h-2 w-2 bg-gray-400/80" /><div className="h-2 w-2 bg-gray-400/80" /><div className="h-2 w-2 bg-gray-400/80" />
+          <div className="absolute bottom-[20%] left-[5%]">
+            <div style={{ width: "40px", height: "50px", background: "linear-gradient(180deg, #888, #666)", borderRadius: "2px 2px 0 0" }}>
+              <div className="flex gap-0.5 -mt-1" style={{ padding: "0 2px" }}>
+                {[0,1,2,3].map(i => <div key={i} style={{ width: "7px", height: "6px", background: "#888" }} />)}
               </div>
             </div>
-            {/* Door */}
-            <div className="absolute bottom-0 left-3 h-4 w-5 rounded-t-full bg-gray-700" />
           </div>
-          {/* Tower */}
-          <div className="absolute bottom-3 left-14 h-18 w-5 bg-gray-500/80 rounded-t">
-            <div className="absolute -top-2 left-0.5 h-3 w-4 bg-gray-400" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+          {/* Hero character with sword */}
+          <RobloxChar color="#ffd700" x="45%" bottom="14px" size={2} />
+          {/* Sword next to character */}
+          <div className="absolute bottom-[22%] left-[62%]" style={{ width: "3px", height: "24px", background: "linear-gradient(180deg, #ccc, #888)", transform: "rotate(-30deg)", boxShadow: "0 0 6px #ffffff44" }}>
+            <div style={{ width: "10px", height: "3px", background: "#8B4513", marginLeft: "-3.5px", marginTop: "18px" }} />
           </div>
-          {/* Trees */}
-          <div className="absolute bottom-3 right-6">
-            <div className="mx-auto h-5 w-1 bg-amber-800" />
-            <div className="-mt-3 h-5 w-6 rounded-full bg-green-600" />
+          {/* Dragon/monster */}
+          <div className="absolute bottom-[20%] right-[8%]" style={{ width: "28px", height: "24px", background: "#ff4444", borderRadius: "8px 8px 4px 4px", boxShadow: "0 0 10px #ff000044" }}>
+            <div className="absolute" style={{ top: "5px", left: "5px", width: "4px", height: "4px", background: "#ffff00", borderRadius: "50%" }} />
+            <div className="absolute" style={{ top: "5px", right: "5px", width: "4px", height: "4px", background: "#ffff00", borderRadius: "50%" }} />
           </div>
-          <div className="absolute bottom-3 right-14">
-            <div className="mx-auto h-4 w-1 bg-amber-800" />
-            <div className="-mt-2 h-4 w-5 rounded-full bg-green-700" />
-          </div>
-          {/* Sword icon */}
-          <div className="absolute top-3 right-5 text-xl opacity-40">⚔️</div>
-          {/* Path */}
-          <div className="absolute bottom-0 left-[40%] right-6 h-2 bg-amber-700/30 rounded-t" />
-          {/* Stars */}
-          <div className="absolute top-2 left-[30%] text-yellow-300/30 text-xs">★</div>
-          <div className="absolute top-5 left-[60%] text-yellow-300/20 text-[10px]">★</div>
+          {/* XP orb */}
+          <div className="absolute top-5 right-[20%]" style={{ width: "10px", height: "10px", background: "radial-gradient(circle, #00ff88, #00aa44)", borderRadius: "50%", boxShadow: "0 0 8px #00ff8866" }} />
         </div>
       );
     case "horror":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-gray-800" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #0a0a15, #1a1020)" }} />
           {/* Moon */}
-          <div className="absolute top-3 right-6 h-8 w-8 rounded-full bg-gray-300/30" />
-          {/* Haunted house */}
-          <div className="absolute bottom-3 left-6">
-            <div className="h-14 w-14 bg-gray-700/80">
-              {/* Roof */}
-              <div className="-mt-4 h-5 w-16 -ml-1 bg-gray-600" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
-              {/* Windows (glowing) */}
-              <div className="absolute bottom-5 left-2 h-3 w-3 bg-yellow-500/40 rounded-sm" />
-              <div className="absolute bottom-5 right-2 h-3 w-3 bg-red-500/30 rounded-sm" />
-            </div>
+          <div className="absolute top-3 right-[20%]" style={{ width: "24px", height: "24px", background: "radial-gradient(circle at 40% 40%, #eee, #aaa)", borderRadius: "50%", boxShadow: "0 0 20px #ffffff30" }} />
+          {/* Haunted building */}
+          <div className="absolute bottom-0 left-[10%]" style={{ width: "50px", height: "60px", background: "#222" }}>
+            <div className="-mt-3 -ml-1" style={{ width: "52px", height: "18px", background: "#1a1a1a", clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+            <div className="absolute" style={{ bottom: "18px", left: "8px", width: "8px", height: "10px", background: "#ff440020", borderRadius: "1px", boxShadow: "0 0 8px #ff440030" }} />
+            <div className="absolute" style={{ bottom: "18px", right: "8px", width: "8px", height: "10px", background: "#ff000015", borderRadius: "1px", boxShadow: "0 0 8px #ff000020" }} />
           </div>
-          {/* Dead tree */}
-          <div className="absolute bottom-3 right-8">
-            <div className="h-10 w-1 bg-gray-600" />
-            <div className="absolute top-1 -left-3 h-0.5 w-4 bg-gray-600 rotate-[-30deg]" />
-            <div className="absolute top-3 left-0 h-0.5 w-3 bg-gray-600 rotate-[25deg]" />
+          {/* Scared character (running) */}
+          <RobloxChar color="#4488ff" x="55%" bottom="4px" size={1.8} />
+          {/* Monster shadow */}
+          <div className="absolute bottom-1 right-[8%]" style={{ width: "20px", height: "30px", background: "linear-gradient(180deg, #ff000015, #33003310)", borderRadius: "6px 6px 0 0", boxShadow: "0 0 15px #ff000020" }}>
+            <div className="absolute" style={{ top: "6px", left: "3px", width: "4px", height: "3px", background: "#ff0000", borderRadius: "50%", boxShadow: "0 0 6px #ff0000" }} />
+            <div className="absolute" style={{ top: "6px", right: "3px", width: "4px", height: "3px", background: "#ff0000", borderRadius: "50%", boxShadow: "0 0 6px #ff0000" }} />
           </div>
           {/* Fog */}
-          <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-gray-500/20 to-transparent" />
-          {/* Bats */}
-          <div className="absolute top-6 left-[35%] text-[10px] text-gray-500/50">🦇</div>
-          <div className="absolute top-10 left-[55%] text-[8px] text-gray-500/40">🦇</div>
+          <div className="absolute bottom-0 inset-x-0 h-[20%]" style={{ background: "linear-gradient(180deg, transparent, #ffffff08)" }} />
         </div>
       );
     case "racing":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-sky-500/30 to-green-700/30" />
-          {/* Road */}
-          <div className="absolute bottom-2 inset-x-0 h-8 bg-gray-700/80">
-            {/* Dashed center line */}
-            <div className="absolute top-3.5 inset-x-0 flex gap-2 px-2">
-              {[0,1,2,3,4,5,6,7].map(i => <div key={i} className="h-0.5 w-4 bg-yellow-400/60" />)}
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 90%, #ff880030, transparent 50%)" }} />
+          {/* Sky */}
+          <div className="absolute inset-x-0 top-0 h-[50%]" style={{ background: "linear-gradient(180deg, #1a3a6a, #3a6a9a)" }} />
+          {/* Road with perspective */}
+          <div className="absolute bottom-0 inset-x-0 h-[50%]" style={{ background: "#444" }}>
+            <div className="absolute top-[45%] inset-x-0 flex justify-center gap-3">
+              {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: "12px", height: "3px", background: "#ffcc00" }} />)}
             </div>
-            {/* Edge lines */}
-            <div className="absolute top-0 inset-x-0 h-0.5 bg-white/40" />
-            <div className="absolute bottom-0 inset-x-0 h-0.5 bg-white/40" />
           </div>
-          {/* Car 1 */}
-          <div className="absolute bottom-5 left-[30%]">
-            <div className="h-3 w-7 rounded bg-red-500 shadow" />
-            <div className="absolute -top-1 left-1 h-2 w-4 rounded-t bg-red-400" />
+          {/* Red car (bigger) */}
+          <div className="absolute bottom-[18%] left-[25%]">
+            <div style={{ width: "32px", height: "14px", background: "linear-gradient(180deg, #ff2200, #cc0000)", borderRadius: "4px", boxShadow: "0 0 10px #ff220066" }} />
+            <div className="absolute" style={{ width: "20px", height: "8px", background: "#ff4444", borderRadius: "3px 3px 0 0", top: "-5px", left: "6px" }} />
+            {/* Wheels */}
+            <div className="absolute" style={{ width: "6px", height: "6px", background: "#222", borderRadius: "50%", bottom: "-2px", left: "2px" }} />
+            <div className="absolute" style={{ width: "6px", height: "6px", background: "#222", borderRadius: "50%", bottom: "-2px", right: "2px" }} />
           </div>
-          {/* Car 2 */}
-          <div className="absolute bottom-3 left-[55%]">
-            <div className="h-3 w-7 rounded bg-blue-500 shadow" />
-            <div className="absolute -top-1 left-1 h-2 w-4 rounded-t bg-blue-400" />
+          {/* Blue car */}
+          <div className="absolute bottom-[30%] right-[20%]">
+            <div style={{ width: "28px", height: "12px", background: "linear-gradient(180deg, #0088ff, #0044cc)", borderRadius: "3px", boxShadow: "0 0 10px #0088ff44" }} />
+            <div className="absolute" style={{ width: "16px", height: "7px", background: "#2299ff", borderRadius: "3px 3px 0 0", top: "-4px", left: "6px" }} />
           </div>
-          {/* Speed lines */}
-          <div className="absolute top-[40%] left-2 h-0.5 w-8 bg-white/20" />
-          <div className="absolute top-[50%] left-4 h-0.5 w-6 bg-white/15" />
-          <div className="absolute top-[60%] left-1 h-0.5 w-10 bg-white/10" />
+          {/* Speed boost effect */}
+          <div className="absolute bottom-[20%] left-[15%] flex gap-0.5">
+            {[0,1,2].map(i => <div key={i} style={{ width: `${10-i*3}px`, height: "2px", background: `rgba(255,200,0,${0.6-i*0.15})` }} />)}
+          </div>
           {/* Checkered flag */}
-          <div className="absolute top-3 right-4 text-lg opacity-50">🏁</div>
-          {/* Trees on roadside */}
-          <div className="absolute bottom-10 left-4 h-4 w-4 rounded-full bg-green-600/60" />
-          <div className="absolute bottom-10 right-6 h-3 w-3 rounded-full bg-green-600/50" />
+          <div className="absolute top-2 right-3 text-lg">🏁</div>
         </div>
       );
     case "minigames":
       return (
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-500/30 via-purple-500/20 to-cyan-500/30" />
-          {/* Dice */}
-          <div className="absolute top-4 left-6 h-8 w-8 rounded bg-white/80 shadow rotate-12">
-            <div className="absolute top-1 left-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
-            <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
-            <div className="absolute bottom-1 left-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
-            <div className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-gray-800" />
-          </div>
-          {/* Star */}
-          <div className="absolute top-3 right-8 text-2xl text-yellow-400/60">⭐</div>
-          {/* Trophy */}
-          <div className="absolute bottom-4 right-6 text-xl opacity-50">🏆</div>
-          {/* Confetti dots */}
-          {[10,25,40,55,70,85].map((l,i) => (
-            <div key={i} className={`absolute rounded-full ${["bg-pink-400","bg-cyan-400","bg-yellow-400","bg-green-400","bg-purple-400","bg-red-400"][i]}`}
-              style={{ width: "4px", height: "4px", top: `${10 + (i*13)%50}px`, left: `${l}%`, opacity: 0.5 }} />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 50%, #ff55aa25, transparent 50%), radial-gradient(ellipse at 30% 30%, #55aaff20, transparent 40%), radial-gradient(ellipse at 70% 70%, #ffaa5520, transparent 40%)" }} />
+          {/* Party characters */}
+          <RobloxChar color="#ff4488" x="20%" bottom="4px" size={1.6} />
+          <RobloxChar color="#44aaff" x="50%" bottom="4px" size={1.6} />
+          <RobloxChar color="#ffaa00" x="72%" bottom="4px" size={1.6} />
+          {/* Confetti burst */}
+          {[8,18,30,42,55,65,78,88].map((l,i) => (
+            <div key={i} style={{
+              position: "absolute", width: "5px", height: "5px",
+              background: ["#ff4488","#44aaff","#ffaa00","#44ff88","#ff44ff","#ffff44","#44ffff","#ff8844"][i],
+              borderRadius: i % 2 === 0 ? "50%" : "1px",
+              transform: `rotate(${i * 45}deg)`,
+              top: `${6 + (i * 11) % 40}px`, left: `${l}%`,
+              boxShadow: `0 0 4px ${["#ff4488","#44aaff","#ffaa00","#44ff88","#ff44ff","#ffff44","#44ffff","#ff8844"][i]}66`,
+            }} />
           ))}
-          {/* Mini game icons */}
-          <div className="absolute bottom-5 left-4 text-sm opacity-40">🎯</div>
-          <div className="absolute bottom-8 left-[45%] text-sm opacity-40">🎮</div>
-          {/* Party popper */}
-          <div className="absolute top-6 left-[50%] text-lg opacity-30">🎉</div>
+          {/* Trophy */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 text-2xl" style={{ filter: "drop-shadow(0 0 6px #ffd70088)" }}>🏆</div>
+          {/* "PARTY" vibe */}
+          <div className="absolute top-2 right-3 text-[10px] font-black tracking-wide" style={{ color: "#ffaa00", textShadow: "0 0 8px #ffaa0088" }}>PLAY!</div>
         </div>
       );
     default:
