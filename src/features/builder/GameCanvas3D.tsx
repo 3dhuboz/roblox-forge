@@ -4,287 +4,436 @@ import { OrbitControls, Grid, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useCanvasStore, type CanvasElement, type PaletteItem } from "../../stores/canvasStore";
 
-// ── Color/material helpers ──
+// ── Roblox BrickColor-inspired palette ──
 
 function getElementColor(el: CanvasElement): string {
   const map: Record<string, string> = {
-    ground: "#8B7355", grass: "#4ade80", water: "#3b82f6", lava: "#ef4444",
-    sand: "#d4a574", ice: "#93c5fd", platform: "#6366f1", "moving-platform": "#06b6d4",
-    disappearing: "#fbbf24", bouncy: "#f472b6", conveyor: "#8b5cf6",
-    killbrick: "#ef4444", spinner: "#f97316", laser: "#ff0040", spikes: "#9ca3af",
-    enemy: "#dc2626", pet: "#f472b6", npc: "#22c55e", boss: "#7c3aed", shopkeeper: "#eab308",
-    tree: "#16a34a", rock: "#6b7280", lamp: "#fbbf24", bush: "#15803d",
-    fence: "#92400e", checkpoint: "#22c55e", teleporter: "#8b5cf6",
-    "boost-pad": "#06b6d4", coin: "#eab308", gem: "#8b5cf6", spawn: "#10b981",
+    ground: "#7c5c3c", grass: "#4b974b", water: "#0078d7", lava: "#e8302a",
+    sand: "#dac08c", ice: "#b4d2e7", platform: "#a0a0a0", "moving-platform": "#00a2ff",
+    disappearing: "#f5cd30", bouncy: "#ff6eb4", conveyor: "#8b5cf6",
+    killbrick: "#ff0000", spinner: "#ff8c00", laser: "#ff0040", spikes: "#a0a0a0",
+    enemy: "#c80000", pet: "#ff82ab", npc: "#00af00", boss: "#6b00c8", shopkeeper: "#ffb900",
+    tree: "#287f28", rock: "#898989", lamp: "#f0c000", bush: "#1e7a1e",
+    fence: "#6e3b12", checkpoint: "#00ff00", teleporter: "#aa00ff",
+    "boost-pad": "#00d4ff", coin: "#ffd700", gem: "#aa55ff", spawn: "#42b842",
   };
   return map[el.type] || el.color;
 }
 
-function getElementHeight(type: string): number {
-  const map: Record<string, number> = {
-    ground: 0.5, grass: 0.5, water: 0.3, lava: 0.3, sand: 0.5, ice: 0.3,
-    platform: 0.3, "moving-platform": 0.3, disappearing: 0.3, bouncy: 0.4, conveyor: 0.2,
-    killbrick: 0.3, spinner: 0.8, laser: 3, spikes: 0.5,
-    enemy: 1.8, pet: 0.8, npc: 1.8, boss: 2.5, shopkeeper: 1.8,
-    tree: 3, rock: 1, lamp: 2.5, bush: 0.8, fence: 1.2,
-    checkpoint: 2.5, teleporter: 1.5, "boost-pad": 0.15, coin: 0.6, gem: 0.6, spawn: 0.1,
-  };
-  return map[type] || 1;
-}
+// Roblox "Plastic" material properties
+const PLASTIC = { metalness: 0.0, roughness: 0.35 };
+const SMOOTH_PLASTIC = { metalness: 0.05, roughness: 0.15 };
+const NEON = { metalness: 0.0, roughness: 0.1 };
 
 function getElementScale(type: string): [number, number, number] {
-  const h = getElementHeight(type);
+  // Sizes in Roblox studs (1 stud ≈ 0.3 in our world units)
   const map: Record<string, [number, number, number]> = {
-    ground: [4, h, 4], grass: [4, h, 4], water: [4, h, 4], lava: [3, h, 3],
-    sand: [4, h, 4], ice: [4, h, 3],
-    platform: [3, h, 1.5], "moving-platform": [3, h, 1.5], disappearing: [2, h, 1.5],
-    bouncy: [2, h, 1.5], conveyor: [3, h, 1.5],
-    killbrick: [1.5, h, 1.5], spinner: [0.3, h, 2], laser: [0.2, h, 0.2], spikes: [2, h, 1],
-    enemy: [0.8, h, 0.8], pet: [0.6, h, 0.6], npc: [0.8, h, 0.8],
-    boss: [1.2, h, 1.2], shopkeeper: [0.8, h, 0.8],
-    tree: [0.4, h, 0.4], rock: [1.2, h, 1], lamp: [0.3, h, 0.3], bush: [1, h, 1],
-    fence: [3, h, 0.2], checkpoint: [0.3, h, 0.3], teleporter: [1, h, 1],
-    "boost-pad": [2, h, 1], coin: [0.5, h, 0.5], gem: [0.4, h, 0.4], spawn: [2, h, 2],
+    ground: [4, 0.4, 4], grass: [4, 0.4, 4], water: [5, 0.2, 5], lava: [4, 0.3, 4],
+    sand: [4, 0.4, 4], ice: [4, 0.2, 4],
+    platform: [4, 0.4, 2], "moving-platform": [4, 0.4, 2], disappearing: [3, 0.4, 2],
+    bouncy: [3, 0.4, 2], conveyor: [4, 0.3, 2],
+    killbrick: [2, 0.4, 2], spinner: [0.4, 1.2, 3], laser: [0.2, 4, 0.2], spikes: [3, 0.8, 2],
+    enemy: [1, 1, 1], pet: [0.8, 0.8, 0.8], npc: [1, 1, 1],
+    boss: [1.5, 1.5, 1.5], shopkeeper: [1, 1, 1],
+    tree: [1, 1, 1], rock: [1.5, 1, 1.2], lamp: [0.4, 3, 0.4], bush: [1.2, 0.8, 1.2],
+    fence: [4, 1.2, 0.2], checkpoint: [0.3, 3, 0.3], teleporter: [1.5, 0.3, 1.5],
+    "boost-pad": [3, 0.15, 2], coin: [0.5, 0.5, 0.1], gem: [0.4, 0.6, 0.4], spawn: [2, 0.2, 2],
   };
-  return map[type] || [1, h, 1];
+  return map[type] || [1, 1, 1];
 }
 
-// ── 3D Element Component ──
+// ── Roblox Stud texture (procedural) ──
+
+function useStudTexture() {
+  const texture = useRef<THREE.CanvasTexture | null>(null);
+  if (!texture.current) {
+    const c = document.createElement("canvas");
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "rgba(0,0,0,0)";
+    ctx.fillRect(0, 0, 64, 64);
+    // Draw 4 studs in a 2x2 grid
+    for (const [sx, sy] of [[16, 16], [48, 16], [16, 48], [48, 48]]) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.06)";
+      ctx.fill();
+    }
+    texture.current = new THREE.CanvasTexture(c);
+    texture.current.wrapS = texture.current.wrapT = THREE.RepeatWrapping;
+  }
+  return texture.current;
+}
+
+// ── Roblox-style Part (box with plastic material) ──
+
+function RobloxPart({ size, color: col, position: pos, emissive, emissiveIntensity, opacity, castShadow: cs = true, receiveShadow: rs = true, materialProps }: {
+  size: [number, number, number];
+  color: string;
+  position?: [number, number, number];
+  emissive?: string;
+  emissiveIntensity?: number;
+  opacity?: number;
+  castShadow?: boolean;
+  receiveShadow?: boolean;
+  materialProps?: Record<string, any>;
+}) {
+  return (
+    <mesh position={pos || [0, 0, 0]} castShadow={cs} receiveShadow={rs}>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        color={col}
+        {...PLASTIC}
+        transparent={opacity !== undefined && opacity < 1}
+        opacity={opacity ?? 1}
+        emissive={emissive || "#000000"}
+        emissiveIntensity={emissiveIntensity || 0}
+        {...materialProps}
+      />
+    </mesh>
+  );
+}
+
+// ── Roblox R6 Character ──
+
+function R6Character({ bodyColor, headColor, pos, label }: {
+  bodyColor: string;
+  headColor?: string;
+  pos: [number, number, number];
+  label: string;
+}) {
+  const hc = headColor || "#f5c076"; // Default "Bright yellow" head
+  return (
+    <group position={pos}>
+      {/* Head (1.2 x 1.2 x 1.2 in Roblox, scaled down) */}
+      <RobloxPart size={[0.6, 0.6, 0.6]} color={hc} position={[0, 1.65, 0]} />
+      {/* Face - eyes */}
+      <mesh position={[-0.12, 1.7, 0.31]}>
+        <circleGeometry args={[0.06, 8]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      <mesh position={[0.12, 1.7, 0.31]}>
+        <circleGeometry args={[0.06, 8]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      {/* Smile */}
+      <mesh position={[0, 1.55, 0.31]}>
+        <planeGeometry args={[0.2, 0.04]} />
+        <meshBasicMaterial color="#1a1a2e" />
+      </mesh>
+      {/* Torso (2x2x1 in Roblox) */}
+      <RobloxPart size={[0.6, 0.7, 0.35]} color={bodyColor} position={[0, 1, 0]} />
+      {/* Left Arm */}
+      <RobloxPart size={[0.25, 0.7, 0.25]} color={bodyColor} position={[-0.42, 1, 0]} />
+      {/* Right Arm */}
+      <RobloxPart size={[0.25, 0.7, 0.25]} color={bodyColor} position={[0.42, 1, 0]} />
+      {/* Left Leg */}
+      <RobloxPart size={[0.28, 0.7, 0.28]} color={bodyColor} position={[-0.16, 0.35, 0]} />
+      {/* Right Leg */}
+      <RobloxPart size={[0.28, 0.7, 0.28]} color={bodyColor} position={[0.16, 0.35, 0]} />
+      {/* Label */}
+      <Html position={[0, 2.3, 0]} center>
+        <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">
+          {label}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+// ── Animated Water ──
+
+function WaterBlock({ pos, size }: { pos: [number, number, number]; size: [number, number, number] }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (meshRef.current) {
+      meshRef.current.position.y = pos[1] + Math.sin(clock.elapsedTime * 1.5) * 0.03;
+    }
+  });
+  return (
+    <mesh ref={meshRef} position={pos} receiveShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        color="#0078d7"
+        transparent
+        opacity={0.6}
+        {...SMOOTH_PLASTIC}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+// ── 3D Element Component (Roblox style) ──
 
 function Element3D({ el }: { el: CanvasElement }) {
-  const meshRef = useRef<THREE.Mesh>(null);
   const { selectedId, selectElement, tool, removeElement } = useCanvasStore();
   const isSelected = selectedId === el.id;
   const color = getElementColor(el);
   const scale = getElementScale(el.type);
   const [hovered, setHovered] = useState(false);
 
-  // Convert 2D canvas position to 3D world position
-  // x maps to X axis, y maps to Z axis (depth into screen)
-  const worldX = (el.x - 700) / 50;  // Center around 0
+  const worldX = (el.x - 700) / 50;
   const worldZ = (el.y - 350) / 50;
-  const worldY = scale[1] / 2; // Sit on ground
 
-  const handleClick = (e: React.MouseEvent | any) => {
+  const handleClick = (e: any) => {
     e.stopPropagation();
-    if (tool === "delete") {
-      removeElement(el.id);
-      return;
-    }
+    if (tool === "delete") { removeElement(el.id); return; }
     selectElement(el.id);
   };
 
-  // Special geometry for certain types
-  const isTree = el.type === "tree";
-  const isCoin = el.type === "coin" || el.type === "gem";
-  const isCharacter = el.category === "character";
-  const isSpawn = el.type === "spawn";
-  const isCheckpoint = el.type === "checkpoint";
-  const isLamp = el.type === "lamp";
-  const isRock = el.type === "rock";
-  const isBush = el.type === "bush";
+  const selectBox = isSelected ? (
+    <mesh>
+      <boxGeometry args={[scale[0] + 0.15, scale[1] + 0.15, scale[2] + 0.15]} />
+      <meshBasicMaterial color="#00aaff" transparent opacity={0.15} wireframe />
+    </mesh>
+  ) : null;
 
-  if (isTree) {
+  const hoverHandlers = {
+    onPointerOver: () => setHovered(true),
+    onPointerOut: () => setHovered(false),
+  };
+
+  // ── TREE: Cylinder trunk + sphere foliage (classic Roblox free-model tree)
+  if (el.type === "tree") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        {/* Trunk */}
-        <mesh position={[0, 1, 0]} castShadow>
-          <cylinderGeometry args={[0.15, 0.2, 2, 8]} />
-          <meshStandardMaterial color="#8B4513" />
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 1.2, 0]} castShadow>
+          <cylinderGeometry args={[0.12, 0.18, 2.4, 8]} />
+          <meshStandardMaterial color="#6b3a1f" {...PLASTIC} />
         </mesh>
-        {/* Foliage */}
-        <mesh position={[0, 2.5, 0]} castShadow>
-          <sphereGeometry args={[0.9, 8, 8]} />
-          <meshStandardMaterial color="#22c55e" flatShading />
+        <mesh position={[0, 2.8, 0]} castShadow>
+          <sphereGeometry args={[1, 12, 10]} />
+          <meshStandardMaterial color="#287f28" {...PLASTIC} />
         </mesh>
-        <mesh position={[0.3, 2.8, 0.2]} castShadow>
-          <sphereGeometry args={[0.6, 8, 8]} />
-          <meshStandardMaterial color="#16a34a" flatShading />
+        <mesh position={[0.4, 3.1, 0.3]} castShadow>
+          <sphereGeometry args={[0.65, 10, 8]} />
+          <meshStandardMaterial color="#1e6b1e" {...PLASTIC} />
         </mesh>
+        <mesh position={[-0.3, 3, -0.3]} castShadow>
+          <sphereGeometry args={[0.55, 10, 8]} />
+          <meshStandardMaterial color="#34a034" {...PLASTIC} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // ── CHARACTERS: R6 blocky Roblox avatars
+  if (el.category === "character") {
+    const headColors: Record<string, string> = {
+      enemy: "#c80000", pet: "#ff82ab", npc: "#f5c076", boss: "#6b00c8", shopkeeper: "#f5c076",
+    };
+    return (
+      <group onClick={handleClick} {...hoverHandlers}>
+        <R6Character bodyColor={color} headColor={headColors[el.type]} pos={[worldX, 0, worldZ]} label={el.label} />
+        {isSelected && (
+          <mesh position={[worldX, 1, worldZ]}>
+            <boxGeometry args={[1.2, 2.4, 0.8]} />
+            <meshBasicMaterial color="#00aaff" transparent opacity={0.15} wireframe />
+          </mesh>
+        )}
+      </group>
+    );
+  }
+
+  // ── WATER: Transparent animated block
+  if (el.type === "water") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <WaterBlock pos={[0, 0.1, 0]} size={scale} />
+        {selectBox && <group position={[0, 0.1, 0]}>{selectBox}</group>}
+      </group>
+    );
+  }
+
+  // ── LAVA: Glowing red block
+  if (el.type === "lava") {
+    return (
+      <group position={[worldX, scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh castShadow>
+          <boxGeometry args={scale} />
+          <meshStandardMaterial color="#e8302a" emissive="#ff4400" emissiveIntensity={0.8} {...NEON} />
+        </mesh>
+        <pointLight position={[0, 0.5, 0]} intensity={2} distance={4} color="#ff4400" />
+        {selectBox}
+      </group>
+    );
+  }
+
+  // ── SPAWN: Roblox SpawnLocation pad (gray base + green team color)
+  if (el.type === "spawn") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Base pad */}
+        <RobloxPart size={[2, 0.2, 2]} color="#898989" position={[0, 0.1, 0]} />
+        {/* Team color diamond */}
+        <mesh position={[0, 0.22, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
+          <planeGeometry args={[1.2, 1.2]} />
+          <meshStandardMaterial color="#42b842" {...SMOOTH_PLASTIC} />
+        </mesh>
+        {isSelected && (
+          <mesh position={[0, 0.1, 0]}>
+            <boxGeometry args={[2.2, 0.4, 2.2]} />
+            <meshBasicMaterial color="#00aaff" transparent opacity={0.15} wireframe />
+          </mesh>
+        )}
+      </group>
+    );
+  }
+
+  // ── CHECKPOINT: Pole + flag
+  if (el.type === "checkpoint") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
+          <meshStandardMaterial color="#c0c0c0" {...SMOOTH_PLASTIC} />
+        </mesh>
+        <RobloxPart size={[0.6, 0.4, 0.05]} color="#00ff00" position={[0.35, 2.7, 0]} />
         {isSelected && (
           <mesh position={[0, 1.5, 0]}>
-            <boxGeometry args={[2, 4, 2]} />
-            <meshBasicMaterial color="#818cf8" transparent opacity={0.15} wireframe />
+            <boxGeometry args={[1.2, 3.2, 0.6]} />
+            <meshBasicMaterial color="#00aaff" transparent opacity={0.15} wireframe />
           </mesh>
         )}
       </group>
     );
   }
 
-  if (isRock) {
+  // ── COIN: Spinning gold cylinder
+  if (el.type === "coin") {
+    const coinRef = useRef<THREE.Mesh>(null);
+    useFrame(({ clock }) => {
+      if (coinRef.current) coinRef.current.rotation.y = clock.elapsedTime * 2;
+    });
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <mesh position={[0, 0.4, 0]} castShadow rotation={[0, 0.5, 0]}>
+      <group position={[worldX, 0.8, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh ref={coinRef} castShadow>
+          <cylinderGeometry args={[0.3, 0.3, 0.08, 16]} />
+          <meshStandardMaterial color="#ffd700" metalness={0.7} roughness={0.15} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // ── GEM: Spinning purple diamond
+  if (el.type === "gem") {
+    const gemRef = useRef<THREE.Mesh>(null);
+    useFrame(({ clock }) => {
+      if (gemRef.current) gemRef.current.rotation.y = clock.elapsedTime * 1.5;
+    });
+    return (
+      <group position={[worldX, 0.8, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh ref={gemRef} castShadow rotation={[0, 0, Math.PI / 4]}>
+          <octahedronGeometry args={[0.3, 0]} />
+          <meshStandardMaterial color="#aa55ff" metalness={0.5} roughness={0.1} emissive="#6600cc" emissiveIntensity={0.3} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // ── ROCK: Irregular blocky shape
+  if (el.type === "rock") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 0.4, 0]} castShadow rotation={[0, 0.4, 0]}>
           <dodecahedronGeometry args={[0.7, 0]} />
-          <meshStandardMaterial color="#6b7280" flatShading />
+          <meshStandardMaterial color="#898989" {...PLASTIC} flatShading />
         </mesh>
         {isSelected && (
-          <mesh position={[0, 0.5, 0]}>
-            <boxGeometry args={[1.8, 1.8, 1.8]} />
-            <meshBasicMaterial color="#818cf8" transparent opacity={0.15} wireframe />
+          <mesh position={[0, 0.4, 0]}>
+            <boxGeometry args={[1.6, 1.6, 1.6]} />
+            <meshBasicMaterial color="#00aaff" transparent opacity={0.15} wireframe />
           </mesh>
         )}
       </group>
     );
   }
 
-  if (isBush) {
+  // ── BUSH: Green spheres cluster
+  if (el.type === "bush") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <mesh position={[0, 0.4, 0]} castShadow>
-          <sphereGeometry args={[0.6, 8, 6]} />
-          <meshStandardMaterial color="#15803d" flatShading />
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 0.35, 0]} castShadow>
+          <sphereGeometry args={[0.55, 10, 8]} />
+          <meshStandardMaterial color="#1e7a1e" {...PLASTIC} />
         </mesh>
-        <mesh position={[0.3, 0.3, 0.2]} castShadow>
-          <sphereGeometry args={[0.4, 8, 6]} />
-          <meshStandardMaterial color="#22c55e" flatShading />
+        <mesh position={[0.3, 0.25, 0.2]} castShadow>
+          <sphereGeometry args={[0.35, 8, 6]} />
+          <meshStandardMaterial color="#287f28" {...PLASTIC} />
         </mesh>
       </group>
     );
   }
 
-  if (isLamp) {
+  // ── LAMP: Pole with light (Roblox style)
+  if (el.type === "lamp") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <mesh position={[0, 1.2, 0]} castShadow>
-          <cylinderGeometry args={[0.05, 0.08, 2.4, 6]} />
-          <meshStandardMaterial color="#6b7280" />
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <cylinderGeometry args={[0.06, 0.08, 3, 8]} />
+          <meshStandardMaterial color="#4a4a4a" {...PLASTIC} />
         </mesh>
-        <mesh position={[0, 2.5, 0]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <meshStandardMaterial color="#fde047" emissive="#fbbf24" emissiveIntensity={2} />
+        <mesh position={[0, 3.1, 0]}>
+          <boxGeometry args={[0.5, 0.25, 0.5]} />
+          <meshStandardMaterial color="#f0c000" emissive="#ffd700" emissiveIntensity={1.5} {...NEON} />
         </mesh>
-        <pointLight position={[0, 2.3, 0]} intensity={3} distance={5} color="#fbbf24" />
+        <pointLight position={[0, 2.8, 0]} intensity={4} distance={6} color="#ffd700" />
       </group>
     );
   }
 
-  if (isCheckpoint) {
+  // ── KILLBRICK: Bright red Roblox part
+  if (el.type === "killbrick") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <mesh position={[0, 1.2, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.06, 2.4, 6]} />
-          <meshStandardMaterial color="#d1d5db" />
-        </mesh>
-        {/* Flag */}
-        <mesh position={[0.3, 2.1, 0]} castShadow>
-          <boxGeometry args={[0.5, 0.35, 0.05]} />
-          <meshStandardMaterial color="#22c55e" />
-        </mesh>
-        {isSelected && (
-          <mesh position={[0, 1.2, 0]}>
-            <boxGeometry args={[1.2, 3, 1.2]} />
-            <meshBasicMaterial color="#818cf8" transparent opacity={0.15} wireframe />
-          </mesh>
-        )}
-      </group>
-    );
-  }
-
-  if (isCharacter) {
-    const bodyColor = color;
-    return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        {/* Body */}
-        <mesh position={[0, 0.65, 0]} castShadow>
-          <boxGeometry args={[0.6, 1, 0.4]} />
-          <meshStandardMaterial color={bodyColor} />
-        </mesh>
-        {/* Head */}
-        <mesh position={[0, 1.4, 0]} castShadow>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color={bodyColor} />
-        </mesh>
-        {/* Eyes */}
-        <mesh position={[-0.1, 1.45, 0.26]}>
-          <sphereGeometry args={[0.06, 6, 6]} />
-          <meshBasicMaterial color="white" />
-        </mesh>
-        <mesh position={[0.1, 1.45, 0.26]}>
-          <sphereGeometry args={[0.06, 6, 6]} />
-          <meshBasicMaterial color="white" />
-        </mesh>
-        {isSelected && (
-          <mesh position={[0, 0.9, 0]}>
-            <boxGeometry args={[1.2, 2.2, 1.2]} />
-            <meshBasicMaterial color="#818cf8" transparent opacity={0.15} wireframe />
-          </mesh>
-        )}
-        {/* Label */}
-        <Html position={[0, 2.2, 0]} center>
-          <div className="whitespace-nowrap rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white pointer-events-none">
-            {el.label}
-          </div>
-        </Html>
-      </group>
-    );
-  }
-
-  if (isCoin) {
-    return (
-      <group position={[worldX, 0.5, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <group position={[worldX, scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh castShadow>
-          <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
-          <meshStandardMaterial color={color} metalness={0.8} roughness={0.2} />
+          <boxGeometry args={scale} />
+          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.15} {...SMOOTH_PLASTIC} />
         </mesh>
+        {selectBox}
       </group>
     );
   }
 
-  if (isSpawn) {
+  // ── TELEPORTER: Glowing purple pad
+  if (el.type === "teleporter") {
     return (
-      <group position={[worldX, 0.05, worldZ]} onClick={handleClick}
-        onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.6, 1, 16]} />
-          <meshStandardMaterial color="#22c55e" transparent opacity={0.5} side={THREE.DoubleSide} />
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 0.15, 0]} castShadow>
+          <cylinderGeometry args={[0.75, 0.75, 0.3, 16]} />
+          <meshStandardMaterial color="#aa00ff" emissive="#7700cc" emissiveIntensity={0.6} {...NEON} />
         </mesh>
-        <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.6, 16]} />
-          <meshStandardMaterial color="#22c55e" transparent opacity={0.2} side={THREE.DoubleSide} />
-        </mesh>
+        <pointLight position={[0, 0.5, 0]} intensity={2} distance={3} color="#aa00ff" />
       </group>
     );
   }
 
-  // Default: 3D box
+  // ── DEFAULT: Standard Roblox Part (box with Plastic material)
+  const yPos = scale[1] / 2;
   return (
-    <group position={[worldX, worldY, worldZ]} onClick={handleClick}
-      onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-      <mesh castShadow receiveShadow ref={meshRef}>
+    <group position={[worldX, yPos, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <mesh castShadow receiveShadow>
         <boxGeometry args={scale} />
         <meshStandardMaterial
-          color={hovered ? "#a5b4fc" : color}
-          transparent={el.type === "water" || el.type === "ice"}
-          opacity={el.type === "water" ? 0.7 : el.type === "ice" ? 0.8 : 1}
-          metalness={el.type === "ice" ? 0.5 : 0.1}
-          roughness={el.type === "ice" ? 0.1 : 0.8}
-          emissive={el.type === "lava" ? "#ff3300" : el.type === "killbrick" ? "#ff0000" : el.type === "teleporter" ? "#7c3aed" : "#000000"}
-          emissiveIntensity={el.type === "lava" ? 0.5 : el.type === "killbrick" ? 0.3 : el.type === "teleporter" ? 0.4 : 0}
-          flatShading
+          color={hovered ? "#7db8f0" : color}
+          {...PLASTIC}
+          transparent={el.type === "ice"}
+          opacity={el.type === "ice" ? 0.75 : 1}
         />
       </mesh>
-      {/* Grass top layer for ground/grass */}
+      {/* Grass overlay on ground/grass parts */}
       {(el.type === "grass" || el.type === "ground") && (
-        <mesh position={[0, scale[1] / 2 + 0.02, 0]} receiveShadow>
-          <boxGeometry args={[scale[0], 0.04, scale[2]]} />
-          <meshStandardMaterial color="#4ade80" />
+        <mesh position={[0, scale[1] / 2 + 0.015, 0]} receiveShadow>
+          <boxGeometry args={[scale[0] - 0.01, 0.03, scale[2] - 0.01]} />
+          <meshStandardMaterial color="#4b974b" {...SMOOTH_PLASTIC} />
         </mesh>
       )}
-      {/* Selection wireframe */}
-      {isSelected && (
-        <mesh>
-          <boxGeometry args={[scale[0] + 0.1, scale[1] + 0.1, scale[2] + 0.1]} />
-          <meshBasicMaterial color="#818cf8" transparent opacity={0.2} wireframe />
-        </mesh>
-      )}
+      {selectBox}
     </group>
   );
 }
@@ -311,7 +460,7 @@ function GroundPlane() {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}
       receiveShadow onClick={handleClick}>
       <planeGeometry args={[40, 28]} />
-      <meshStandardMaterial color="#4a8c3f" />
+      <meshStandardMaterial color="#3b8c3b" {...PLASTIC} />
     </mesh>
   );
 }
@@ -514,9 +663,6 @@ function DraggableElement3D({ el }: { el: CanvasElement }) {
     e.stopPropagation();
     setIsDragging(true);
     (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
-    // Calculate offset so object doesn't jump
-    const worldX = (el.x - 700) / 50;
-    const worldZ = (el.y - 350) / 50;
     raycaster.setFromCamera(pointer, camera);
     const intersect = new THREE.Vector3();
     raycaster.ray.intersectPlane(dragPlane.current, intersect);
