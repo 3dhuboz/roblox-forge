@@ -42,33 +42,6 @@ function getElementScale(type: string): [number, number, number] {
   return map[type] || [1, 1, 1];
 }
 
-// ── Roblox Stud texture (procedural) ──
-
-function useStudTexture() {
-  const texture = useRef<THREE.CanvasTexture | null>(null);
-  if (!texture.current) {
-    const c = document.createElement("canvas");
-    c.width = 64; c.height = 64;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "rgba(0,0,0,0)";
-    ctx.fillRect(0, 0, 64, 64);
-    // Draw 4 studs in a 2x2 grid
-    for (const [sx, sy] of [[16, 16], [48, 16], [16, 48], [48, 48]]) {
-      ctx.beginPath();
-      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,0,0,0.06)";
-      ctx.fill();
-    }
-    texture.current = new THREE.CanvasTexture(c);
-    texture.current.wrapS = texture.current.wrapT = THREE.RepeatWrapping;
-  }
-  return texture.current;
-}
-
 // ── Roblox-style Part (box with plastic material) ──
 
 function RobloxPart({ size, color: col, position: pos, emissive, emissiveIntensity, opacity, castShadow: cs = true, receiveShadow: rs = true, materialProps }: {
@@ -693,44 +666,7 @@ function GroundPlane() {
   );
 }
 
-// ── Drop Zone (invisible, catches palette drops) ──
-
-function DropOverlay() {
-  const { addElement, setTool, setPlacingItem } = useCanvasStore();
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData("application/palette-item");
-    if (!data) return;
-    const item: PaletteItem = JSON.parse(data);
-    // Place at center-ish position (user can move it after)
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const normX = (e.clientX - rect.left) / rect.width;
-    const normZ = (e.clientY - rect.top) / rect.height;
-    const canvasX = normX * 1400;
-    const canvasZ = normZ * 700;
-    addElement(item, canvasX, canvasZ);
-    setTool("select");
-    setPlacingItem(null);
-  }, [addElement, setTool, setPlacingItem]);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
-  };
-
-  return (
-    <div
-      className="absolute inset-0 z-10"
-      style={{ pointerEvents: "none" }}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      ref={(node) => {
-        if (node) node.style.pointerEvents = "auto";
-      }}
-    />
-  );
-}
+// Drop handling is done on the wrapper div in GameCanvas3D
 
 // ── Sky Dome ──
 
@@ -1009,11 +945,28 @@ function SceneContent() {
 // ── Main Export ──
 
 export function GameCanvas3D() {
-  const { elements } = useCanvasStore();
+  const { elements, addElement, setTool, setPlacingItem } = useCanvasStore();
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData("application/palette-item");
+    if (!data) return;
+    const item: PaletteItem = JSON.parse(data);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const normX = (e.clientX - rect.left) / rect.width;
+    const normZ = (e.clientY - rect.top) / rect.height;
+    addElement(item, normX * 1400, normZ * 700);
+    setTool("select");
+    setPlacingItem(null);
+  }, [addElement, setTool, setPlacingItem]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
 
   return (
-    <div className="relative flex-1">
-      <DropOverlay />
+    <div className="relative flex-1" onDrop={handleDrop} onDragOver={handleDragOver}>
       <Canvas
         shadows
         camera={{ position: [14, 12, 14], fov: 45, near: 0.1, far: 120 }}
