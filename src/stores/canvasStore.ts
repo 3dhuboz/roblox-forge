@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 // ── Types ──
 
-export type ElementCategory = "terrain" | "platform" | "obstacle" | "character" | "decoration" | "mechanic";
+export type ElementCategory = "terrain" | "platform" | "obstacle" | "character" | "decoration" | "mechanic" | "structure";
 export type ToolMode = "select" | "move" | "delete" | "place";
 
 export interface PaletteItem {
@@ -78,6 +78,21 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: "coin", category: "mechanic", label: "Coin", icon: "coins", defaultWidth: 20, defaultHeight: 20, color: "#eab308", description: "Collectible coin" },
   { type: "gem", category: "mechanic", label: "Gem", icon: "diamond", defaultWidth: 20, defaultHeight: 20, color: "#8b5cf6", description: "Rare collectible" },
   { type: "spawn", category: "mechanic", label: "Spawn", icon: "user-plus", defaultWidth: 40, defaultHeight: 40, color: "#10b981", description: "Player spawn point" },
+
+  // Structures (template-specific)
+  { type: "house", category: "structure", label: "House", icon: "home", defaultWidth: 100, defaultHeight: 80, color: "#a0522d", description: "Walkable building" },
+  { type: "shop-building", category: "structure", label: "Shop", icon: "store", defaultWidth: 80, defaultHeight: 70, color: "#daa520", description: "Item shop building" },
+  { type: "cave", category: "structure", label: "Cave", icon: "mountain", defaultWidth: 120, defaultHeight: 60, color: "#4a4a4a", description: "Dark cave entrance" },
+  { type: "tower", category: "structure", label: "Tower", icon: "building", defaultWidth: 40, defaultHeight: 120, color: "#808080", description: "Tall tower" },
+  { type: "bridge", category: "structure", label: "Bridge", icon: "minus", defaultWidth: 150, defaultHeight: 20, color: "#8b7355", description: "Walkable bridge" },
+  { type: "wall", category: "structure", label: "Wall", icon: "square", defaultWidth: 120, defaultHeight: 60, color: "#696969", description: "Barrier wall" },
+  { type: "tunnel", category: "structure", label: "Tunnel", icon: "circle", defaultWidth: 60, defaultHeight: 60, color: "#555555", description: "Walk-through tunnel" },
+  { type: "arena", category: "structure", label: "Arena", icon: "shield", defaultWidth: 120, defaultHeight: 120, color: "#8b0000", description: "Battle arena" },
+  { type: "tycoon-plot", category: "structure", label: "Plot", icon: "grid-2x2", defaultWidth: 100, defaultHeight: 100, color: "#228b22", description: "Tycoon build plot" },
+  { type: "machine", category: "structure", label: "Machine", icon: "cog", defaultWidth: 40, defaultHeight: 50, color: "#b0b0b0", description: "Tycoon dropper/machine" },
+  { type: "race-track", category: "structure", label: "Track", icon: "route", defaultWidth: 200, defaultHeight: 30, color: "#333333", description: "Race track segment" },
+  { type: "portal", category: "structure", label: "Portal", icon: "door-open", defaultWidth: 40, defaultHeight: 60, color: "#9400d3", description: "Zone teleporter" },
+  { type: "market-stall", category: "structure", label: "Stall", icon: "tent", defaultWidth: 60, defaultHeight: 50, color: "#cd853f", description: "Market vendor stall" },
 ];
 
 // ── Store ──

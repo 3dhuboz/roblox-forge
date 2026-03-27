@@ -413,6 +413,235 @@ function Element3D({ el }: { el: CanvasElement }) {
     );
   }
 
+  // ── HOUSE: Walls + roof (walkable building)
+  if (el.type === "house" || el.type === "shop-building") {
+    const wallColor = el.type === "shop-building" ? "#daa520" : "#c4a882";
+    const roofColor = el.type === "shop-building" ? "#8b0000" : "#8b4513";
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Floor */}
+        <RobloxPart size={[3, 0.1, 3]} color="#808080" position={[0, 0.05, 0]} />
+        {/* Back wall */}
+        <RobloxPart size={[3, 2.5, 0.2]} color={wallColor} position={[0, 1.25, -1.4]} />
+        {/* Left wall */}
+        <RobloxPart size={[0.2, 2.5, 3]} color={wallColor} position={[-1.4, 1.25, 0]} />
+        {/* Right wall */}
+        <RobloxPart size={[0.2, 2.5, 3]} color={wallColor} position={[1.4, 1.25, 0]} />
+        {/* Front wall left */}
+        <RobloxPart size={[1, 2.5, 0.2]} color={wallColor} position={[-0.9, 1.25, 1.4]} />
+        {/* Front wall right */}
+        <RobloxPart size={[1, 2.5, 0.2]} color={wallColor} position={[0.9, 1.25, 1.4]} />
+        {/* Door frame top */}
+        <RobloxPart size={[0.8, 0.5, 0.2]} color={wallColor} position={[0, 2.25, 1.4]} />
+        {/* Roof */}
+        <mesh position={[0, 2.8, 0]} castShadow>
+          <boxGeometry args={[3.4, 0.15, 3.4]} />
+          <meshStandardMaterial color={roofColor} {...PLASTIC} />
+        </mesh>
+        {/* Roof peak */}
+        <mesh position={[0, 3.3, 0]} castShadow rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[2.2, 1, 4]} />
+          <meshStandardMaterial color={roofColor} {...PLASTIC} />
+        </mesh>
+        {isSelected && (
+          <mesh position={[0, 1.5, 0]}>
+            <boxGeometry args={[3.8, 3.8, 3.8]} />
+            <meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe />
+          </mesh>
+        )}
+        <Html position={[0, 4, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── CAVE: Arch entrance with dark interior
+  if (el.type === "cave") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Base rock */}
+        <mesh position={[0, 1.2, -0.5]} castShadow>
+          <boxGeometry args={[4, 2.4, 2.5]} />
+          <meshStandardMaterial color="#4a4a4a" {...PLASTIC} flatShading />
+        </mesh>
+        {/* Top rock */}
+        <mesh position={[0, 2.6, -0.3]} castShadow>
+          <boxGeometry args={[3.5, 0.8, 2]} />
+          <meshStandardMaterial color="#555555" {...PLASTIC} flatShading />
+        </mesh>
+        {/* Dark interior */}
+        <mesh position={[0, 1, 0.7]}>
+          <boxGeometry args={[2, 1.8, 0.1]} />
+          <meshBasicMaterial color="#111111" />
+        </mesh>
+        {/* Entrance arch hint (top) */}
+        <mesh position={[0, 2, 0.75]} castShadow>
+          <boxGeometry args={[2.5, 0.4, 0.3]} />
+          <meshStandardMaterial color="#3a3a3a" {...PLASTIC} flatShading />
+        </mesh>
+        <Html position={[0, 3.2, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── TOWER: Tall structure
+  if (el.type === "tower") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[1.5, 5, 1.5]} color="#808080" position={[0, 2.5, 0]} />
+        <RobloxPart size={[1.8, 0.3, 1.8]} color="#696969" position={[0, 5.15, 0]} />
+        {/* Battlements */}
+        {[[-0.6, 0, -0.6], [0.6, 0, -0.6], [-0.6, 0, 0.6], [0.6, 0, 0.6]].map(([bx, _, bz], i) => (
+          <RobloxPart key={`bat${i}`} size={[0.3, 0.5, 0.3]} color="#696969" position={[bx, 5.55, bz]} />
+        ))}
+      </group>
+    );
+  }
+
+  // ── BRIDGE: Flat walkway with rails
+  if (el.type === "bridge") {
+    return (
+      <group position={[worldX, 0.5, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[5, 0.2, 2]} color="#8b7355" position={[0, 0, 0]} />
+        {/* Rails */}
+        <RobloxPart size={[5, 0.6, 0.1]} color="#6b5335" position={[0, 0.4, -0.95]} />
+        <RobloxPart size={[5, 0.6, 0.1]} color="#6b5335" position={[0, 0.4, 0.95]} />
+      </group>
+    );
+  }
+
+  // ── WALL: Simple barrier
+  if (el.type === "wall") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[4, 2.5, 0.4]} color="#696969" position={[0, 1.25, 0]} />
+      </group>
+    );
+  }
+
+  // ── ARENA: Flat area with walls around it
+  if (el.type === "arena") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Floor */}
+        <RobloxPart size={[6, 0.1, 6]} color="#8b0000" position={[0, 0.05, 0]} />
+        {/* Walls */}
+        <RobloxPart size={[6, 1.5, 0.2]} color="#a00000" position={[0, 0.75, -2.9]} />
+        <RobloxPart size={[6, 1.5, 0.2]} color="#a00000" position={[0, 0.75, 2.9]} />
+        <RobloxPart size={[0.2, 1.5, 6]} color="#a00000" position={[-2.9, 0.75, 0]} />
+        <RobloxPart size={[0.2, 1.5, 6]} color="#a00000" position={[2.9, 0.75, 0]} />
+        <Html position={[0, 2, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── TYCOON PLOT: Flat green pad with boundary
+  if (el.type === "tycoon-plot") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[5, 0.1, 5]} color="#228b22" position={[0, 0.05, 0]} />
+        {/* Boundary lines */}
+        <RobloxPart size={[5, 0.3, 0.05]} color="#ffff00" position={[0, 0.2, -2.47]} />
+        <RobloxPart size={[5, 0.3, 0.05]} color="#ffff00" position={[0, 0.2, 2.47]} />
+        <RobloxPart size={[0.05, 0.3, 5]} color="#ffff00" position={[-2.47, 0.2, 0]} />
+        <RobloxPart size={[0.05, 0.3, 5]} color="#ffff00" position={[2.47, 0.2, 0]} />
+        <Html position={[0, 1, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-yellow-300 pointer-events-none shadow">Tycoon Plot</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── MACHINE: Tycoon dropper/conveyor machine
+  if (el.type === "machine") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[1.2, 1.5, 1.2]} color="#b0b0b0" position={[0, 0.75, 0]} />
+        <RobloxPart size={[0.8, 0.3, 0.8]} color="#ffd700" position={[0, 1.65, 0]} />
+        <mesh position={[0, 2, 0]}>
+          <cylinderGeometry args={[0.15, 0.15, 0.4, 8]} />
+          <meshStandardMaterial color="#ff4400" emissive="#ff4400" emissiveIntensity={0.5} {...NEON} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // ── RACE TRACK: Dark road segment with lines
+  if (el.type === "race-track") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[6, 0.1, 3]} color="#333333" position={[0, 0.05, 0]} />
+        {/* Center dashed line */}
+        {[-2, -1, 0, 1, 2].map((lx, i) => (
+          <RobloxPart key={`line${i}`} size={[0.6, 0.02, 0.1]} color="#ffffff" position={[lx, 0.12, 0]} />
+        ))}
+        {/* Edge lines */}
+        <RobloxPart size={[6, 0.02, 0.08]} color="#ffffff" position={[0, 0.12, -1.4]} />
+        <RobloxPart size={[6, 0.02, 0.08]} color="#ffffff" position={[0, 0.12, 1.4]} />
+      </group>
+    );
+  }
+
+  // ── PORTAL: Glowing doorway
+  if (el.type === "portal") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Frame */}
+        <RobloxPart size={[0.3, 3, 0.3]} color="#555555" position={[-0.85, 1.5, 0]} />
+        <RobloxPart size={[0.3, 3, 0.3]} color="#555555" position={[0.85, 1.5, 0]} />
+        <RobloxPart size={[2, 0.3, 0.3]} color="#555555" position={[0, 3, 0]} />
+        {/* Portal effect */}
+        <mesh position={[0, 1.5, 0]}>
+          <boxGeometry args={[1.4, 2.7, 0.15]} />
+          <meshStandardMaterial color="#9400d3" emissive="#7700cc" emissiveIntensity={1} transparent opacity={0.6} {...NEON} />
+        </mesh>
+        <pointLight position={[0, 1.5, 0.5]} intensity={3} distance={4} color="#9400d3" />
+      </group>
+    );
+  }
+
+  // ── TUNNEL: Walk-through tube
+  if (el.type === "tunnel") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Arch */}
+        <mesh position={[0, 1, 0]} castShadow>
+          <torusGeometry args={[1.2, 0.3, 8, 12, Math.PI]} />
+          <meshStandardMaterial color="#555555" {...PLASTIC} />
+        </mesh>
+        {/* Base walls */}
+        <RobloxPart size={[0.3, 2, 1.5]} color="#555555" position={[-1.2, 1, 0]} />
+        <RobloxPart size={[0.3, 2, 1.5]} color="#555555" position={[1.2, 1, 0]} />
+      </group>
+    );
+  }
+
+  // ── MARKET STALL: Small vendor booth
+  if (el.type === "market-stall") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Counter */}
+        <RobloxPart size={[2, 0.9, 0.8]} color="#cd853f" position={[0, 0.45, 0]} />
+        {/* Poles */}
+        <mesh position={[-0.9, 1.2, -0.3]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 2.4, 6]} />
+          <meshStandardMaterial color="#8b6914" {...PLASTIC} />
+        </mesh>
+        <mesh position={[0.9, 1.2, -0.3]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 2.4, 6]} />
+          <meshStandardMaterial color="#8b6914" {...PLASTIC} />
+        </mesh>
+        {/* Canopy */}
+        <RobloxPart size={[2.4, 0.1, 1.2]} color="#ff6347" position={[0, 2.4, 0]} />
+      </group>
+    );
+  }
+
   // ── DEFAULT: Standard Roblox Part (box with Plastic material)
   const yPos = scale[1] / 2;
   return (
@@ -426,7 +655,6 @@ function Element3D({ el }: { el: CanvasElement }) {
           opacity={el.type === "ice" ? 0.75 : 1}
         />
       </mesh>
-      {/* Grass overlay on ground/grass parts */}
       {(el.type === "grass" || el.type === "ground") && (
         <mesh position={[0, scale[1] / 2 + 0.015, 0]} receiveShadow>
           <boxGeometry args={[scale[0] - 0.01, 0.03, scale[2] - 0.01]} />

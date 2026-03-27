@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Sparkles, Send, TreePine, Droplets, Mountain, Sword,
-  Users, Coins, Flag, Loader2, Wand2, Palette, Map,
+  Users, Coins, Flag, Loader2, Wand2, Home, Route, Shield,
 } from "lucide-react";
 import { useCanvasStore, PALETTE_ITEMS } from "../../stores/canvasStore";
+import { useProjectStore } from "../../stores/projectStore";
 
-// ── Quick action buttons that AI-generate scene content ──
+// ── Quick actions per template ──
 
 interface QuickAction {
   label: string;
@@ -14,139 +15,398 @@ interface QuickAction {
   color: string;
 }
 
-const QUICK_ACTIONS: QuickAction[] = [
-  { label: "Add Terrain", icon: Mountain, prompt: "Create a varied terrain with hills, flat areas, and some elevation changes", color: "text-green-400" },
-  { label: "Add Water", icon: Droplets, prompt: "Add a lake or river with water", color: "text-blue-400" },
-  { label: "Add Trees", icon: TreePine, prompt: "Scatter some trees and bushes around the landscape", color: "text-emerald-400" },
-  { label: "Add Obstacles", icon: Sword, prompt: "Add some obstacles like kill bricks, spinners, and spikes", color: "text-red-400" },
-  { label: "Add NPCs", icon: Users, prompt: "Add some characters — enemies, NPCs, and a shopkeeper", color: "text-purple-400" },
-  { label: "Add Collectibles", icon: Coins, prompt: "Scatter coins and gems around the level for players to collect", color: "text-yellow-400" },
-  { label: "Add Checkpoints", icon: Flag, prompt: "Add checkpoint flags and a spawn point", color: "text-cyan-400" },
-  { label: "Build Full Level", icon: Wand2, prompt: "Build me a complete game level with terrain, obstacles, enemies, collectibles, and checkpoints", color: "text-indigo-400" },
-];
+function getQuickActions(template: string): QuickAction[] {
+  const common: QuickAction[] = [
+    { label: "Add Trees", icon: TreePine, prompt: "Add trees and nature", color: "text-emerald-400" },
+    { label: "Add Water", icon: Droplets, prompt: "Add water area", color: "text-blue-400" },
+  ];
 
-// ── AI scene generation (mock — interprets prompts and adds elements) ──
+  switch (template) {
+    case "obby":
+      return [
+        { label: "Build Obby Course", icon: Wand2, prompt: "Build a full obby course", color: "text-indigo-400" },
+        { label: "Add Stages", icon: Flag, prompt: "Add obby stages with platforms", color: "text-cyan-400" },
+        { label: "Add Obstacles", icon: Sword, prompt: "Add kill bricks, spinners, and traps", color: "text-red-400" },
+        { label: "Add Checkpoints", icon: Flag, prompt: "Add checkpoints between stages", color: "text-green-400" },
+        ...common,
+        { label: "Add Collectibles", icon: Coins, prompt: "Add coins along the course", color: "text-yellow-400" },
+      ];
+    case "tycoon":
+      return [
+        { label: "Build Tycoon", icon: Wand2, prompt: "Build a full tycoon game", color: "text-indigo-400" },
+        { label: "Add Plots", icon: Home, prompt: "Add tycoon plots for players", color: "text-green-400" },
+        { label: "Add Machines", icon: Sword, prompt: "Add dropper machines and conveyers", color: "text-orange-400" },
+        { label: "Add Shop", icon: Coins, prompt: "Add a shop building where players buy upgrades", color: "text-yellow-400" },
+        ...common,
+        { label: "Add NPCs", icon: Users, prompt: "Add NPCs and shopkeepers", color: "text-purple-400" },
+      ];
+    case "simulator":
+      return [
+        { label: "Build Simulator", icon: Wand2, prompt: "Build a full simulator game", color: "text-indigo-400" },
+        { label: "Add Zones", icon: Mountain, prompt: "Add grinding zones with portals between them", color: "text-green-400" },
+        { label: "Add Pets Area", icon: Users, prompt: "Add pets and a pet area", color: "text-pink-400" },
+        { label: "Add Shop", icon: Home, prompt: "Add a market with stalls", color: "text-yellow-400" },
+        ...common,
+        { label: "Add Collectibles", icon: Coins, prompt: "Add coins and gems to collect", color: "text-yellow-400" },
+      ];
+    case "rpg":
+      return [
+        { label: "Build RPG World", icon: Wand2, prompt: "Build a full RPG world", color: "text-indigo-400" },
+        { label: "Add Town", icon: Home, prompt: "Add a town with houses and shops", color: "text-amber-400" },
+        { label: "Add Dungeon", icon: Mountain, prompt: "Add a cave dungeon with enemies", color: "text-gray-400" },
+        { label: "Add NPCs", icon: Users, prompt: "Add quest NPCs and a boss", color: "text-purple-400" },
+        ...common,
+        { label: "Add Loot", icon: Coins, prompt: "Add treasure chests and loot", color: "text-yellow-400" },
+      ];
+    case "horror":
+      return [
+        { label: "Build Horror Map", icon: Wand2, prompt: "Build a horror game map", color: "text-indigo-400" },
+        { label: "Add Buildings", icon: Home, prompt: "Add creepy abandoned buildings", color: "text-gray-400" },
+        { label: "Add Caves", icon: Mountain, prompt: "Add dark caves and tunnels", color: "text-gray-500" },
+        { label: "Add Enemies", icon: Sword, prompt: "Add horror enemies and traps", color: "text-red-400" },
+        ...common,
+        { label: "Add Lighting", icon: Flag, prompt: "Add lamps and dark atmosphere", color: "text-yellow-400" },
+      ];
+    case "racing":
+      return [
+        { label: "Build Race Track", icon: Wand2, prompt: "Build a full racing game", color: "text-indigo-400" },
+        { label: "Add Track", icon: Route, prompt: "Add race track segments", color: "text-gray-400" },
+        { label: "Add Obstacles", icon: Sword, prompt: "Add track obstacles and jumps", color: "text-red-400" },
+        { label: "Add Boost Pads", icon: Flag, prompt: "Add speed boost pads", color: "text-cyan-400" },
+        ...common,
+        { label: "Add Checkpoints", icon: Flag, prompt: "Add race checkpoints", color: "text-green-400" },
+      ];
+    case "battlegrounds":
+      return [
+        { label: "Build Arena", icon: Wand2, prompt: "Build a full battlegrounds game", color: "text-indigo-400" },
+        { label: "Add Arenas", icon: Shield, prompt: "Add battle arenas", color: "text-red-400" },
+        { label: "Add Cover", icon: Mountain, prompt: "Add walls and cover for battles", color: "text-gray-400" },
+        { label: "Add NPCs", icon: Users, prompt: "Add fighters and enemies", color: "text-purple-400" },
+        ...common,
+        { label: "Add Loot", icon: Coins, prompt: "Add weapon pickups and health", color: "text-yellow-400" },
+      ];
+    default:
+      return [
+        { label: "Build Full Level", icon: Wand2, prompt: "Build a complete game", color: "text-indigo-400" },
+        { label: "Add Terrain", icon: Mountain, prompt: "Add terrain and ground", color: "text-green-400" },
+        { label: "Add Obstacles", icon: Sword, prompt: "Add obstacles and challenges", color: "text-red-400" },
+        { label: "Add NPCs", icon: Users, prompt: "Add characters", color: "text-purple-400" },
+        ...common,
+        { label: "Add Collectibles", icon: Coins, prompt: "Add coins and gems", color: "text-yellow-400" },
+      ];
+  }
+}
 
-function aiGenerateScene(prompt: string, addElement: (item: any, x: number, y: number) => void): string {
+// ── Template-aware AI scene generation ──
+
+function aiGenerateScene(prompt: string, template: string, addElement: (item: any, x: number, y: number) => void): string {
   const lower = prompt.toLowerCase();
   const find = (type: string) => PALETTE_ITEMS.find(p => p.type === type)!;
-
   const rand = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 20) * 20;
 
-  if (lower.includes("full level") || lower.includes("complete") || lower.includes("whole game") || lower.includes("everything")) {
-    // Build a complete level
-    // Ground
-    for (let x = 200; x < 1200; x += 200) {
-      addElement(find("grass"), x, rand(400, 500));
+  // ── CLEAR
+  if (lower.includes("clear") || lower.includes("reset") || lower.includes("start over")) {
+    useCanvasStore.getState().clearAll();
+    return "Cleared everything! Fresh canvas. What should we build?";
+  }
+
+  // ── FULL BUILD (template-specific)
+  if (lower.includes("full") || lower.includes("complete") || lower.includes("whole") || lower.includes("build a") || lower.includes("build me")) {
+    return buildFullLevel(template, addElement, find, rand);
+  }
+
+  // ── Generic add commands (work for any template)
+  if (lower.includes("tree") || lower.includes("forest") || lower.includes("nature")) {
+    const ct = lower.includes("lot") || lower.includes("forest") ? 10 : 5;
+    for (let i = 0; i < ct; i++) addElement(find("tree"), rand(150, 1250), rand(250, 550));
+    for (let i = 0; i < 3; i++) addElement(find("bush"), rand(150, 1250), rand(250, 550));
+    return `Added ${ct} trees and bushes around the area!`;
+  }
+  if (lower.includes("water") || lower.includes("lake") || lower.includes("river")) {
+    addElement(find("water"), rand(400, 900), rand(350, 450));
+    return "Added a water area!";
+  }
+  if (lower.includes("terrain") || lower.includes("ground")) {
+    for (let x = 200; x < 1200; x += 200) addElement(find("grass"), x, rand(380, 480));
+    return "Added terrain blocks!";
+  }
+
+  // ── Template-specific commands
+  if (template === "obby" && (lower.includes("stage") || lower.includes("platform") || lower.includes("obby"))) {
+    addElement(find("spawn"), 200, 400);
+    for (let i = 0; i < 6; i++) {
+      addElement(find(i % 2 === 0 ? "platform" : "moving-platform"), 300 + i * 140, rand(300, 460));
     }
-    // Water
-    addElement(find("water"), rand(500, 800), rand(350, 450));
-    // Trees
-    for (let i = 0; i < 8; i++) addElement(find("tree"), rand(150, 1250), rand(250, 550));
-    // Bushes
-    for (let i = 0; i < 5; i++) addElement(find("bush"), rand(150, 1250), rand(250, 550));
-    // Rocks
-    for (let i = 0; i < 4; i++) addElement(find("rock"), rand(200, 1200), rand(300, 500));
-    // Platforms
-    for (let i = 0; i < 5; i++) addElement(find("platform"), rand(200, 1200), rand(280, 480));
-    // Obstacles
-    addElement(find("killbrick"), rand(400, 1000), rand(300, 450));
-    addElement(find("spikes"), rand(400, 1000), rand(300, 450));
-    addElement(find("spinner"), rand(400, 1000), rand(300, 450));
-    // Characters
-    addElement(find("enemy"), rand(300, 1100), rand(300, 500));
+    addElement(find("checkpoint"), 1140, 400);
+    return "Added an obby stage with platforms, moving platforms, and a checkpoint at the end!";
+  }
+  if (template === "obby" && (lower.includes("obstacle") || lower.includes("trap") || lower.includes("kill"))) {
+    for (let i = 0; i < 4; i++) addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
+    addElement(find("spinner"), rand(400, 900), rand(350, 450));
+    addElement(find("laser"), rand(500, 1000), rand(320, 460));
+    return "Added kill bricks, a spinner, and a laser! The obby just got harder.";
+  }
+
+  if (template === "tycoon" && (lower.includes("plot") || lower.includes("tycoon"))) {
+    addElement(find("tycoon-plot"), 400, 400);
+    addElement(find("tycoon-plot"), 900, 400);
+    return "Added 2 tycoon plots! Players will claim these to start building.";
+  }
+  if (template === "tycoon" && (lower.includes("machine") || lower.includes("dropper") || lower.includes("conveyor"))) {
+    for (let i = 0; i < 3; i++) addElement(find("machine"), rand(300, 600), rand(300, 500));
+    addElement(find("conveyor"), rand(350, 550), rand(400, 450));
+    return "Added dropper machines and a conveyor belt!";
+  }
+  if ((lower.includes("shop") || lower.includes("store") || lower.includes("buy"))) {
+    addElement(find("shop-building"), rand(300, 800), rand(300, 450));
+    addElement(find("shopkeeper"), rand(350, 750), rand(350, 420));
+    return "Added a shop building with a shopkeeper!";
+  }
+
+  if (template === "simulator" && (lower.includes("zone") || lower.includes("area"))) {
+    addElement(find("portal"), 300, 400);
+    addElement(find("portal"), 900, 400);
+    for (let i = 0; i < 8; i++) addElement(find("coin"), rand(350, 850), rand(300, 500));
+    return "Added zones with portals between them and coins to collect!";
+  }
+  if (lower.includes("pet")) {
+    for (let i = 0; i < 4; i++) addElement(find("pet"), rand(300, 1000), rand(300, 500));
+    return "Added pets! They'll follow players around.";
+  }
+  if (lower.includes("market") || lower.includes("stall")) {
+    for (let i = 0; i < 3; i++) addElement(find("market-stall"), rand(300, 900), rand(350, 450));
+    return "Added market stalls!";
+  }
+
+  if (template === "rpg" && (lower.includes("town") || lower.includes("village") || lower.includes("house"))) {
+    addElement(find("house"), 300, 350);
+    addElement(find("house"), 550, 300);
+    addElement(find("shop-building"), 700, 380);
+    addElement(find("npc"), 400, 400);
+    addElement(find("shopkeeper"), 750, 420);
+    addElement(find("lamp"), 450, 370);
+    addElement(find("fence"), 200, 450);
+    return "Added a small town with houses, a shop, NPCs, and a fence!";
+  }
+  if ((lower.includes("cave") || lower.includes("dungeon") || lower.includes("tunnel"))) {
+    addElement(find("cave"), rand(400, 900), rand(300, 450));
+    addElement(find("enemy"), rand(450, 850), rand(350, 430));
+    addElement(find("enemy"), rand(450, 850), rand(350, 430));
+    return "Added a cave entrance with enemies inside!";
+  }
+
+  if (template === "horror" && (lower.includes("building") || lower.includes("house") || lower.includes("creepy"))) {
+    addElement(find("house"), rand(300, 800), rand(300, 450));
+    addElement(find("lamp"), rand(350, 750), rand(320, 430));
+    return "Added a creepy abandoned building with dim lighting!";
+  }
+
+  if (template === "racing" && (lower.includes("track") || lower.includes("road") || lower.includes("race"))) {
+    for (let i = 0; i < 5; i++) addElement(find("race-track"), 200 + i * 220, 400);
+    addElement(find("boost-pad"), rand(400, 900), 400);
+    return "Added race track segments with a boost pad!";
+  }
+
+  if (template === "battlegrounds" && (lower.includes("arena") || lower.includes("battle") || lower.includes("fight"))) {
+    addElement(find("arena"), 600, 400);
+    addElement(find("enemy"), 500, 350);
+    addElement(find("enemy"), 700, 450);
+    addElement(find("boss"), 600, 300);
+    return "Added a battle arena with enemies and a boss!";
+  }
+  if (lower.includes("wall") || lower.includes("cover") || lower.includes("barrier")) {
+    for (let i = 0; i < 4; i++) addElement(find("wall"), rand(300, 1100), rand(300, 500));
+    return "Added walls for cover!";
+  }
+
+  if (lower.includes("enemy") || lower.includes("npc") || lower.includes("character")) {
     addElement(find("enemy"), rand(300, 1100), rand(300, 500));
     addElement(find("npc"), rand(200, 600), rand(350, 450));
-    addElement(find("shopkeeper"), rand(200, 500), rand(350, 450));
-    addElement(find("boss"), rand(900, 1200), rand(350, 450));
-    // Collectibles
+    return "Added an enemy and an NPC!";
+  }
+  if (lower.includes("boss")) {
+    addElement(find("boss"), rand(700, 1100), rand(350, 450));
+    return "Added a boss enemy!";
+  }
+  if (lower.includes("coin") || lower.includes("collect") || lower.includes("gem") || lower.includes("loot") || lower.includes("treasure")) {
     for (let i = 0; i < 8; i++) addElement(find("coin"), rand(200, 1200), rand(280, 500));
     for (let i = 0; i < 3; i++) addElement(find("gem"), rand(300, 1100), rand(300, 480));
-    // Mechanics
+    return "Added coins and gems to collect!";
+  }
+  if (lower.includes("checkpoint") || lower.includes("spawn")) {
     addElement(find("spawn"), rand(150, 300), rand(380, 420));
-    addElement(find("checkpoint"), rand(600, 700), rand(380, 420));
-    addElement(find("checkpoint"), rand(900, 1000), rand(380, 420));
-    // Lamps
-    addElement(find("lamp"), rand(200, 500), rand(350, 450));
-    addElement(find("lamp"), rand(800, 1100), rand(350, 450));
-    return "I built a complete level for you! It has terrain, water, trees, platforms, obstacles, enemies, NPCs, collectibles, checkpoints, and lamps. You can click on any object in the 3D view to select it, or tell me to change anything.";
+    addElement(find("checkpoint"), rand(600, 1000), rand(380, 420));
+    return "Added a spawn point and checkpoint!";
   }
-
-  if (lower.includes("terrain") || lower.includes("ground") || lower.includes("hill")) {
-    for (let x = 200; x < 1200; x += rand(150, 250)) {
-      addElement(find("grass"), x, rand(380, 480));
-    }
-    addElement(find("sand"), rand(300, 600), rand(400, 500));
-    for (let i = 0; i < 3; i++) addElement(find("rock"), rand(200, 1200), rand(300, 500));
-    return "Added varied terrain with grass, sand, and rocks. Want me to add trees or obstacles too?";
+  if (lower.includes("light") || lower.includes("lamp")) {
+    for (let i = 0; i < 4; i++) addElement(find("lamp"), rand(200, 1200), rand(300, 500));
+    return "Added lamps for lighting!";
   }
-
-  if (lower.includes("water") || lower.includes("lake") || lower.includes("river") || lower.includes("ocean")) {
-    addElement(find("water"), rand(400, 900), rand(350, 450));
-    addElement(find("water"), rand(400, 900), rand(370, 470));
-    return "Added a water area! Players will be able to swim in it. Want me to add anything around the water?";
-  }
-
-  if (lower.includes("tree") || lower.includes("forest") || lower.includes("bush") || lower.includes("plant")) {
-    const count = lower.includes("lot") || lower.includes("many") || lower.includes("forest") ? 12 : 6;
-    for (let i = 0; i < count; i++) addElement(find("tree"), rand(150, 1250), rand(250, 550));
-    for (let i = 0; i < Math.ceil(count / 2); i++) addElement(find("bush"), rand(150, 1250), rand(250, 550));
-    return `Added ${count} trees and some bushes! The landscape is looking more natural now.`;
-  }
-
-  if (lower.includes("obstacle") || lower.includes("danger") || lower.includes("hard") || lower.includes("challenge")) {
-    addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
+  if (lower.includes("obstacle") || lower.includes("danger")) {
     addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
     addElement(find("spikes"), rand(300, 1100), rand(300, 480));
-    addElement(find("spinner"), rand(300, 1100), rand(300, 480));
-    addElement(find("laser"), rand(300, 1100), rand(300, 480));
-    return "Added obstacles: kill bricks, spikes, a spinner, and a laser. That should make things challenging! Want more or less?";
+    return "Added obstacles!";
+  }
+  if (lower.includes("bridge")) {
+    addElement(find("bridge"), rand(400, 900), rand(350, 450));
+    return "Added a bridge!";
+  }
+  if (lower.includes("tower")) {
+    addElement(find("tower"), rand(300, 1000), rand(300, 500));
+    return "Added a tower!";
+  }
+  if (lower.includes("portal") || lower.includes("teleport")) {
+    addElement(find("portal"), rand(300, 1000), rand(350, 450));
+    return "Added a portal!";
   }
 
-  if (lower.includes("enemy") || lower.includes("npc") || lower.includes("character") || lower.includes("mob")) {
-    addElement(find("enemy"), rand(300, 1100), rand(300, 500));
-    addElement(find("enemy"), rand(300, 1100), rand(300, 500));
-    addElement(find("npc"), rand(200, 600), rand(350, 450));
-    addElement(find("shopkeeper"), rand(200, 500), rand(350, 450));
-    if (lower.includes("boss")) addElement(find("boss"), rand(900, 1200), rand(350, 450));
-    return "Added characters! There are enemies to fight, an NPC for quests, and a shopkeeper. Want me to add a boss?";
-  }
-
-  if (lower.includes("coin") || lower.includes("collect") || lower.includes("gem") || lower.includes("pickup")) {
-    for (let i = 0; i < 10; i++) addElement(find("coin"), rand(200, 1200), rand(280, 500));
-    for (let i = 0; i < 4; i++) addElement(find("gem"), rand(300, 1100), rand(300, 480));
-    return "Scattered coins and gems around the level! Players will love collecting these.";
-  }
-
-  if (lower.includes("checkpoint") || lower.includes("spawn") || lower.includes("save")) {
-    addElement(find("spawn"), rand(150, 300), rand(380, 420));
-    addElement(find("checkpoint"), rand(500, 700), rand(380, 420));
-    addElement(find("checkpoint"), rand(800, 1100), rand(380, 420));
-    return "Added a spawn point and two checkpoints. Players will respawn at the last checkpoint they reached.";
-  }
-
-  if (lower.includes("platform") || lower.includes("jump") || lower.includes("obby")) {
-    for (let i = 0; i < 6; i++) {
-      const type = i % 3 === 0 ? "moving-platform" : i % 3 === 1 ? "bouncy" : "platform";
-      addElement(find(type), rand(200, 1200), rand(280, 480));
-    }
-    return "Added platforms including some moving and bouncy ones! Great for an obby-style section.";
-  }
-
-  if (lower.includes("light") || lower.includes("lamp") || lower.includes("dark") || lower.includes("night")) {
-    for (let i = 0; i < 5; i++) addElement(find("lamp"), rand(200, 1200), rand(300, 500));
-    return "Added lamps around the level. They'll light up the area!";
-  }
-
-  if (lower.includes("clear") || lower.includes("reset") || lower.includes("start over") || lower.includes("remove all")) {
-    useCanvasStore.getState().clearAll();
-    return "Cleared everything! Fresh canvas ready to go. What should we build?";
-  }
-
-  // Default: try to add whatever they asked for
-  addElement(find("platform"), rand(400, 1000), rand(350, 450));
+  // Default
   addElement(find("tree"), rand(300, 1100), rand(300, 500));
-  return `I added some elements based on your request. Try being more specific — like "add a forest", "create obstacles", or "build a full level"!`;
+  addElement(find("rock"), rand(300, 1100), rand(300, 500));
+  return `I added a couple of things. Try being more specific for your ${template} game — like "add a town", "build stages", or "add enemies"!`;
+}
+
+// ── Template-specific full level builders ──
+
+function buildFullLevel(template: string, add: (item: any, x: number, y: number) => void, find: (t: string) => any, rand: (min: number, max: number) => number): string {
+  switch (template) {
+    case "obby": {
+      // Linear obstacle course with stages
+      add(find("spawn"), 160, 400);
+      for (let stage = 0; stage < 4; stage++) {
+        const baseX = 300 + stage * 250;
+        for (let p = 0; p < 3; p++) add(find(p === 1 ? "moving-platform" : "platform"), baseX + p * 80, rand(340, 460));
+        add(find("killbrick"), baseX + rand(40, 120), rand(360, 440));
+        add(find("checkpoint"), baseX + 230, 400);
+      }
+      add(find("spinner"), rand(600, 900), rand(350, 450));
+      add(find("laser"), rand(700, 1000), rand(340, 460));
+      for (let i = 0; i < 12; i++) add(find("coin"), rand(200, 1300), rand(300, 500));
+      for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1350), rand(250, 550));
+      add(find("lamp"), rand(300, 600), rand(350, 450));
+      add(find("lamp"), rand(900, 1200), rand(350, 450));
+      return "Built an obby course with 4 stages! Each has platforms, moving platforms, kill bricks, and checkpoints. Coins are scattered along the way. Use WASD to fly around and inspect it!";
+    }
+    case "tycoon": {
+      // Plots with machines and a shop
+      add(find("spawn"), 200, 400);
+      add(find("tycoon-plot"), 400, 350);
+      add(find("tycoon-plot"), 900, 350);
+      for (let i = 0; i < 4; i++) add(find("machine"), rand(350, 550), rand(300, 440));
+      for (let i = 0; i < 3; i++) add(find("machine"), rand(850, 1050), rand(300, 440));
+      add(find("conveyor"), 500, 400);
+      add(find("conveyor"), 950, 400);
+      add(find("shop-building"), 650, 300);
+      add(find("shopkeeper"), 680, 340);
+      for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1250), rand(200, 550));
+      add(find("lamp"), 300, 400);
+      add(find("lamp"), 800, 400);
+      for (let i = 0; i < 10; i++) add(find("coin"), rand(300, 1100), rand(280, 500));
+      return "Built a tycoon with 2 player plots, dropper machines, conveyor belts, and a shop! Each plot has machines to earn money. Fly around with WASD to see it all!";
+    }
+    case "simulator": {
+      // Open zones with grinding areas, market, pets
+      add(find("spawn"), 200, 400);
+      add(find("portal"), 500, 350);
+      add(find("portal"), 900, 350);
+      for (let i = 0; i < 15; i++) add(find("coin"), rand(200, 1200), rand(280, 520));
+      for (let i = 0; i < 5; i++) add(find("gem"), rand(300, 1100), rand(300, 480));
+      for (let i = 0; i < 4; i++) add(find("pet"), rand(300, 1000), rand(300, 500));
+      add(find("market-stall"), 350, 300);
+      add(find("market-stall"), 550, 300);
+      add(find("shop-building"), 750, 280);
+      add(find("shopkeeper"), 780, 320);
+      add(find("npc"), 400, 340);
+      for (let i = 0; i < 8; i++) add(find("tree"), rand(150, 1250), rand(200, 550));
+      add(find("lamp"), rand(300, 500), rand(350, 450));
+      add(find("lamp"), rand(800, 1000), rand(350, 450));
+      return "Built a simulator with grinding zones connected by portals, a market area with stalls, a shop, pets, and tons of collectibles! Fly around to explore.";
+    }
+    case "rpg": {
+      // Town, dungeon, NPCs
+      add(find("spawn"), 200, 400);
+      add(find("house"), 350, 350);
+      add(find("house"), 550, 300);
+      add(find("house"), 400, 480);
+      add(find("shop-building"), 700, 350);
+      add(find("shopkeeper"), 730, 390);
+      add(find("npc"), 420, 400);
+      add(find("npc"), 600, 350);
+      add(find("cave"), 1000, 380);
+      add(find("enemy"), 950, 350);
+      add(find("enemy"), 1050, 420);
+      add(find("boss"), 1100, 380);
+      add(find("bridge"), 800, 400);
+      add(find("tower"), 250, 280);
+      for (let i = 0; i < 8; i++) add(find("tree"), rand(150, 1250), rand(200, 550));
+      for (let i = 0; i < 6; i++) add(find("coin"), rand(300, 1100), rand(300, 500));
+      for (let i = 0; i < 3; i++) add(find("gem"), rand(800, 1150), rand(350, 430));
+      add(find("fence"), 200, 500);
+      add(find("fence"), 600, 500);
+      add(find("lamp"), 300, 380);
+      add(find("lamp"), 650, 380);
+      add(find("checkpoint"), 700, 400);
+      return "Built an RPG world! There's a town with houses, shops and NPCs, a bridge leading to a dungeon cave with enemies and a boss, a watchtower, and treasure to find!";
+    }
+    case "horror": {
+      add(find("spawn"), 200, 400);
+      add(find("house"), 400, 350);
+      add(find("house"), 700, 300);
+      add(find("cave"), 1000, 380);
+      add(find("tunnel"), 600, 450);
+      add(find("enemy"), rand(500, 900), rand(300, 500));
+      add(find("enemy"), rand(500, 900), rand(300, 500));
+      add(find("lamp"), 350, 380);
+      add(find("lamp"), 650, 400);
+      add(find("lamp"), 950, 380);
+      for (let i = 0; i < 4; i++) add(find("rock"), rand(200, 1100), rand(300, 500));
+      add(find("fence"), 300, 480);
+      add(find("wall"), 800, 320);
+      return "Built a horror map with abandoned buildings, a dark cave, a tunnel, enemies lurking around, and dim lamp lighting. Creepy!";
+    }
+    case "racing": {
+      add(find("spawn"), 200, 400);
+      for (let i = 0; i < 6; i++) add(find("race-track"), 200 + i * 180, 400);
+      add(find("boost-pad"), 500, 400);
+      add(find("boost-pad"), 900, 400);
+      add(find("checkpoint"), 400, 400);
+      add(find("checkpoint"), 700, 400);
+      add(find("checkpoint"), 1000, 400);
+      for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1250), rand(250, 550));
+      for (let i = 0; i < 3; i++) add(find("rock"), rand(200, 1200), rand(300, 500));
+      add(find("coin"), rand(300, 1100), rand(350, 450));
+      return "Built a racing track with 6 segments, boost pads, checkpoints, and scenery around the course!";
+    }
+    case "battlegrounds": {
+      add(find("spawn"), 200, 400);
+      add(find("arena"), 600, 380);
+      add(find("arena"), 1000, 380);
+      for (let i = 0; i < 5; i++) add(find("wall"), rand(350, 1150), rand(300, 500));
+      add(find("enemy"), rand(400, 800), rand(320, 460));
+      add(find("enemy"), rand(800, 1100), rand(320, 460));
+      add(find("boss"), 1000, 350);
+      add(find("npc"), 250, 380);
+      add(find("shopkeeper"), 300, 420);
+      for (let i = 0; i < 6; i++) add(find("coin"), rand(400, 1100), rand(300, 500));
+      add(find("lamp"), rand(400, 600), rand(350, 450));
+      add(find("lamp"), rand(800, 1000), rand(350, 450));
+      return "Built a battlegrounds map with 2 arenas, cover walls, enemies, a boss, an NPC, and a shop!";
+    }
+    default: {
+      // Generic
+      add(find("spawn"), 200, 400);
+      for (let x = 200; x < 1200; x += 200) add(find("grass"), x, rand(400, 480));
+      add(find("water"), rand(500, 800), rand(350, 450));
+      for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1250), rand(250, 550));
+      add(find("house"), rand(400, 800), rand(300, 420));
+      add(find("npc"), rand(300, 700), rand(350, 450));
+      add(find("enemy"), rand(600, 1100), rand(300, 500));
+      for (let i = 0; i < 6; i++) add(find("coin"), rand(200, 1200), rand(280, 500));
+      add(find("checkpoint"), rand(600, 900), rand(380, 420));
+      add(find("lamp"), rand(300, 500), rand(350, 450));
+      return "Built a game level with terrain, a house, NPCs, enemies, collectibles, and a checkpoint!";
+    }
+  }
 }
 
 // ── Chat message type ──
@@ -157,11 +417,23 @@ interface ChatMsg {
   text: string;
 }
 
+// ── Template display names ──
+
+const TEMPLATE_NAMES: Record<string, string> = {
+  obby: "Obby", tycoon: "Tycoon", simulator: "Simulator", rpg: "RPG",
+  horror: "Horror", racing: "Racing", battlegrounds: "Battlegrounds", minigames: "Minigames",
+};
+
 // ── Main Component ──
 
 export function AiSceneChat({ projectPath }: { projectPath: string }) {
+  const { project } = useProjectStore();
+  const template = project?.template || "obby";
+  const templateName = TEMPLATE_NAMES[template] || template;
+  const quickActions = getQuickActions(template);
+
   const [messages, setMessages] = useState<ChatMsg[]>([
-    { id: 0, role: "ai", text: "Hey! I'm your AI game builder. Tell me what you want in your game and I'll create it for you — or use the quick buttons below to get started!" },
+    { id: 0, role: "ai", text: `Hey! I'm building your **${templateName}** game. Hit the top button to auto-build the whole thing, or tell me what you want and I'll add it!` },
   ]);
   const [input, setInput] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
@@ -179,10 +451,9 @@ export function AiSceneChat({ projectPath }: { projectPath: string }) {
     setInput("");
     setIsBuilding(true);
 
-    // Simulate AI thinking delay
     await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
 
-    const response = aiGenerateScene(text, addElement);
+    const response = aiGenerateScene(text, template, addElement);
     const aiMsg: ChatMsg = { id: Date.now() + 1, role: "ai", text: response };
     setMessages(prev => [...prev, aiMsg]);
     setIsBuilding(false);
@@ -201,17 +472,17 @@ export function AiSceneChat({ projectPath }: { projectPath: string }) {
             <Sparkles size={14} className="text-white" />
           </div>
           <div>
-            <p className="text-[13px] font-bold text-white">AI Builder</p>
-            <p className="text-[10px] text-gray-500">Tell me what to build</p>
+            <p className="text-[13px] font-bold text-white">{templateName} Builder</p>
+            <p className="text-[10px] text-gray-500">AI builds your {templateName.toLowerCase()} game</p>
           </div>
         </div>
       </div>
 
-      {/* Quick actions */}
+      {/* Quick actions — template-specific */}
       <div className="border-b border-gray-800/40 p-3">
-        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Quick Build</p>
+        <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Quick Build — {templateName}</p>
         <div className="grid grid-cols-2 gap-1.5">
-          {QUICK_ACTIONS.map((action) => {
+          {quickActions.map((action) => {
             const Icon = action.icon;
             return (
               <button
