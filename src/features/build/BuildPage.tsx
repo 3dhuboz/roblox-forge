@@ -1,17 +1,14 @@
-import { useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, Sparkles, X } from "lucide-react";
-import { ElementPalette } from "../builder/ElementPalette";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
-import { PropertiesPanel } from "../builder/PropertiesPanel";
-import { BuilderToolbar } from "../builder/BuilderToolbar";
-import { ChatPanel } from "../chat/ChatPanel";
+import { AiSceneChat } from "../builder/AiSceneChat";
+import { useCanvasStore } from "../../stores/canvasStore";
 
 export function BuildPage() {
   const { project } = useProjectStore();
   const navigate = useNavigate();
-  const [aiOpen, setAiOpen] = useState(false);
+  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack } = useCanvasStore();
 
   if (!project) {
     return (
@@ -35,45 +32,44 @@ export function BuildPage() {
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
-      {/* Toolbar */}
-      <BuilderToolbar
-        gameName={project.name}
-        onAiAssist={() => setAiOpen(!aiOpen)}
-      />
+      {/* Compact toolbar */}
+      <div className="flex items-center gap-2 border-b border-gray-800/40 bg-gray-950 px-3 py-1.5">
+        <button onClick={() => navigate("/")} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-white">
+          <ArrowLeft size={16} />
+        </button>
+        <div className="h-5 w-5 rounded bg-gradient-to-br from-indigo-500 to-purple-600" />
+        <span className="text-[13px] font-bold text-white">{project.name}</span>
+        <span className="rounded bg-gray-800/60 px-1.5 py-0.5 text-[10px] text-gray-400">{elements.length} parts</span>
 
-      {/* Main studio layout */}
+        <div className="h-4 w-px bg-gray-800 mx-1" />
+
+        <button onClick={undo} disabled={undoStack.length === 0} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30" title="Undo">
+          <Undo2 size={14} />
+        </button>
+        <button onClick={redo} disabled={redoStack.length === 0} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30" title="Redo">
+          <Redo2 size={14} />
+        </button>
+
+        <div className="h-4 w-px bg-gray-800 mx-1" />
+
+        <button onClick={() => setZoom(zoom - 0.15)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"><ZoomOut size={14} /></button>
+        <span className="text-[10px] text-gray-500 w-8 text-center font-mono">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(zoom + 0.15)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"><ZoomIn size={14} /></button>
+
+        <div className="flex-1" />
+
+        <button className="flex items-center gap-1.5 rounded-lg bg-green-600/20 px-3 py-1.5 text-[11px] font-semibold text-green-300 hover:bg-green-600/30">
+          <Download size={13} /> Export to Roblox
+        </button>
+      </div>
+
+      {/* Main layout: 3D viewport + AI chat */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Element Palette (Toolbox) */}
-        <ElementPalette />
+        {/* Left: 3D Viewport (primary) */}
+        <GameCanvas3D />
 
-        {/* Center: Game Canvas (Viewport) */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <GameCanvas3D />
-
-          {/* AI Assist drawer (collapsible from bottom) */}
-          {aiOpen && (
-            <div className="flex flex-col border-t border-gray-800/40" style={{ height: "280px" }}>
-              <div className="flex items-center justify-between border-b border-gray-800/30 px-4 py-1.5">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={13} className="text-indigo-400" />
-                  <span className="text-[11px] font-bold text-gray-400">AI Assistant</span>
-                </div>
-                <button
-                  onClick={() => setAiOpen(false)}
-                  className="rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-white"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <ChatPanel projectPath={project.path} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Properties Panel */}
-        <PropertiesPanel />
+        {/* Right: AI Chat Sidebar */}
+        <AiSceneChat projectPath={project.path} />
       </div>
     </div>
   );
