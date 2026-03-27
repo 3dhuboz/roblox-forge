@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -425,6 +425,66 @@ function BackgroundScenery() {
   );
 }
 
+// ── WASD Keyboard Camera Movement ──
+
+function KeyboardControls() {
+  const { camera } = useThree();
+  const keys = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      // Don't capture if typing in an input
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      keys.current.add(e.key.toLowerCase());
+    };
+    const up = (e: KeyboardEvent) => {
+      keys.current.delete(e.key.toLowerCase());
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, []);
+
+  useFrame((state, delta) => {
+    const speed = keys.current.has("shift") ? 20 : 10;
+    const move = speed * delta;
+    const k = keys.current;
+    if (k.size === 0) return;
+
+    // Get camera's forward and right vectors (projected onto XZ plane)
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+
+    const right = new THREE.Vector3();
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+    const offset = new THREE.Vector3();
+
+    // WASD / Arrow keys
+    if (k.has("w") || k.has("arrowup")) offset.add(forward.clone().multiplyScalar(move));
+    if (k.has("s") || k.has("arrowdown")) offset.add(forward.clone().multiplyScalar(-move));
+    if (k.has("a") || k.has("arrowleft")) offset.add(right.clone().multiplyScalar(-move));
+    if (k.has("d") || k.has("arrowright")) offset.add(right.clone().multiplyScalar(move));
+    if (k.has("e")) offset.y += move;
+    if (k.has("q")) offset.y -= move;
+
+    if (offset.lengthSq() === 0) return;
+
+    // Move camera position
+    camera.position.add(offset);
+
+    // Move orbit target too so rotation stays centered
+    const controls = (state as any).controls;
+    if (controls && controls.target) {
+      controls.target.add(offset);
+    }
+  });
+
+  return null;
+}
+
 // ── Draggable element wrapper ──
 
 function DraggableElement3D({ el }: { el: CanvasElement }) {
@@ -542,7 +602,8 @@ function SceneContent() {
       {/* Background scenery — trees and rocks around the edges */}
       <BackgroundScenery />
 
-      {/* Camera controls */}
+      {/* Camera controls — orbit + WASD keyboard movement */}
+      <KeyboardControls />
       <OrbitControls
         makeDefault
         minPolarAngle={0.1}
@@ -586,7 +647,7 @@ export function GameCanvas3D() {
       {/* Controls overlay */}
       <div className="absolute top-3 left-3 flex items-center gap-3">
         <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
-          <span className="font-bold text-indigo-300">Scroll</span> zoom · <span className="font-bold text-indigo-300">Right-drag</span> rotate · <span className="font-bold text-indigo-300">Middle-drag</span> pan
+          <span className="font-bold text-indigo-300">WASD</span> move · <span className="font-bold text-indigo-300">Q/E</span> up/down · <span className="font-bold text-indigo-300">Scroll</span> zoom · <span className="font-bold text-indigo-300">Right-drag</span> rotate · <span className="font-bold text-indigo-300">Shift</span> fast
         </div>
         <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
           <span className="font-bold text-green-300">{elements.length}</span> parts placed
