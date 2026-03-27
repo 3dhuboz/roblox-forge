@@ -980,13 +980,22 @@ function SceneContent() {
       <KeyboardControls />
       <OrbitControls
         makeDefault
+        mouseButtons={{
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
+        }}
         minPolarAngle={0.1}
         maxPolarAngle={Math.PI / 2.1}
-        minDistance={3}
-        maxDistance={45}
+        minDistance={2}
+        maxDistance={50}
         target={[0, 0, 0]}
         enableDamping
         dampingFactor={0.08}
+        panSpeed={1.5}
+        rotateSpeed={0.8}
+        zoomSpeed={1.2}
+        screenSpacePanning={false}
       />
 
       {/* Render all user-placed elements */}
@@ -1021,7 +1030,7 @@ export function GameCanvas3D() {
       {/* Controls overlay */}
       <div className="absolute top-3 left-3 flex items-center gap-3">
         <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
-          <span className="font-bold text-indigo-300">WASD</span> move · <span className="font-bold text-indigo-300">Q/E</span> up/down · <span className="font-bold text-indigo-300">Scroll</span> zoom · <span className="font-bold text-indigo-300">Right-drag</span> rotate · <span className="font-bold text-indigo-300">Shift</span> fast
+          <span className="font-bold text-indigo-300">Left-drag</span> orbit · <span className="font-bold text-indigo-300">Right-drag</span> pan · <span className="font-bold text-indigo-300">Scroll</span> zoom · <span className="font-bold text-indigo-300">WASD</span> move · <span className="font-bold text-indigo-300">Q/E</span> up/down
         </div>
         <div className="rounded-lg bg-black/50 backdrop-blur-sm px-3 py-1.5 text-[11px] text-white/80 shadow">
           <span className="font-bold text-green-300">{elements.length}</span> parts placed
