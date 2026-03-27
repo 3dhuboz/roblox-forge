@@ -799,52 +799,76 @@ function KeyboardControls() {
 }
 
 // ── Draggable element wrapper ──
+// Click to select. When selected, click+drag to move on ground plane.
 
 function DraggableElement3D({ el }: { el: CanvasElement }) {
-  const { selectedId, tool, moveElement } = useCanvasStore();
+  const { selectedId, selectElement, tool, moveElement, removeElement } = useCanvasStore();
   const isSelected = selectedId === el.id;
   const groupRef = useRef<THREE.Group>(null);
-  const { raycaster, camera, pointer } = useThree();
+  const { raycaster, camera, pointer, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
   const dragOffset = useRef(new THREE.Vector3());
 
+  // During drag: raycast mouse onto ground plane and move element
   useFrame(() => {
-    if (!isDragging || !groupRef.current) return;
+    if (!isDragging) return;
     raycaster.setFromCamera(pointer, camera);
-    const intersect = new THREE.Vector3();
-    raycaster.ray.intersectPlane(dragPlane.current, intersect);
-    if (intersect) {
-      const newX = intersect.x * 50 + 700 - dragOffset.current.x;
-      const newZ = intersect.z * 50 + 350 - dragOffset.current.z;
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane.current, hit);
+    if (hit) {
+      const newX = hit.x * 50 + 700 - dragOffset.current.x;
+      const newZ = hit.z * 50 + 350 - dragOffset.current.z;
       moveElement(el.id, Math.round(newX / 20) * 20, Math.round(newZ / 20) * 20);
     }
   });
 
-  const handlePointerDown = (e: any) => {
-    if (tool !== "select" && tool !== "move") return;
-    if (!isSelected) return;
+  const handleClick = (e: any) => {
     e.stopPropagation();
-    setIsDragging(true);
-    (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
-    raycaster.setFromCamera(pointer, camera);
-    const intersect = new THREE.Vector3();
-    raycaster.ray.intersectPlane(dragPlane.current, intersect);
-    if (intersect) {
-      dragOffset.current.set(intersect.x * 50 + 700 - el.x, 0, intersect.z * 50 + 350 - el.y);
+    if (tool === "delete") {
+      removeElement(el.id);
+      return;
     }
+    selectElement(el.id);
   };
 
-  const handlePointerUp = () => {
-    if (isDragging) {
+  const handlePointerDown = (e: any) => {
+    if (tool !== "select" && tool !== "move") return;
+    if (!isSelected) return; // Must be selected first
+    e.stopPropagation();
+
+    // Calculate drag offset so element doesn't jump
+    raycaster.setFromCamera(pointer, camera);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane.current, hit);
+    if (hit) {
+      dragOffset.current.set(hit.x * 50 + 700 - el.x, 0, hit.z * 50 + 350 - el.y);
+    }
+
+    setIsDragging(true);
+
+    // Disable orbit controls while dragging
+    const controls = (gl.domElement as any).__r3f_controls;
+    if (controls) controls.enabled = false;
+
+    const handleUp = () => {
       setIsDragging(false);
+      // Re-enable orbit controls
+      if (controls) controls.enabled = true;
+      // Save undo state
       const { elements, undoStack } = useCanvasStore.getState();
       useCanvasStore.setState({ undoStack: [...undoStack, elements], redoStack: [] });
-    }
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointerup", handleUp);
   };
 
   return (
-    <group ref={groupRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
+    <group
+      ref={groupRef}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+    >
       <Element3D el={el} />
     </group>
   );
