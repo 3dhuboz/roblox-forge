@@ -285,7 +285,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1350), rand(250, 550));
       add(find("lamp"), rand(300, 600), rand(350, 450));
       add(find("lamp"), rand(900, 1200), rand(350, 450));
-      return "Built an obby course with 4 stages! Each has platforms, moving platforms, kill bricks, and checkpoints. Coins are scattered along the way. Use WASD to fly around and inspect it!";
+      return "Built an obby course with 4 stages!\n\n⚙️ Auto-configured logic:\n• Platforms: Anchored, SmoothPlastic material\n• Moving platforms: Move 10 studs at speed 4\n• Kill bricks: Instant death on touch\n• Checkpoints: Auto-save progress per stage\n• Coins: 10 coins each, respawn in 10s\n• Spawn point at the start\n\nUse WASD to fly around and check it out!";
     }
     case "tycoon": {
       // Plots with machines and a shop
@@ -302,7 +302,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       add(find("lamp"), 300, 400);
       add(find("lamp"), 800, 400);
       for (let i = 0; i < 10; i++) add(find("coin"), rand(300, 1100), rand(280, 500));
-      return "Built a tycoon with 2 player plots, dropper machines, conveyor belts, and a shop! Each plot has machines to earn money. Fly around with WASD to see it all!";
+      return "Built a tycoon with 2 player plots!\n\n⚙️ Auto-configured logic:\n• Plots: Free to claim, 3 upgrades available (Bigger Plot $500, Auto Collector $1000, Speed Boost $2000)\n• Machines: Produce coins at 2/s, worth 5 each, upgradeable for $100\n• Conveyors: Speed 12, push items right\n• Shop sells: Dropper Upgrade ($500), Auto Collector ($1000), New Dropper ($2000), Rebirth ($10000)\n• Coins: 10 each, respawn in 10s";
     }
     case "simulator": {
       // Open zones with grinding areas, market, pets
@@ -320,7 +320,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       for (let i = 0; i < 8; i++) add(find("tree"), rand(150, 1250), rand(200, 550));
       add(find("lamp"), rand(300, 500), rand(350, 450));
       add(find("lamp"), rand(800, 1000), rand(350, 450));
-      return "Built a simulator with grinding zones connected by portals, a market area with stalls, a shop, pets, and tons of collectibles! Fly around to explore.";
+      return "Built a simulator!\n\n⚙️ Auto-configured logic:\n• Portals: Teleport between zones, 2s cooldown\n• Coins: 1 each (fast grind), respawn in 2s\n• Gems: 5 each, respawn in 30s\n• Pets: Follow player, wander AI\n• Market stalls: Sell Apples (5 coins) and Swords (50 coins)\n• Shop sells: Better Backpack ($100), Lucky Charm (50 gems), Auto Farm (500 gems), Pet Egg ($200)";
     }
     case "rpg": {
       // Town, dungeon, NPCs
@@ -346,7 +346,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       add(find("lamp"), 300, 380);
       add(find("lamp"), 650, 380);
       add(find("checkpoint"), 700, 400);
-      return "Built an RPG world! There's a town with houses, shops and NPCs, a bridge leading to a dungeon cave with enemies and a boss, a watchtower, and treasure to find!";
+      return "Built an RPG world!\n\n⚙️ Auto-configured logic:\n• NPCs: Have quest 'Defeat the Enemies' (reward: 50 coins), 3 dialog lines\n• Shopkeeper sells: Health Potion (25c), Iron Sword (100c), Shield (150c), Mana Potion (30c), Teleport Scroll (50c)\n• Enemies: 50 HP, 10 dmg, chase AI, drop coins (100%) and gems (15%)\n• Boss: 500 HP, 30 dmg, drops Boss Loot Crate (100%) + 100 coins\n• Gems: Worth 50, respawn in 30s";
     }
     case "horror": {
       add(find("spawn"), 200, 400);
@@ -362,7 +362,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       for (let i = 0; i < 4; i++) add(find("rock"), rand(200, 1100), rand(300, 500));
       add(find("fence"), 300, 480);
       add(find("wall"), 800, 320);
-      return "Built a horror map with abandoned buildings, a dark cave, a tunnel, enemies lurking around, and dim lamp lighting. Creepy!";
+      return "Built a horror map!\n\n⚙️ Auto-configured logic:\n• Enemies: 30 HP, 10 dmg, chase AI, respawn in 15s\n• Lamps: Range 15 studs, brightness 1\n• Cave: Slate material, walkable interior\n• Buildings: Walkable with door openings";
     }
     case "racing": {
       add(find("spawn"), 200, 400);
@@ -375,7 +375,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1250), rand(250, 550));
       for (let i = 0; i < 3; i++) add(find("rock"), rand(200, 1200), rand(300, 500));
       add(find("coin"), rand(300, 1100), rand(350, 450));
-      return "Built a racing track with 6 segments, boost pads, checkpoints, and scenery around the course!";
+      return "Built a racing track!\n\n⚙️ Auto-configured logic:\n• Track: SmoothPlastic, anchored\n• Boost pads: Speed 30, push forward\n• Checkpoints: Auto-save lap progress";
     }
     case "battlegrounds": {
       add(find("spawn"), 200, 400);
@@ -390,7 +390,7 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       for (let i = 0; i < 6; i++) add(find("coin"), rand(400, 1100), rand(300, 500));
       add(find("lamp"), rand(400, 600), rand(350, 450));
       add(find("lamp"), rand(800, 1000), rand(350, 450));
-      return "Built a battlegrounds map with 2 arenas, cover walls, enemies, a boss, an NPC, and a shop!";
+      return "Built a battlegrounds map!\n\n⚙️ Auto-configured logic:\n• Arena: Walled combat areas\n• Enemies: 30 HP, 10 dmg, chase AI, drop coins + gems\n• Boss: 200 HP, 30 dmg, drops Boss Loot Crate\n• Walls: Concrete material, provide cover\n• Shop sells: Health Pack (50c), Sword (100c), Armor (200c), Speed Boost (75c)";
     }
     default: {
       // Generic

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
 import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut } from "lucide-react";
@@ -8,7 +9,12 @@ import { useCanvasStore } from "../../stores/canvasStore";
 export function BuildPage() {
   const { project } = useProjectStore();
   const navigate = useNavigate();
-  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack } = useCanvasStore();
+  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate } = useCanvasStore();
+
+  // Sync template to canvas store so game logic is template-aware
+  useEffect(() => {
+    if (project?.template) setTemplate(project.template);
+  }, [project?.template, setTemplate]);
 
   if (!project) {
     return (
