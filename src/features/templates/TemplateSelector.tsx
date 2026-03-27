@@ -142,6 +142,265 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+// ── Mini scene illustrations for each template ──
+
+function TemplateScene({ id }: { id: string }) {
+  switch (id) {
+    case "obby":
+      return (
+        <div className="absolute inset-0">
+          {/* Sky */}
+          <div className="absolute inset-0 bg-gradient-to-b from-sky-400 to-green-400/30" />
+          {/* Platforms */}
+          <div className="absolute bottom-4 left-3 h-3 w-12 rounded bg-indigo-400 shadow-md" />
+          <div className="absolute bottom-8 left-16 h-3 w-10 rounded bg-cyan-400 shadow-md" />
+          <div className="absolute bottom-14 left-8 h-3 w-14 rounded bg-pink-400 shadow-md" />
+          <div className="absolute bottom-10 right-10 h-3 w-10 rounded bg-yellow-400 shadow-md" />
+          <div className="absolute bottom-18 right-6 h-3 w-12 rounded bg-purple-400 shadow-md" />
+          {/* Kill brick */}
+          <div className="absolute bottom-6 left-[45%] h-2 w-6 rounded-sm bg-red-500 shadow" />
+          {/* Checkpoint flag */}
+          <div className="absolute bottom-3 right-8">
+            <div className="h-16 w-0.5 bg-gray-300" />
+            <div className="absolute top-0 left-0.5 h-4 w-6 bg-green-400" style={{ clipPath: "polygon(0 0, 100% 20%, 100% 80%, 0 100%)" }} />
+          </div>
+          {/* Coins */}
+          {[20, 40, 55, 70].map((l, i) => (
+            <div key={i} className="absolute rounded-full bg-yellow-300 shadow" style={{ width: "6px", height: "6px", bottom: `${16 + i * 6}px`, left: `${l}%` }} />
+          ))}
+          {/* Character silhouette */}
+          <div className="absolute bottom-7 left-4">
+            <div className="h-3 w-2 rounded-sm bg-blue-600" />
+            <div className="mx-auto -mt-0.5 h-2 w-2 rounded-full bg-yellow-300" />
+          </div>
+        </div>
+      );
+    case "tycoon":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-300/40 to-amber-800/30" />
+          {/* Factory building */}
+          <div className="absolute bottom-3 left-4 h-14 w-16 rounded-t bg-gray-500/80">
+            <div className="absolute -top-3 left-2 h-6 w-3 rounded-t bg-gray-400" />
+            <div className="absolute -top-5 left-7 h-8 w-3 rounded-t bg-gray-400" />
+            {/* Windows */}
+            <div className="absolute bottom-3 left-1.5 grid grid-cols-3 gap-1">
+              {[0,1,2,3,4,5].map(i => <div key={i} className="h-2 w-2 rounded-sm bg-yellow-300/70" />)}
+            </div>
+          </div>
+          {/* Machine */}
+          <div className="absolute bottom-3 right-8 h-8 w-8 rounded bg-gray-400/80">
+            <div className="absolute -top-2 left-2 h-3 w-4 rounded bg-yellow-500" />
+          </div>
+          {/* Conveyor belt */}
+          <div className="absolute bottom-3 left-24 h-1.5 w-20 rounded bg-gray-600">
+            {[0,5,10,15].map(i => <div key={i} className="absolute top-0 h-1.5 w-1 bg-gray-500" style={{ left: `${i * 5 + 2}px` }} />)}
+          </div>
+          {/* Coins falling */}
+          {[30, 50, 65, 80].map((l, i) => (
+            <div key={i} className="absolute rounded-full bg-yellow-400 shadow-sm" style={{ width: "8px", height: "8px", top: `${20 + i * 12}px`, left: `${l}%` }} />
+          ))}
+          {/* Dollar signs */}
+          <div className="absolute top-3 right-4 text-lg font-bold text-yellow-300/50">$$$</div>
+        </div>
+      );
+    case "simulator":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/40 to-indigo-700/30" />
+          {/* Pets */}
+          <div className="absolute bottom-6 left-6 h-5 w-5 rounded-full bg-pink-400 shadow">
+            <div className="absolute top-1 left-1 h-1 w-1 rounded-full bg-black" />
+            <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-black" />
+          </div>
+          <div className="absolute bottom-4 left-16 h-6 w-6 rounded-full bg-cyan-400 shadow">
+            <div className="absolute top-1.5 left-1 h-1 w-1 rounded-full bg-black" />
+            <div className="absolute top-1.5 right-1 h-1 w-1 rounded-full bg-black" />
+          </div>
+          <div className="absolute bottom-8 right-12 h-7 w-7 rounded-full bg-yellow-400 shadow">
+            <div className="absolute top-2 left-1.5 h-1 w-1 rounded-full bg-black" />
+            <div className="absolute top-2 right-1.5 h-1 w-1 rounded-full bg-black" />
+          </div>
+          {/* Coins + gems scattered */}
+          {[15, 30, 45, 60, 75, 85].map((l, i) => (
+            <div key={i} className={`absolute rounded-full shadow ${i % 3 === 0 ? "bg-purple-400" : "bg-yellow-400"}`}
+              style={{ width: i % 3 === 0 ? "7px" : "5px", height: i % 3 === 0 ? "7px" : "5px", top: `${15 + (i * 11) % 40}px`, left: `${l}%` }} />
+          ))}
+          {/* Sparkle effects */}
+          <div className="absolute top-4 left-8 text-white/40 text-xs">✨</div>
+          <div className="absolute top-6 right-10 text-white/30 text-sm">✨</div>
+          <div className="absolute bottom-12 left-[50%] text-white/40 text-xs">⭐</div>
+          {/* Progress bar */}
+          <div className="absolute top-3 left-4 right-4 h-2 rounded-full bg-white/10">
+            <div className="h-2 w-3/5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400" />
+          </div>
+        </div>
+      );
+    case "battlegrounds":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-red-900/60 to-red-950/40" />
+          {/* Arena floor */}
+          <div className="absolute bottom-0 inset-x-0 h-10 bg-red-800/40 rounded-t" />
+          {/* Arena walls */}
+          <div className="absolute bottom-3 left-3 h-12 w-1.5 bg-red-400/60 rounded" />
+          <div className="absolute bottom-3 right-3 h-12 w-1.5 bg-red-400/60 rounded" />
+          {/* Crossed swords */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-3xl opacity-40">⚔️</div>
+          {/* Fighters */}
+          <div className="absolute bottom-6 left-8">
+            <div className="h-5 w-3 rounded-sm bg-blue-500" />
+            <div className="mx-auto -mt-0.5 h-3 w-3 rounded-full bg-blue-300" />
+          </div>
+          <div className="absolute bottom-6 right-8">
+            <div className="h-5 w-3 rounded-sm bg-red-500" />
+            <div className="mx-auto -mt-0.5 h-3 w-3 rounded-full bg-red-300" />
+          </div>
+          {/* Health bars */}
+          <div className="absolute top-3 left-4 h-1.5 w-12 rounded bg-gray-800"><div className="h-1.5 w-8 rounded bg-green-500" /></div>
+          <div className="absolute top-3 right-4 h-1.5 w-12 rounded bg-gray-800"><div className="h-1.5 w-6 rounded bg-green-500" /></div>
+          {/* Impact flash */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-yellow-400/30" />
+        </div>
+      );
+    case "rpg":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-600/40 to-green-800/30" />
+          {/* Castle */}
+          <div className="absolute bottom-3 left-4">
+            <div className="h-14 w-12 bg-gray-400/80 rounded-t">
+              {/* Battlements */}
+              <div className="flex gap-1 -mt-1.5">
+                <div className="h-2 w-2 bg-gray-400/80" /><div className="h-2 w-2 bg-gray-400/80" /><div className="h-2 w-2 bg-gray-400/80" />
+              </div>
+            </div>
+            {/* Door */}
+            <div className="absolute bottom-0 left-3 h-4 w-5 rounded-t-full bg-gray-700" />
+          </div>
+          {/* Tower */}
+          <div className="absolute bottom-3 left-14 h-18 w-5 bg-gray-500/80 rounded-t">
+            <div className="absolute -top-2 left-0.5 h-3 w-4 bg-gray-400" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+          </div>
+          {/* Trees */}
+          <div className="absolute bottom-3 right-6">
+            <div className="mx-auto h-5 w-1 bg-amber-800" />
+            <div className="-mt-3 h-5 w-6 rounded-full bg-green-600" />
+          </div>
+          <div className="absolute bottom-3 right-14">
+            <div className="mx-auto h-4 w-1 bg-amber-800" />
+            <div className="-mt-2 h-4 w-5 rounded-full bg-green-700" />
+          </div>
+          {/* Sword icon */}
+          <div className="absolute top-3 right-5 text-xl opacity-40">⚔️</div>
+          {/* Path */}
+          <div className="absolute bottom-0 left-[40%] right-6 h-2 bg-amber-700/30 rounded-t" />
+          {/* Stars */}
+          <div className="absolute top-2 left-[30%] text-yellow-300/30 text-xs">★</div>
+          <div className="absolute top-5 left-[60%] text-yellow-300/20 text-[10px]">★</div>
+        </div>
+      );
+    case "horror":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-gray-800" />
+          {/* Moon */}
+          <div className="absolute top-3 right-6 h-8 w-8 rounded-full bg-gray-300/30" />
+          {/* Haunted house */}
+          <div className="absolute bottom-3 left-6">
+            <div className="h-14 w-14 bg-gray-700/80">
+              {/* Roof */}
+              <div className="-mt-4 h-5 w-16 -ml-1 bg-gray-600" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+              {/* Windows (glowing) */}
+              <div className="absolute bottom-5 left-2 h-3 w-3 bg-yellow-500/40 rounded-sm" />
+              <div className="absolute bottom-5 right-2 h-3 w-3 bg-red-500/30 rounded-sm" />
+            </div>
+          </div>
+          {/* Dead tree */}
+          <div className="absolute bottom-3 right-8">
+            <div className="h-10 w-1 bg-gray-600" />
+            <div className="absolute top-1 -left-3 h-0.5 w-4 bg-gray-600 rotate-[-30deg]" />
+            <div className="absolute top-3 left-0 h-0.5 w-3 bg-gray-600 rotate-[25deg]" />
+          </div>
+          {/* Fog */}
+          <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-gray-500/20 to-transparent" />
+          {/* Bats */}
+          <div className="absolute top-6 left-[35%] text-[10px] text-gray-500/50">🦇</div>
+          <div className="absolute top-10 left-[55%] text-[8px] text-gray-500/40">🦇</div>
+        </div>
+      );
+    case "racing":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-sky-500/30 to-green-700/30" />
+          {/* Road */}
+          <div className="absolute bottom-2 inset-x-0 h-8 bg-gray-700/80">
+            {/* Dashed center line */}
+            <div className="absolute top-3.5 inset-x-0 flex gap-2 px-2">
+              {[0,1,2,3,4,5,6,7].map(i => <div key={i} className="h-0.5 w-4 bg-yellow-400/60" />)}
+            </div>
+            {/* Edge lines */}
+            <div className="absolute top-0 inset-x-0 h-0.5 bg-white/40" />
+            <div className="absolute bottom-0 inset-x-0 h-0.5 bg-white/40" />
+          </div>
+          {/* Car 1 */}
+          <div className="absolute bottom-5 left-[30%]">
+            <div className="h-3 w-7 rounded bg-red-500 shadow" />
+            <div className="absolute -top-1 left-1 h-2 w-4 rounded-t bg-red-400" />
+          </div>
+          {/* Car 2 */}
+          <div className="absolute bottom-3 left-[55%]">
+            <div className="h-3 w-7 rounded bg-blue-500 shadow" />
+            <div className="absolute -top-1 left-1 h-2 w-4 rounded-t bg-blue-400" />
+          </div>
+          {/* Speed lines */}
+          <div className="absolute top-[40%] left-2 h-0.5 w-8 bg-white/20" />
+          <div className="absolute top-[50%] left-4 h-0.5 w-6 bg-white/15" />
+          <div className="absolute top-[60%] left-1 h-0.5 w-10 bg-white/10" />
+          {/* Checkered flag */}
+          <div className="absolute top-3 right-4 text-lg opacity-50">🏁</div>
+          {/* Trees on roadside */}
+          <div className="absolute bottom-10 left-4 h-4 w-4 rounded-full bg-green-600/60" />
+          <div className="absolute bottom-10 right-6 h-3 w-3 rounded-full bg-green-600/50" />
+        </div>
+      );
+    case "minigames":
+      return (
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-500/30 via-purple-500/20 to-cyan-500/30" />
+          {/* Dice */}
+          <div className="absolute top-4 left-6 h-8 w-8 rounded bg-white/80 shadow rotate-12">
+            <div className="absolute top-1 left-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
+            <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
+            <div className="absolute bottom-1 left-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
+            <div className="absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full bg-gray-800" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-gray-800" />
+          </div>
+          {/* Star */}
+          <div className="absolute top-3 right-8 text-2xl text-yellow-400/60">⭐</div>
+          {/* Trophy */}
+          <div className="absolute bottom-4 right-6 text-xl opacity-50">🏆</div>
+          {/* Confetti dots */}
+          {[10,25,40,55,70,85].map((l,i) => (
+            <div key={i} className={`absolute rounded-full ${["bg-pink-400","bg-cyan-400","bg-yellow-400","bg-green-400","bg-purple-400","bg-red-400"][i]}`}
+              style={{ width: "4px", height: "4px", top: `${10 + (i*13)%50}px`, left: `${l}%`, opacity: 0.5 }} />
+          ))}
+          {/* Mini game icons */}
+          <div className="absolute bottom-5 left-4 text-sm opacity-40">🎯</div>
+          <div className="absolute bottom-8 left-[45%] text-sm opacity-40">🎮</div>
+          {/* Party popper */}
+          <div className="absolute top-6 left-[50%] text-lg opacity-30">🎉</div>
+        </div>
+      );
+    default:
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-4xl opacity-30">🎮</div>
+        </div>
+      );
+  }
+}
+
 export function TemplateSelector() {
   const navigate = useNavigate();
   const { project, createProject, isLoading } = useProjectStore();
@@ -281,9 +540,11 @@ export function TemplateSelector() {
                       : "cursor-not-allowed border-gray-800/30 opacity-40"
                 }`}
               >
-                {/* Color banner */}
-                <div className={`flex h-20 items-center justify-center ${template.color}`}>
-                  <Icon size={36} className="text-white/90" strokeWidth={1.5} />
+                {/* Scene illustration banner */}
+                <div className={`relative h-28 overflow-hidden ${template.color}`}>
+                  <TemplateScene id={template.id} />
+                  {/* Gradient fade to bottom */}
+                  <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-gray-900/90 to-transparent" />
                 </div>
 
                 {/* Info */}
