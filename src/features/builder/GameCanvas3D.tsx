@@ -560,6 +560,120 @@ function Element3D({ el }: { el: CanvasElement }) {
     );
   }
 
+  // ── DROPPER: Tall tower that drops items (core tycoon piece)
+  if (el.type === "dropper") {
+    const dropRef = useRef<THREE.Mesh>(null);
+    useFrame(({ clock }) => {
+      if (dropRef.current) {
+        // Animate a small "drop" item bobbing
+        dropRef.current.position.y = 2.8 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.5;
+      }
+    });
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Base */}
+        <RobloxPart size={[1.6, 0.4, 1.6]} color="#888888" position={[0, 0.2, 0]} />
+        {/* Pillar */}
+        <RobloxPart size={[0.8, 3, 0.8]} color="#999999" position={[0, 1.7, 0]} />
+        {/* Hopper top (wider) */}
+        <RobloxPart size={[1.8, 0.6, 1.8]} color="#aaaaaa" position={[0, 3.5, 0]} />
+        {/* Hopper funnel inside */}
+        <mesh position={[0, 3.3, 0]}>
+          <cylinderGeometry args={[0.6, 0.2, 0.5, 8]} />
+          <meshStandardMaterial color="#777777" {...PLASTIC} />
+        </mesh>
+        {/* Dropping item (animated) */}
+        <mesh ref={dropRef} position={[0, 2.8, 0]} castShadow>
+          <boxGeometry args={[0.35, 0.35, 0.35]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffaa00" emissiveIntensity={0.4} {...SMOOTH_PLASTIC} />
+        </mesh>
+        {/* Label */}
+        <Html position={[0, 4.2, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">
+            Dropper
+          </div>
+        </Html>
+        {selectBox && <group position={[0, 2, 0]}><mesh><boxGeometry args={[2.2, 4.2, 2.2]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
+      </group>
+    );
+  }
+
+  // ── CONVEYOR BELT: Moves items from dropper to collector
+  if (el.type === "conveyor-belt") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Belt surface */}
+        <RobloxPart size={[5, 0.15, 1.5]} color="#333333" position={[0, 0.35, 0]} />
+        {/* Side rails */}
+        <RobloxPart size={[5, 0.3, 0.1]} color="#666666" position={[0, 0.35, -0.75]} />
+        <RobloxPart size={[5, 0.3, 0.1]} color="#666666" position={[0, 0.35, 0.75]} />
+        {/* Legs */}
+        <RobloxPart size={[0.15, 0.25, 0.15]} color="#555555" position={[-2.2, 0.12, -0.6]} />
+        <RobloxPart size={[0.15, 0.25, 0.15]} color="#555555" position={[-2.2, 0.12, 0.6]} />
+        <RobloxPart size={[0.15, 0.25, 0.15]} color="#555555" position={[2.2, 0.12, -0.6]} />
+        <RobloxPart size={[0.15, 0.25, 0.15]} color="#555555" position={[2.2, 0.12, 0.6]} />
+        {/* Belt stripes (indicate movement direction) */}
+        {[-1.8, -0.9, 0, 0.9, 1.8].map((bx, i) => (
+          <RobloxPart key={`stripe${i}`} size={[0.08, 0.02, 1.3]} color="#555555" position={[bx, 0.44, 0]} />
+        ))}
+        {/* Direction arrow on belt */}
+        <Html position={[0, 0.6, 0]} center>
+          <div className="text-[14px] text-yellow-400/60 font-bold pointer-events-none">→→→</div>
+        </Html>
+        {selectBox && <group position={[0, 0.3, 0]}><mesh><boxGeometry args={[5.2, 0.8, 1.8]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
+      </group>
+    );
+  }
+
+  // ── COLLECTOR / SELL ZONE: Where items get sold for cash
+  if (el.type === "collector") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Base pad (glowing green like Roblox sell pads) */}
+        <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2, 0.2, 2]} />
+          <meshStandardMaterial color="#00cc00" emissive="#00ff00" emissiveIntensity={0.5} {...NEON} />
+        </mesh>
+        {/* Border */}
+        <RobloxPart size={[2.2, 0.3, 0.1]} color="#009900" position={[0, 0.15, -1.05]} />
+        <RobloxPart size={[2.2, 0.3, 0.1]} color="#009900" position={[0, 0.15, 1.05]} />
+        <RobloxPart size={[0.1, 0.3, 2]} color="#009900" position={[-1.05, 0.15, 0]} />
+        <RobloxPart size={[0.1, 0.3, 2]} color="#009900" position={[1.05, 0.15, 0]} />
+        {/* $ symbol floating */}
+        <Html position={[0, 0.8, 0]} center>
+          <div className="text-[18px] font-black pointer-events-none" style={{ color: "#00ff00", textShadow: "0 0 10px #00ff0088" }}>$</div>
+        </Html>
+        <Html position={[0, 1.3, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/70 px-2 py-0.5 text-[10px] font-bold text-green-400 pointer-events-none shadow">
+            Sell Zone
+          </div>
+        </Html>
+        {selectBox && <group position={[0, 0.1, 0]}><mesh><boxGeometry args={[2.4, 0.5, 2.4]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
+      </group>
+    );
+  }
+
+  // ── UPGRADE BUTTON: Step-on pad to buy upgrades (Roblox tycoon staple)
+  if (el.type === "upgrade-button") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Yellow pad */}
+        <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.8, 0.15, 1.2]} />
+          <meshStandardMaterial color="#ffcc00" emissive="#ffaa00" emissiveIntensity={0.3} {...SMOOTH_PLASTIC} />
+        </mesh>
+        {/* Price display */}
+        <Html position={[0, 0.6, 0]} center>
+          <div className="whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-black pointer-events-none shadow-lg"
+            style={{ background: "linear-gradient(180deg, #ffcc00, #ff9900)", color: "#000", border: "2px solid #cc8800" }}>
+            💰 $500
+          </div>
+        </Html>
+        {selectBox && <group position={[0, 0.08, 0]}><mesh><boxGeometry args={[2, 0.4, 1.4]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
+      </group>
+    );
+  }
+
   // ── PORTAL: Glowing doorway
   if (el.type === "portal") {
     return (

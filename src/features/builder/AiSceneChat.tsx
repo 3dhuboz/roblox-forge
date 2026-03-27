@@ -152,10 +152,15 @@ function aiGenerateScene(prompt: string, template: string, addElement: (item: an
     addElement(find("tycoon-plot"), 900, 400);
     return "Added 2 tycoon plots! Players will claim these to start building.";
   }
-  if (template === "tycoon" && (lower.includes("machine") || lower.includes("dropper") || lower.includes("conveyor"))) {
-    for (let i = 0; i < 3; i++) addElement(find("machine"), rand(300, 600), rand(300, 500));
-    addElement(find("conveyor"), rand(350, 550), rand(400, 450));
-    return "Added dropper machines and a conveyor belt!";
+  if (template === "tycoon" && (lower.includes("machine") || lower.includes("dropper") || lower.includes("conveyor") || lower.includes("production"))) {
+    addElement(find("dropper"), rand(300, 600), rand(320, 420));
+    addElement(find("conveyor-belt"), rand(400, 700), rand(320, 420));
+    addElement(find("collector"), rand(550, 800), rand(320, 420));
+    return "Added a production chain: Dropper → Conveyor → Collector!\n\n⚙️ Dropper drops gold ore every 2s (worth $5), conveyor moves it at speed 12, collector sells on contact.";
+  }
+  if (template === "tycoon" && (lower.includes("upgrade") || lower.includes("button"))) {
+    for (let i = 0; i < 3; i++) addElement(find("upgrade-button"), rand(300, 900), rand(380, 460));
+    return "Added 3 upgrade buttons! Players step on them to buy upgrades ($500 each).";
   }
   if ((lower.includes("shop") || lower.includes("store") || lower.includes("buy"))) {
     addElement(find("shop-building"), rand(300, 800), rand(300, 450));
@@ -288,21 +293,38 @@ function buildFullLevel(template: string, add: (item: any, x: number, y: number)
       return "Built an obby course with 4 stages!\n\n⚙️ Auto-configured logic:\n• Platforms: Anchored, SmoothPlastic material\n• Moving platforms: Move 10 studs at speed 4\n• Kill bricks: Instant death on touch\n• Checkpoints: Auto-save progress per stage\n• Coins: 10 coins each, respawn in 10s\n• Spawn point at the start\n\nUse WASD to fly around and check it out!";
     }
     case "tycoon": {
-      // Plots with machines and a shop
+      // Proper tycoon layout: plot with dropper → conveyor → collector chain
       add(find("spawn"), 200, 400);
-      add(find("tycoon-plot"), 400, 350);
-      add(find("tycoon-plot"), 900, 350);
-      for (let i = 0; i < 4; i++) add(find("machine"), rand(350, 550), rand(300, 440));
-      for (let i = 0; i < 3; i++) add(find("machine"), rand(850, 1050), rand(300, 440));
-      add(find("conveyor"), 500, 400);
-      add(find("conveyor"), 950, 400);
-      add(find("shop-building"), 650, 300);
-      add(find("shopkeeper"), 680, 340);
-      for (let i = 0; i < 6; i++) add(find("tree"), rand(150, 1250), rand(200, 550));
-      add(find("lamp"), 300, 400);
-      add(find("lamp"), 800, 400);
-      for (let i = 0; i < 10; i++) add(find("coin"), rand(300, 1100), rand(280, 500));
-      return "Built a tycoon with 2 player plots!\n\n⚙️ Auto-configured logic:\n• Plots: Free to claim, 3 upgrades available (Bigger Plot $500, Auto Collector $1000, Speed Boost $2000)\n• Machines: Produce coins at 2/s, worth 5 each, upgradeable for $100\n• Conveyors: Speed 12, push items right\n• Shop sells: Dropper Upgrade ($500), Auto Collector ($1000), New Dropper ($2000), Rebirth ($10000)\n• Coins: 10 each, respawn in 10s";
+      
+      // Player Plot 1 with full dropper chain
+      add(find("tycoon-plot"), 400, 380);
+      add(find("dropper"), 320, 340);          // Dropper drops items
+      add(find("conveyor-belt"), 440, 340);     // Conveyor moves items
+      add(find("collector"), 560, 340);          // Collector sells items
+      add(find("upgrade-button"), 320, 420);    // Upgrade: faster dropper
+      add(find("upgrade-button"), 440, 420);    // Upgrade: 2x value
+      add(find("upgrade-button"), 560, 420);    // Upgrade: new dropper
+      
+      // Player Plot 2 with full dropper chain
+      add(find("tycoon-plot"), 850, 380);
+      add(find("dropper"), 770, 340);
+      add(find("conveyor-belt"), 890, 340);
+      add(find("collector"), 1010, 340);
+      add(find("upgrade-button"), 770, 420);
+      add(find("upgrade-button"), 890, 420);
+      add(find("upgrade-button"), 1010, 420);
+      
+      // Central shop
+      add(find("shop-building"), 650, 280);
+      add(find("shopkeeper"), 680, 320);
+      
+      // Decoration
+      for (let i = 0; i < 4; i++) add(find("tree"), rand(150, 1200), rand(200, 500));
+      add(find("lamp"), 250, 380);
+      add(find("lamp"), 700, 380);
+      add(find("lamp"), 1100, 380);
+      
+      return "Built a tycoon with 2 player plots, each with a full production chain!\n\n⚙️ Auto-configured logic:\n• Dropper: Drops gold ore every 2 seconds, worth $5 each\n• Conveyor Belt: Speed 12, moves items from dropper to collector\n• Collector (Sell Zone): Sells items on contact, adds cash to player\n• Upgrade Buttons: Faster Dropper ($500), 2x Value ($1000), Diamond Dropper ($2000)\n• Shop sells: Dropper Upgrade ($500), Auto Collector ($1000), New Dropper ($2000), Rebirth ($10000)\n\nThe flow: Dropper drops items → Conveyor moves them → Collector sells them for cash → Use cash to buy upgrades!";
     }
     case "simulator": {
       // Open zones with grinding areas, market, pets

@@ -331,6 +331,30 @@ export function getDefaultLogic(type: string, template: string): GameLogicProper
         upgradeCost: 100,
         anchored: true, canCollide: true,
       };
+    case "dropper":
+      return {
+        product: "Gold Ore",
+        productionRate: 2, // drops every 2 seconds
+        valuePerItem: 5,
+        upgradeCost: 500,
+        anchored: true, canCollide: true, material: "SmoothPlastic",
+      };
+    case "conveyor-belt":
+      return {
+        conveyorSpeed: 12,
+        conveyorDirection: "right" as const,
+        anchored: true, canCollide: true, material: "SmoothPlastic",
+      };
+    case "collector":
+      return {
+        anchored: true, canCollide: false, material: "Neon",
+        value: 1, // sell multiplier
+      };
+    case "upgrade-button":
+      return {
+        anchored: true, canCollide: true, material: "SmoothPlastic",
+        upgradeCost: 500,
+      };
     case "race-track":
       return { anchored: true, canCollide: true, material: "SmoothPlastic" };
     case "market-stall":
