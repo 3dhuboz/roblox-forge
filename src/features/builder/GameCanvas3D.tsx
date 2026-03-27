@@ -805,17 +805,20 @@ function DraggableElement3D({ el }: { el: CanvasElement }) {
   const { selectedId, selectElement, tool, moveElement, removeElement } = useCanvasStore();
   const isSelected = selectedId === el.id;
   const groupRef = useRef<THREE.Group>(null);
-  const { raycaster, camera, pointer, gl } = useThree();
+  const three = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
   const dragOffset = useRef(new THREE.Vector3());
 
+  // Get orbit controls from R3F state (OrbitControls has makeDefault)
+  const getControls = () => (three as any).controls as any;
+
   // During drag: raycast mouse onto ground plane and move element
   useFrame(() => {
     if (!isDragging) return;
-    raycaster.setFromCamera(pointer, camera);
+    three.raycaster.setFromCamera(three.pointer, three.camera);
     const hit = new THREE.Vector3();
-    raycaster.ray.intersectPlane(dragPlane.current, hit);
+    three.raycaster.ray.intersectPlane(dragPlane.current, hit);
     if (hit) {
       const newX = hit.x * 50 + 700 - dragOffset.current.x;
       const newZ = hit.z * 50 + 350 - dragOffset.current.z;
@@ -834,22 +837,22 @@ function DraggableElement3D({ el }: { el: CanvasElement }) {
 
   const handlePointerDown = (e: any) => {
     if (tool !== "select" && tool !== "move") return;
-    if (!isSelected) return; // Must be selected first
+    if (!isSelected) return;
     e.stopPropagation();
 
-    // Calculate drag offset so element doesn't jump
-    raycaster.setFromCamera(pointer, camera);
+    // Calculate drag offset so element doesn't jump to cursor
+    three.raycaster.setFromCamera(three.pointer, three.camera);
     const hit = new THREE.Vector3();
-    raycaster.ray.intersectPlane(dragPlane.current, hit);
+    three.raycaster.ray.intersectPlane(dragPlane.current, hit);
     if (hit) {
       dragOffset.current.set(hit.x * 50 + 700 - el.x, 0, hit.z * 50 + 350 - el.y);
     }
 
-    setIsDragging(true);
-
-    // Disable orbit controls while dragging
-    const controls = (gl.domElement as any).__r3f_controls;
+    // Disable orbit controls so camera doesn't move while dragging
+    const controls = getControls();
     if (controls) controls.enabled = false;
+
+    setIsDragging(true);
 
     const handleUp = () => {
       setIsDragging(false);
@@ -868,6 +871,8 @@ function DraggableElement3D({ el }: { el: CanvasElement }) {
       ref={groupRef}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
+      onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = isSelected ? "grab" : "pointer"; }}
+      onPointerOut={() => { document.body.style.cursor = "default"; }}
     >
       <Element3D el={el} />
     </group>
