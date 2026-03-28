@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play, MessageSquare, Code } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { AiSceneChat } from "../builder/AiSceneChat";
+import { VisualScriptEditor } from "../builder/VisualScriptEditor";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { buildCommands } from "../../services/tauriCommands";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -13,6 +14,7 @@ export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
   const navigate = useNavigate();
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
+  const [sidebarTab, setSidebarTab] = useState<"chat" | "script">("chat");
   const [isExporting, setIsExporting] = useState(false);
   const [exportResult, setExportResult] = useState<{ rbxlPath: string; warnings: string[] } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -165,13 +167,44 @@ export function BuildPage() {
         )}
       </div>
 
-      {/* Main layout: 3D viewport + AI chat */}
+      {/* Main layout: 3D viewport + sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: 3D Viewport (primary) */}
         <GameCanvas3D />
 
-        {/* Right: AI Chat Sidebar */}
-        <AiSceneChat projectPath={project.path} />
+        {/* Right: Tabbed sidebar */}
+        <div className="flex flex-col">
+          {/* Tab buttons */}
+          <div className="flex border-l border-b border-gray-800/40">
+            <button
+              onClick={() => setSidebarTab("chat")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
+                sidebarTab === "chat"
+                  ? "border-b-2 border-indigo-500 text-white"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <MessageSquare size={12} /> AI Chat
+            </button>
+            <button
+              onClick={() => setSidebarTab("script")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
+                sidebarTab === "script"
+                  ? "border-b-2 border-indigo-500 text-white"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <Code size={12} /> Visual Script
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {sidebarTab === "chat" ? (
+            <AiSceneChat projectPath={project.path} />
+          ) : (
+            <VisualScriptEditor projectPath={project.path} />
+          )}
+        </div>
       </div>
     </div>
   );
