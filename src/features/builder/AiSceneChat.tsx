@@ -8,11 +8,17 @@ import { useProjectStore } from "../../stores/projectStore";
 
 // ── Quick actions per template ──
 
+interface SubOption {
+  label: string;
+  prompt: string;
+}
+
 interface QuickAction {
   label: string;
   icon: React.ElementType;
   prompt: string;
   color: string;
+  subOptions?: SubOption[];
 }
 
 function getQuickActions(template: string): QuickAction[] {
@@ -25,53 +31,136 @@ function getQuickActions(template: string): QuickAction[] {
     case "obby":
       return [
         { label: "Build Obby Course", icon: Wand2, prompt: "Build a full obby course", color: "text-indigo-400" },
-        { label: "Add Stages", icon: Flag, prompt: "Add obby stages with platforms", color: "text-cyan-400" },
-        { label: "Add Obstacles", icon: Sword, prompt: "Add kill bricks, spinners, and traps", color: "text-red-400" },
+        { label: "Add Stages", icon: Flag, prompt: "Add obby stages with platforms", color: "text-cyan-400", subOptions: [
+          { label: "Easy Stage", prompt: "Add an easy stage with wide platforms and short gaps" },
+          { label: "Medium Stage", prompt: "Add a medium difficulty stage with moving platforms and small gaps" },
+          { label: "Hard Stage", prompt: "Add a hard stage with disappearing platforms, spinners, and kill bricks" },
+          { label: "Boss Stage", prompt: "Add a final boss stage with every obstacle type and a victory area" },
+        ]},
+        { label: "Add Obstacles", icon: Sword, prompt: "Add kill bricks, spinners, and traps", color: "text-red-400", subOptions: [
+          { label: "Kill Bricks", prompt: "Add red neon kill bricks that reset the player" },
+          { label: "Spinning Bars", prompt: "Add spinning obstacle bars the player must dodge" },
+          { label: "Lava Floor", prompt: "Add a lava floor section below platforms" },
+          { label: "Moving Walls", prompt: "Add walls that slide back and forth blocking the path" },
+          { label: "Disappearing Blocks", prompt: "Add blocks that vanish and reappear on a timer" },
+          { label: "Trampolines", prompt: "Add bouncy trampoline pads that launch players upward" },
+        ]},
         { label: "Add Checkpoints", icon: Flag, prompt: "Add checkpoints between stages", color: "text-green-400" },
         ...common,
-        { label: "Add Collectibles", icon: Coins, prompt: "Add coins along the course", color: "text-yellow-400" },
+        { label: "Add Collectibles", icon: Coins, prompt: "Add coins along the course", color: "text-yellow-400", subOptions: [
+          { label: "Coins", prompt: "Add gold coins scattered along the platforms" },
+          { label: "Gems", prompt: "Add rare gems hidden in hard-to-reach spots" },
+          { label: "Stars", prompt: "Add stars that give bonus points at the end of each stage" },
+        ]},
       ];
     case "tycoon":
       return [
         { label: "Build Tycoon", icon: Wand2, prompt: "Build a full tycoon game", color: "text-indigo-400" },
-        { label: "Add Plots", icon: Home, prompt: "Add tycoon plots for players", color: "text-green-400" },
-        { label: "Add Machines", icon: Sword, prompt: "Add dropper machines and conveyers", color: "text-orange-400" },
-        { label: "Add Shop", icon: Coins, prompt: "Add a shop building where players buy upgrades", color: "text-yellow-400" },
+        { label: "Add Plots", icon: Home, prompt: "Add tycoon plots for players", color: "text-green-400", subOptions: [
+          { label: "Starter Plot", prompt: "Add a basic starter plot with a claim button" },
+          { label: "Premium Plot", prompt: "Add a premium plot with extra space and upgraded machines" },
+          { label: "VIP Plot", prompt: "Add a VIP plot with exclusive machines and a 2x multiplier" },
+        ]},
+        { label: "Add Machines", icon: Sword, prompt: "Add dropper machines and conveyers", color: "text-orange-400", subOptions: [
+          { label: "Ore Dropper", prompt: "Add an ore dropper that produces basic ore every 2 seconds" },
+          { label: "Gold Dropper", prompt: "Add a gold dropper that produces high-value gold ore" },
+          { label: "Conveyor Belt", prompt: "Add a conveyor belt to transport items to the collector" },
+          { label: "Collector", prompt: "Add a collector that converts items into cash" },
+          { label: "Furnace", prompt: "Add a furnace that doubles the value of ore before collecting" },
+          { label: "Upgrade Button", prompt: "Add an upgrade button that boosts dropper speed" },
+        ]},
+        { label: "Add Shop", icon: Coins, prompt: "Add a shop building where players buy upgrades", color: "text-yellow-400", subOptions: [
+          { label: "Upgrade Shop", prompt: "Add a shop with speed and multiplier upgrades" },
+          { label: "Rebirth Shrine", prompt: "Add a rebirth shrine that resets progress for permanent boosts" },
+          { label: "Game Pass Shop", prompt: "Add a game pass display with 2x Cash and Auto Collect" },
+        ]},
         ...common,
         { label: "Add NPCs", icon: Users, prompt: "Add NPCs and shopkeepers", color: "text-purple-400" },
       ];
     case "simulator":
       return [
         { label: "Build Simulator", icon: Wand2, prompt: "Build a full simulator game", color: "text-indigo-400" },
-        { label: "Add Zones", icon: Mountain, prompt: "Add grinding zones with portals between them", color: "text-green-400" },
-        { label: "Add Pets Area", icon: Users, prompt: "Add pets and a pet area", color: "text-pink-400" },
-        { label: "Add Shop", icon: Home, prompt: "Add a market with stalls", color: "text-yellow-400" },
+        { label: "Add Zones", icon: Mountain, prompt: "Add grinding zones with portals between them", color: "text-green-400", subOptions: [
+          { label: "Starter Zone", prompt: "Add a starter zone with basic click orbs" },
+          { label: "Crystal Caves", prompt: "Add a crystal caves zone with 3x multiplier orbs" },
+          { label: "Lava Island", prompt: "Add a volcanic island zone with 10x multiplier orbs" },
+          { label: "Zone Portal", prompt: "Add a portal gate that requires coins to unlock the next zone" },
+        ]},
+        { label: "Add Pets Area", icon: Users, prompt: "Add pets and a pet area", color: "text-pink-400", subOptions: [
+          { label: "Egg Hatch Pad", prompt: "Add an egg hatching station with common/rare/legendary chances" },
+          { label: "Pet Display", prompt: "Add a pet display showing all discoverable pets" },
+          { label: "Trading Plaza", prompt: "Add a trading area where players can trade pets" },
+        ]},
+        { label: "Add Shop", icon: Home, prompt: "Add a market with stalls", color: "text-yellow-400", subOptions: [
+          { label: "Upgrades Shop", prompt: "Add a shop with click power, auto-click, and multiplier upgrades" },
+          { label: "Rebirth Shrine", prompt: "Add a rebirth shrine for permanent multiplier boosts" },
+          { label: "Codes Board", prompt: "Add a codes redemption board for free rewards" },
+        ]},
         ...common,
         { label: "Add Collectibles", icon: Coins, prompt: "Add coins and gems to collect", color: "text-yellow-400" },
       ];
     case "rpg":
       return [
         { label: "Build RPG World", icon: Wand2, prompt: "Build a full RPG world", color: "text-indigo-400" },
-        { label: "Add Town", icon: Home, prompt: "Add a town with houses and shops", color: "text-amber-400" },
-        { label: "Add Dungeon", icon: Mountain, prompt: "Add a cave dungeon with enemies", color: "text-gray-400" },
-        { label: "Add NPCs", icon: Users, prompt: "Add quest NPCs and a boss", color: "text-purple-400" },
+        { label: "Add Town", icon: Home, prompt: "Add a town with houses and shops", color: "text-amber-400", subOptions: [
+          { label: "Village Houses", prompt: "Add wooden houses and a village square" },
+          { label: "Item Shop", prompt: "Add a shop NPC selling swords, armor, and potions" },
+          { label: "Quest Board", prompt: "Add a quest board with available missions" },
+          { label: "Inn / Heal Point", prompt: "Add a healing fountain or inn to restore HP" },
+        ]},
+        { label: "Add Dungeon", icon: Mountain, prompt: "Add a cave dungeon with enemies", color: "text-gray-400", subOptions: [
+          { label: "Starter Meadow", prompt: "Add a meadow with weak slime enemies for beginners" },
+          { label: "Dark Forest", prompt: "Add a dark forest zone with goblins and wolves" },
+          { label: "Boss Arena", prompt: "Add a boss arena with a powerful guardian enemy" },
+          { label: "Treasure Room", prompt: "Add a treasure room with loot chests after the boss" },
+        ]},
+        { label: "Add NPCs", icon: Users, prompt: "Add quest NPCs and a boss", color: "text-purple-400", subOptions: [
+          { label: "Quest Giver", prompt: "Add a quest NPC with a kill quest for the current zone" },
+          { label: "Shopkeeper", prompt: "Add a shopkeeper NPC with items for sale" },
+          { label: "Boss Enemy", prompt: "Add a boss enemy with high HP and special attacks" },
+          { label: "Slime Spawner", prompt: "Add slime enemy spawn points in the meadow" },
+        ]},
         ...common,
         { label: "Add Loot", icon: Coins, prompt: "Add treasure chests and loot", color: "text-yellow-400" },
       ];
     case "horror":
       return [
         { label: "Build Horror Map", icon: Wand2, prompt: "Build a horror game map", color: "text-indigo-400" },
-        { label: "Add Buildings", icon: Home, prompt: "Add creepy abandoned buildings", color: "text-gray-400" },
-        { label: "Add Caves", icon: Mountain, prompt: "Add dark caves and tunnels", color: "text-gray-500" },
-        { label: "Add Enemies", icon: Sword, prompt: "Add horror enemies and traps", color: "text-red-400" },
+        { label: "Add Buildings", icon: Home, prompt: "Add creepy abandoned buildings", color: "text-gray-400", subOptions: [
+          { label: "Mansion Entrance", prompt: "Add a dark mansion entrance hall with locked doors" },
+          { label: "Library Room", prompt: "Add a library room with a book puzzle and hidden key" },
+          { label: "Basement", prompt: "Add a dark basement with narrow corridors" },
+          { label: "Attic", prompt: "Add a creepy attic with storage boxes and a skylight" },
+        ]},
+        { label: "Add Puzzles", icon: Mountain, prompt: "Add puzzles and locked doors", color: "text-gray-500", subOptions: [
+          { label: "Code Lock", prompt: "Add a 4-digit code lock door with a clue note nearby" },
+          { label: "Key & Lock", prompt: "Add a locked door with a key hidden in another room" },
+          { label: "Lever Puzzle", prompt: "Add levers that must be pulled in the right order" },
+        ]},
+        { label: "Add Scares", icon: Sword, prompt: "Add horror enemies and traps", color: "text-red-400", subOptions: [
+          { label: "Monster", prompt: "Add a patrolling monster that chases players on sight" },
+          { label: "Jumpscare", prompt: "Add a jumpscare trigger when opening a specific door" },
+          { label: "Flickering Lights", prompt: "Add flickering lights that go dark periodically" },
+          { label: "Sound Cues", prompt: "Add ambient horror sounds — footsteps, whispers, creaks" },
+        ]},
         ...common,
         { label: "Add Lighting", icon: Flag, prompt: "Add lamps and dark atmosphere", color: "text-yellow-400" },
       ];
     case "racing":
       return [
         { label: "Build Race Track", icon: Wand2, prompt: "Build a full racing game", color: "text-indigo-400" },
-        { label: "Add Track", icon: Route, prompt: "Add race track segments", color: "text-gray-400" },
-        { label: "Add Obstacles", icon: Sword, prompt: "Add track obstacles and jumps", color: "text-red-400" },
+        { label: "Add Track", icon: Route, prompt: "Add race track segments", color: "text-gray-400", subOptions: [
+          { label: "Straight Section", prompt: "Add a long straight track section with barriers" },
+          { label: "Sharp Turn", prompt: "Add a tight hairpin turn with drift marks" },
+          { label: "Jump Ramp", prompt: "Add a ramp that launches vehicles over a gap" },
+          { label: "Tunnel", prompt: "Add a dark tunnel section through a mountain" },
+        ]},
+        { label: "Add Vehicles", icon: Sword, prompt: "Add vehicles to the garage", color: "text-orange-400", subOptions: [
+          { label: "Starter Kart", prompt: "Add a free starter kart with basic speed" },
+          { label: "Sport Car", prompt: "Add a sport car with better speed and handling" },
+          { label: "Super Racer", prompt: "Add a super racer with high speed and drift ability" },
+          { label: "Monster Truck", prompt: "Add a monster truck that can drive over obstacles" },
+        ]},
         { label: "Add Boost Pads", icon: Flag, prompt: "Add speed boost pads", color: "text-cyan-400" },
         ...common,
         { label: "Add Checkpoints", icon: Flag, prompt: "Add race checkpoints", color: "text-green-400" },
@@ -79,9 +168,24 @@ function getQuickActions(template: string): QuickAction[] {
     case "battlegrounds":
       return [
         { label: "Build Arena", icon: Wand2, prompt: "Build a full battlegrounds game", color: "text-indigo-400" },
-        { label: "Add Arenas", icon: Shield, prompt: "Add battle arenas", color: "text-red-400" },
-        { label: "Add Cover", icon: Mountain, prompt: "Add walls and cover for battles", color: "text-gray-400" },
-        { label: "Add NPCs", icon: Users, prompt: "Add fighters and enemies", color: "text-purple-400" },
+        { label: "Add Arenas", icon: Shield, prompt: "Add battle arenas", color: "text-red-400", subOptions: [
+          { label: "Grassy Plains", prompt: "Add an open grassy arena with a center pillar" },
+          { label: "Urban Ruins", prompt: "Add an urban ruins arena with walls and cover" },
+          { label: "Lava Pit", prompt: "Add a lava pit arena with crumbling platforms" },
+        ]},
+        { label: "Add Abilities", icon: Sword, prompt: "Add combat abilities", color: "text-orange-400", subOptions: [
+          { label: "Fireball", prompt: "Add a fireball projectile ability with 25 damage" },
+          { label: "Ice Shard", prompt: "Add an ice shard ability that slows enemies" },
+          { label: "Thunder Strike", prompt: "Add a thunder AoE ability with 40 damage" },
+          { label: "Shield Bash", prompt: "Add a shield bash with knockback" },
+          { label: "Heal Pulse", prompt: "Add a heal pulse that heals nearby allies" },
+        ]},
+        { label: "Add Classes", icon: Users, prompt: "Add character classes", color: "text-purple-400", subOptions: [
+          { label: "Warrior", prompt: "Add a Warrior class with 150 HP, slow speed, melee attacks" },
+          { label: "Mage", prompt: "Add a Mage class with 80 HP, ranged spells" },
+          { label: "Healer", prompt: "Add a Healer class with 100 HP, ally healing" },
+          { label: "Assassin", prompt: "Add an Assassin class with 75 HP, fast speed, burst damage" },
+        ]},
         ...common,
         { label: "Add Loot", icon: Coins, prompt: "Add weapon pickups and health", color: "text-yellow-400" },
       ];
@@ -453,6 +557,7 @@ export function AiSceneChat({ projectPath }: { projectPath: string }) {
   const template = project?.template || "obby";
   const templateName = TEMPLATE_NAMES[template] || template;
   const quickActions = getQuickActions(template);
+  const [expandedAction, setExpandedAction] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMsg[]>([
     { id: 0, role: "ai", text: `Hey! I'm building your **${templateName}** game. Hit the top button to auto-build the whole thing, or tell me what you want and I'll add it!` },
@@ -506,16 +611,50 @@ export function AiSceneChat({ projectPath }: { projectPath: string }) {
         <div className="grid grid-cols-2 gap-1.5">
           {quickActions.map((action) => {
             const Icon = action.icon;
+            const isExpanded = expandedAction === action.label;
             return (
-              <button
-                key={action.label}
-                onClick={() => handleQuickAction(action)}
-                disabled={isBuilding}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-800/40 bg-gray-800/20 px-2.5 py-2 text-left text-[11px] font-medium text-gray-300 hover:border-gray-700 hover:bg-gray-800/40 disabled:opacity-50 transition-colors"
-              >
-                <Icon size={13} className={action.color} />
-                {action.label}
-              </button>
+              <div key={action.label} className={action.subOptions ? "col-span-2" : ""}>
+                <button
+                  onClick={() => {
+                    if (action.subOptions) {
+                      setExpandedAction(isExpanded ? null : action.label);
+                    } else {
+                      handleQuickAction(action);
+                    }
+                  }}
+                  disabled={isBuilding}
+                  className={`flex w-full items-center gap-1.5 rounded-lg border px-2.5 py-2 text-left text-[11px] font-medium transition-colors disabled:opacity-50 ${
+                    isExpanded
+                      ? "border-gray-700 bg-gray-800/50 text-white"
+                      : "border-gray-800/40 bg-gray-800/20 text-gray-300 hover:border-gray-700 hover:bg-gray-800/40"
+                  }`}
+                >
+                  <Icon size={13} className={action.color} />
+                  {action.label}
+                  {action.subOptions && (
+                    <span className={`ml-auto text-[9px] text-gray-500 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                      ▸
+                    </span>
+                  )}
+                </button>
+                {isExpanded && action.subOptions && (
+                  <div className="mt-1 grid grid-cols-2 gap-1 pl-2">
+                    {action.subOptions.map((sub) => (
+                      <button
+                        key={sub.label}
+                        onClick={() => {
+                          handleQuickAction({ ...action, prompt: sub.prompt, label: sub.label });
+                          setExpandedAction(null);
+                        }}
+                        disabled={isBuilding}
+                        className="rounded-md border border-gray-800/30 bg-gray-900/50 px-2 py-1.5 text-left text-[10px] text-gray-400 hover:border-gray-700 hover:bg-gray-800/40 hover:text-gray-200 disabled:opacity-50 transition-colors"
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
