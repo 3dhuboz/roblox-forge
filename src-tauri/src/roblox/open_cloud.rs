@@ -1,5 +1,51 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+const MAX_RETRIES: u32 = 3;
+
+/// Send an HTTP request with retry logic for transient errors.
+async fn request_with_retry(
+    _client: &reqwest::Client,
+    request_builder: impl Fn() -> reqwest::RequestBuilder,
+) -> Result<reqwest::Response> {
+    for attempt in 0..MAX_RETRIES {
+        let response = request_builder().send().await;
+
+        match response {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                // Retry on transient errors
+                if matches!(status, 429 | 500 | 502 | 503) && attempt < MAX_RETRIES - 1 {
+                    // Respect Retry-After header if present
+                    let wait_secs = resp
+                        .headers()
+                        .get("retry-after")
+                        .and_then(|v| v.to_str().ok())
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .unwrap_or(2u64.pow(attempt + 1));
+                    eprintln!(
+                        "[OpenCloud] {} response (attempt {}/{}), retrying in {}s",
+                        status, attempt + 1, MAX_RETRIES, wait_secs
+                    );
+                    tokio::time::sleep(Duration::from_secs(wait_secs)).await;
+                    continue;
+                }
+                return Ok(resp);
+            }
+            Err(e) if attempt < MAX_RETRIES - 1 => {
+                let backoff = 2u64.pow(attempt + 1);
+                eprintln!(
+                    "[OpenCloud] Request failed (attempt {}/{}): {} — retrying in {}s",
+                    attempt + 1, MAX_RETRIES, e, backoff
+                );
+                tokio::time::sleep(Duration::from_secs(backoff)).await;
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+    anyhow::bail!("Request failed after {} attempts", MAX_RETRIES)
+}
 
 /// Upload a .rbxl file to a Roblox place
 pub async fn upload_place(
@@ -9,20 +55,24 @@ pub async fn upload_place(
     rbxl_data: &[u8],
 ) -> Result<u32> {
     let client = reqwest::Client::new();
+    let data = rbxl_data.to_vec();
 
     let url = format!(
         "https://apis.roblox.com/universes/v1/{}/places/{}/versions?versionType=Published",
         universe_id, place_id
     );
 
-    let response = client
-        .post(&url)
-        .bearer_auth(access_token)
-        .header("content-type", "application/octet-stream")
-        .body(rbxl_data.to_vec())
-        .send()
-        .await
-        .context("Failed to upload place file")?;
+    let url_clone = url.clone();
+    let token = access_token.to_string();
+    let response = request_with_retry(&client, || {
+        client
+            .post(&url_clone)
+            .bearer_auth(&token)
+            .header("content-type", "application/octet-stream")
+            .body(data.clone())
+    })
+    .await
+    .context("Failed to upload place file")?;
 
     if !response.status().is_success() {
         let status = response.status();
