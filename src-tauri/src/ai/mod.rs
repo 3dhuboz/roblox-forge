@@ -14,7 +14,7 @@ pub async fn process_message(
     user_name: &str,
 ) -> Result<AiResponse> {
     // Build system prompt with current project state and user level
-    let system_prompt = prompt::build_system_prompt(project_path, user_level, user_name)?;
+    let system_prompt = prompt::build_system_prompt_with_context(project_path, user_level, user_name, message)?;
 
     // Convert history to API format
     let api_messages = prompt::build_messages(history, message);

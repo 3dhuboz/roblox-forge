@@ -25,6 +25,56 @@ const PLASTIC = { metalness: 0.0, roughness: 0.35 };
 const SMOOTH_PLASTIC = { metalness: 0.05, roughness: 0.15 };
 const NEON = { metalness: 0.0, roughness: 0.1 };
 
+// Map Roblox Material enums to Three.js material overrides
+function getMaterialProps(el: CanvasElement): {
+  materialProps?: Record<string, any>;
+  emissive?: string;
+  emissiveIntensity?: number;
+  opacity?: number;
+} {
+  const material = (el.properties?.material as string)?.toLowerCase?.() ?? "";
+  const color = getElementColor(el);
+
+  // Neon: self-illuminating glow
+  if (material === "neon" || el.type === "neon" || el.type === "killbrick" || el.type === "laser") {
+    return {
+      materialProps: { ...NEON },
+      emissive: color,
+      emissiveIntensity: 0.8,
+    };
+  }
+  // Glass: transparent with slight sheen
+  if (material === "glass" || el.type === "ice") {
+    return {
+      materialProps: { metalness: 0.1, roughness: 0.05 },
+      opacity: 0.45,
+    };
+  }
+  // Metal: high metalness, low roughness
+  if (material === "metal" || material === "diamondplate" || material === "corrodedmetal") {
+    return {
+      materialProps: { metalness: 0.85, roughness: 0.25 },
+    };
+  }
+  // Wood: warm rough surface
+  if (material === "wood" || material === "woodplanks") {
+    return {
+      materialProps: { metalness: 0.0, roughness: 0.7 },
+    };
+  }
+  // SmoothPlastic
+  if (material === "smoothplastic") {
+    return { materialProps: { ...SMOOTH_PLASTIC } };
+  }
+  // Foil: reflective
+  if (material === "foil") {
+    return {
+      materialProps: { metalness: 0.95, roughness: 0.1 },
+    };
+  }
+  return {};
+}
+
 function getElementScale(type: string): [number, number, number] {
   // Sizes in Roblox studs (1 stud ≈ 0.3 in our world units)
   const map: Record<string, [number, number, number]> = {
@@ -729,8 +779,9 @@ function Element3D({ el }: { el: CanvasElement }) {
     );
   }
 
-  // ── DEFAULT: Standard Roblox Part (box with Plastic material)
+  // ── DEFAULT: Standard Roblox Part (material-aware)
   const yPos = scale[1] / 2;
+  const matProps = getMaterialProps(el);
   return (
     <group position={[worldX, yPos, worldZ]} onClick={handleClick} {...hoverHandlers}>
       <mesh castShadow receiveShadow>
@@ -738,8 +789,11 @@ function Element3D({ el }: { el: CanvasElement }) {
         <meshStandardMaterial
           color={hovered ? "#7db8f0" : color}
           {...PLASTIC}
-          transparent={el.type === "ice"}
-          opacity={el.type === "ice" ? 0.75 : 1}
+          {...matProps.materialProps}
+          transparent={matProps.opacity !== undefined && matProps.opacity < 1}
+          opacity={matProps.opacity ?? 1}
+          emissive={matProps.emissive || "#000000"}
+          emissiveIntensity={matProps.emissiveIntensity || 0}
         />
       </mesh>
       {(el.type === "grass" || el.type === "ground") && (

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { AiSceneChat } from "../builder/AiSceneChat";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { buildCommands } from "../../services/tauriCommands";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { isTauriRuntime } from "../../lib/isTauriRuntime";
 
 export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
@@ -27,6 +29,17 @@ export function BuildPage() {
       setExportError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleOpenInStudio = async () => {
+    if (!exportResult?.rbxlPath) return;
+    if (isTauriRuntime()) {
+      try {
+        await openPath(exportResult.rbxlPath);
+      } catch (e) {
+        console.error("Failed to open in Studio:", e);
+      }
     }
   };
 
@@ -142,6 +155,14 @@ export function BuildPage() {
           )}
           {isExporting ? "Building..." : exportResult ? "Exported!" : "Export to Roblox"}
         </button>
+        {exportResult && (
+          <button
+            onClick={handleOpenInStudio}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600/20 px-3 py-1.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-600/30"
+          >
+            <Play size={13} /> Test in Studio
+          </button>
+        )}
       </div>
 
       {/* Main layout: 3D viewport + AI chat */}

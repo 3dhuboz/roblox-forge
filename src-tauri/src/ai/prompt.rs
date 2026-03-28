@@ -3,7 +3,12 @@ use crate::commands::ai::ChatMessage;
 use crate::project::manager;
 use anyhow::Result;
 
-pub fn build_system_prompt(project_path: &str, user_level: &str, user_name: &str) -> Result<String> {
+pub fn build_system_prompt_with_context(
+    project_path: &str,
+    user_level: &str,
+    user_name: &str,
+    user_message: &str,
+) -> Result<String> {
     let mut prompt = String::new();
 
     prompt.push_str(&build_personality_prompt(user_level, user_name));
@@ -23,25 +28,39 @@ pub fn build_system_prompt(project_path: &str, user_level: &str, user_name: &str
         ));
 
         if !state.scripts.is_empty() {
+            let msg_lower = user_message.to_lowercase();
             prompt.push_str("\nScripts in project:\n");
             for script in &state.scripts {
                 prompt.push_str(&format!(
                     "  {} ({}) — {}\n",
                     script.name, script.script_type, script.relative_path
                 ));
-                // Include first 20 lines of each script for context
-                let preview: String = script
-                    .content
-                    .lines()
-                    .take(20)
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                prompt.push_str(&format!("    ```\n    {}\n    ```\n", preview));
+                // Include full content if the user's message mentions this script,
+                // otherwise show first 20 lines as a preview
+                let name_lower = script.name.to_lowercase();
+                let is_relevant = msg_lower.contains(&name_lower)
+                    || msg_lower.contains(&script.relative_path.to_lowercase());
+                let preview: String = if is_relevant {
+                    script.content.clone()
+                } else {
+                    script
+                        .content
+                        .lines()
+                        .take(20)
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                };
+                let tag = if is_relevant { " (full — user is asking about this)" } else { "" };
+                prompt.push_str(&format!("    ```{}\n    {}\n    ```\n", tag, preview));
             }
         }
     }
 
     Ok(prompt)
+}
+
+pub fn build_system_prompt(project_path: &str, user_level: &str, user_name: &str) -> Result<String> {
+    build_system_prompt_with_context(project_path, user_level, user_name, "")
 }
 
 pub fn build_messages(history: &[ChatMessage], current_message: &str) -> Vec<ApiMessage> {
