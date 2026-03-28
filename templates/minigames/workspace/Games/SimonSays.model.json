@@ -1,0 +1,76 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Arena" },
+        "Size": { "Vector3": [40, 1, 40] },
+        "CFrame": { "CFrame": { "position": [300, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 200, 200] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "RedPad" },
+        "Size": { "Vector3": [14, 0.5, 14] },
+        "CFrame": { "CFrame": { "position": [291, 1.25, -89], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 50, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["SimonPad"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "BluePad" },
+        "Size": { "Vector3": [14, 0.5, 14] },
+        "CFrame": { "CFrame": { "position": [309, 1.25, -89], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 100, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["SimonPad"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "GreenPad" },
+        "Size": { "Vector3": [14, 0.5, 14] },
+        "CFrame": { "CFrame": { "position": [291, 1.25, -71], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [50, 200, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["SimonPad"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "YellowPad" },
+        "Size": { "Vector3": [14, 0.5, 14] },
+        "CFrame": { "CFrame": { "position": [309, 1.25, -71], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["SimonPad"]
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [300, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    }
+  ]
+}

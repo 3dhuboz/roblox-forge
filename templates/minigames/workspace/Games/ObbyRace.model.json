@@ -1,0 +1,85 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "StartPlatform" },
+        "Size": { "Vector3": [12, 1, 12] },
+        "CFrame": { "CFrame": { "position": [120, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 200, 100] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform1" },
+        "Size": { "Vector3": [6, 1, 6] },
+        "CFrame": { "CFrame": { "position": [130, 2.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 160, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform2" },
+        "Size": { "Vector3": [5, 1, 5] },
+        "CFrame": { "CFrame": { "position": [138, 5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 160, 80] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Platform3" },
+        "Size": { "Vector3": [5, 1, 5] },
+        "CFrame": { "CFrame": { "position": [146, 7.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [200, 80, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "FinishLine" },
+        "Size": { "Vector3": [10, 1, 10] },
+        "CFrame": { "CFrame": { "position": [155, 10, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["FinishLine"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LavaBelow" },
+        "Size": { "Vector3": [60, 2, 30] },
+        "CFrame": { "CFrame": { "position": [138, -3, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 60, 20] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["KillBrick"]
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [120, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    }
+  ]
+}

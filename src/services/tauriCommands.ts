@@ -156,6 +156,34 @@ export const dashboardCommands = {
     ),
 };
 
+export interface RojoStatus {
+  installed: boolean;
+  version: string | null;
+  serving: boolean;
+  serve_port: number | null;
+  install_instructions: string | null;
+}
+
+export const rojoCommands = {
+  checkStatus: () =>
+    devOrInvoke(
+      () => invoke<RojoStatus>("check_rojo_status"),
+      () => mock.mockCheckRojoStatus(),
+    ),
+
+  startServe: (projectPath: string) =>
+    devOrInvoke(
+      () => invoke<number>("start_rojo_serve", { projectPath }),
+      () => mock.mockStartRojoServe(),
+    ),
+
+  stopServe: () =>
+    devOrInvoke(
+      () => invoke<void>("stop_rojo_serve"),
+      async () => {},
+    ),
+};
+
 export const validationCommands = {
   validateProject: (projectPath: string) =>
     devOrInvoke(

@@ -1,0 +1,101 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "TrackSurface" },
+        "Size": { "Vector3": [16, 1, 180] },
+        "CFrame": { "CFrame": { "position": [60, 5.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 75, 70] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "StartLine" },
+        "Size": { "Vector3": [16, 0.2, 2] },
+        "CFrame": { "CFrame": { "position": [60, 6, -32], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 255, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["StartLine"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Checkpoint1" },
+        "Size": { "Vector3": [16, 6, 1] },
+        "CFrame": { "CFrame": { "position": [60, 8.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.5 }
+      },
+      "tags": ["RaceCheckpoint"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Checkpoint2" },
+        "Size": { "Vector3": [16, 6, 1] },
+        "CFrame": { "CFrame": { "position": [60, 8.5, -140], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.5 }
+      },
+      "tags": ["RaceCheckpoint"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Checkpoint3" },
+        "Size": { "Vector3": [16, 6, 1] },
+        "CFrame": { "CFrame": { "position": [60, 8.5, -190], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.5 }
+      },
+      "tags": ["RaceCheckpoint"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Barrier_L" },
+        "Size": { "Vector3": [1, 4, 180] },
+        "CFrame": { "CFrame": { "position": [51.5, 7.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 130, 110] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Barrier_R" },
+        "Size": { "Vector3": [1, 4, 180] },
+        "CFrame": { "CFrame": { "position": [68.5, 7.5, -120], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 130, 110] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "BoostPad" },
+        "Size": { "Vector3": [8, 0.2, 4] },
+        "CFrame": { "CFrame": { "position": [60, 6, -160], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 200, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["BoostPad"]
+    }
+  ]
+}

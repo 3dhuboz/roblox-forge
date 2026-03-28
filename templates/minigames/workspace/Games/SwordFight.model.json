@@ -1,0 +1,51 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Arena" },
+        "Size": { "Vector3": [60, 1, 60] },
+        "CFrame": { "CFrame": { "position": [180, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [180, 160, 120] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "CenterPillar" },
+        "Size": { "Vector3": [4, 8, 4] },
+        "CFrame": { "CFrame": { "position": [180, 4.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [140, 130, 110] },
+        "Material": { "Enum": 1024 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn1" },
+        "Size": { "Vector3": [6, 1, 6] },
+        "CFrame": { "CFrame": { "position": [165, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn2" },
+        "Size": { "Vector3": [6, 1, 6] },
+        "CFrame": { "CFrame": { "position": [195, 1.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    }
+  ]
+}

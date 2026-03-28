@@ -1,0 +1,40 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Arena" },
+        "Size": { "Vector3": [50, 1, 50] },
+        "CFrame": { "CFrame": { "position": [60, 0.5, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 180, 80] },
+        "Material": { "Enum": 1280 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Hill" },
+        "Size": { "Vector3": [12, 4, 12] },
+        "CFrame": { "CFrame": { "position": [60, 3, -80], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 220, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["Hill"]
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "GameSpawn" },
+        "Size": { "Vector3": [8, 1, 8] },
+        "CFrame": { "CFrame": { "position": [60, 1.5, -60], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": true }
+      }
+    }
+  ]
+}

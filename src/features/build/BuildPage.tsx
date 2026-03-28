@@ -1,15 +1,34 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { AiSceneChat } from "../builder/AiSceneChat";
 import { useCanvasStore } from "../../stores/canvasStore";
+import { buildCommands } from "../../services/tauriCommands";
 
 export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
   const navigate = useNavigate();
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportResult, setExportResult] = useState<{ rbxlPath: string; warnings: string[] } | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    if (!project || isExporting) return;
+    setIsExporting(true);
+    setExportError(null);
+    setExportResult(null);
+    try {
+      const result = await buildCommands.buildProject(project.path);
+      setExportResult(result);
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Sync template to canvas store so game logic is template-aware
   useEffect(() => {
@@ -107,8 +126,21 @@ export function BuildPage() {
 
         <div className="flex-1" />
 
-        <button className="flex items-center gap-1.5 rounded-lg bg-green-600/20 px-3 py-1.5 text-[11px] font-semibold text-green-300 hover:bg-green-600/30">
-          <Download size={13} /> Export to Roblox
+        <button
+          onClick={handleExport}
+          disabled={isExporting || elements.length === 0}
+          className="flex items-center gap-1.5 rounded-lg bg-green-600/20 px-3 py-1.5 text-[11px] font-semibold text-green-300 hover:bg-green-600/30 disabled:opacity-40"
+        >
+          {isExporting ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : exportResult ? (
+            <Check size={13} />
+          ) : exportError ? (
+            <AlertCircle size={13} />
+          ) : (
+            <Download size={13} />
+          )}
+          {isExporting ? "Building..." : exportResult ? "Exported!" : "Export to Roblox"}
         </button>
       </div>
 

@@ -1,0 +1,89 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "PlotBase" },
+        "Size": { "Vector3": [44, 1, 44] },
+        "CFrame": { "CFrame": { "position": [164, 0.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [220, 210, 180] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true },
+        "CanCollide": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ClaimButton" },
+        "Size": { "Vector3": [5, 5, 5] },
+        "CFrame": { "CFrame": { "position": [164, 3.5, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 200, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["ClaimButton"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DiamondDropper" },
+        "Size": { "Vector3": [8, 2, 8] },
+        "CFrame": { "CFrame": { "position": [152, 2, -12], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 200, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["Dropper"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Conveyor1" },
+        "Size": { "Vector3": [4, 1, 20] },
+        "CFrame": { "CFrame": { "position": [152, 1, 0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [80, 80, 80] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["Conveyor"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Collector" },
+        "Size": { "Vector3": [8, 5, 8] },
+        "CFrame": { "CFrame": { "position": [152, 3.5, 14], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 200, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["Collector"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "UpgradeButton1" },
+        "Size": { "Vector3": [4, 1, 4] },
+        "CFrame": { "CFrame": { "position": [174, 1.5, -12], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 150, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["UpgradeButton"]
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "UpgradeButton2" },
+        "Size": { "Vector3": [4, 1, 4] },
+        "CFrame": { "CFrame": { "position": [174, 1.5, -4], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [180, 50, 255] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      },
+      "tags": ["UpgradeButton"]
+    }
+  ]
+}

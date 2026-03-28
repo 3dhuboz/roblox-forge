@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Key,
   Save,
@@ -12,8 +12,14 @@ import {
   Palette,
   Shield,
   HelpCircle,
+  Radio,
+  Play,
+  Square,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
-import { aiCommands } from "../../services/tauriCommands";
+import { aiCommands, rojoCommands } from "../../services/tauriCommands";
+import type { RojoStatus } from "../../services/tauriCommands";
 import { useUserStore } from "../../stores/userStore";
 import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";
 import type { ExperienceLevel } from "../../types/user";
@@ -24,6 +30,47 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
+  const [rojoLoading, setRojoLoading] = useState(false);
+  const [rojoError, setRojoError] = useState<string | null>(null);
+
+  const refreshRojoStatus = useCallback(async () => {
+    try {
+      const status = await rojoCommands.checkStatus();
+      setRojoStatus(status);
+      setRojoError(null);
+    } catch (e) {
+      setRojoError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshRojoStatus();
+  }, [refreshRojoStatus]);
+
+  const handleStartServe = async () => {
+    setRojoLoading(true);
+    try {
+      await rojoCommands.startServe(".");
+      await refreshRojoStatus();
+    } catch (e) {
+      setRojoError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRojoLoading(false);
+    }
+  };
+
+  const handleStopServe = async () => {
+    setRojoLoading(true);
+    try {
+      await rojoCommands.stopServe();
+      await refreshRojoStatus();
+    } catch (e) {
+      setRojoError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRojoLoading(false);
+    }
+  };
 
   const handleSaveKey = async () => {
     if (!apiKey.trim()) return;
@@ -222,6 +269,82 @@ export function SettingsPage() {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Rojo Sync */}
+          <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
+            <div className="flex items-center gap-2.5">
+              <Radio size={20} className="text-indigo-400" />
+              <h3 className="text-[15px] font-bold text-white">Rojo Sync</h3>
+            </div>
+            <p className="mt-2 text-[13px] text-gray-400">
+              Sync your project to Roblox Studio in real time.
+            </p>
+
+            {rojoStatus ? (
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3">
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-200">Rojo Installed</p>
+                    <p className="text-xs text-gray-500">
+                      {rojoStatus.installed
+                        ? rojoStatus.version ?? "Yes"
+                        : "Not found on PATH"}
+                    </p>
+                  </div>
+                  <div className={`h-2.5 w-2.5 rounded-full ${rojoStatus.installed ? "bg-green-400" : "bg-red-400"}`} />
+                </div>
+
+                {rojoStatus.installed ? (
+                  <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3.5">
+                    <div>
+                      <p className="text-[13px] font-semibold text-gray-200">
+                        {rojoStatus.serving ? "Serving" : "Not serving"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {rojoStatus.serving
+                          ? `Port ${rojoStatus.serve_port ?? "34872"} — open Studio with Rojo plugin`
+                          : "Start to sync changes to Studio"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={rojoStatus.serving ? handleStopServe : handleStartServe}
+                      disabled={rojoLoading}
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold ${
+                        rojoStatus.serving
+                          ? "bg-red-950/30 text-red-300 hover:bg-red-950/50"
+                          : "bg-indigo-600 text-white hover:bg-indigo-500"
+                      } disabled:opacity-50`}
+                    >
+                      {rojoLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : rojoStatus.serving ? (
+                        <Square size={14} />
+                      ) : (
+                        <Play size={14} />
+                      )}
+                      {rojoStatus.serving ? "Stop" : "Start Sync to Studio"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-yellow-900/40 bg-yellow-950/20 px-4 py-3 text-[13px] text-yellow-300">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={16} />
+                      Install Rojo to sync
+                    </div>
+                    <pre className="mt-2 text-xs text-gray-400 whitespace-pre-wrap">
+                      {rojoStatus.install_instructions}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ) : rojoError ? (
+              <p className="mt-3 text-[13px] text-red-400">{rojoError}</p>
+            ) : (
+              <div className="mt-4 flex items-center gap-2 text-[13px] text-gray-500">
+                <Loader2 size={14} className="animate-spin" /> Checking Rojo...
+              </div>
+            )}
           </div>
 
           {/* Appearance */}

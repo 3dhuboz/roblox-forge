@@ -934,6 +934,23 @@ export function mockSendChatMessage(message: string): AiResponse {
   };
 }
 
+export function mockCheckRojoStatus() {
+  return {
+    installed: true,
+    version: "Rojo 7.4.1 (mock)",
+    serving: false,
+    serve_port: null,
+    install_instructions: null,
+  };
+}
+
+let mockRojoServing = false;
+
+export function mockStartRojoServe(): number {
+  mockRojoServing = true;
+  return 34872;
+}
+
 export function mockValidateProject(): ValidationIssue[] {
   return [];
 }

@@ -43,49 +43,6 @@ local function rollPet(hatchCost)
 	return eligiblePets[1]
 end
 
-hatchEvent.OnServerEvent:Connect(function(player, eggPad)
-	if not eggPad or not CollectionService:HasTag(eggPad, "EggHatchPad") then return end
-
-	local data = getPlayerData(player)
-	if not data then return end
-
-	local hatchCost = 100
-	if data.coins < hatchCost then return end
-
-	if #data.pets >= data.maxPets then
-		petUpdateEvent:FireClient(player, { error = "Pet slots full! Buy more slots or release a pet." })
-		return
-	end
-
-	data.coins = data.coins - hatchCost
-
-	local newPet = rollPet(hatchCost)
-	if newPet then
-		table.insert(data.pets, {
-			Name = newPet.Name,
-			Rarity = newPet.Rarity,
-			CoinBoost = newPet.CoinBoost,
-		})
-
-		petUpdateEvent:FireClient(player, {
-			hatched = newPet.Name,
-			rarity = newPet.Rarity,
-			coinBoost = newPet.CoinBoost,
-			pets = data.pets,
-			coins = data.coins,
-		})
-
-		print(player.Name .. " hatched a " .. newPet.Rarity .. " " .. newPet.Name)
-
-		-- Spawn visible pet model
-		spawnPetModel(player, {
-			Name = newPet.Name,
-			Rarity = newPet.Rarity,
-			CoinBoost = newPet.CoinBoost,
-		})
-	end
-end)
-
 -- ── Visible pet models ──
 
 local activePetModels: { [Player]: { Model } } = {}
@@ -186,11 +143,47 @@ local function despawnPets(player: Player)
 	activePetModels[player] = nil
 end
 
--- Spawn pet model after hatching
+-- Handle egg hatching
 hatchEvent.OnServerEvent:Connect(function(player, eggPad)
-	-- (Existing hatch logic above handles the data side)
-	-- This secondary listener spawns the visible model
-	-- The main listener fires first due to connection order
+	if not eggPad or not CollectionService:HasTag(eggPad, "EggHatchPad") then return end
+
+	local data = getPlayerData(player)
+	if not data then return end
+
+	local hatchCost = 100
+	if data.coins < hatchCost then return end
+
+	if #data.pets >= data.maxPets then
+		petUpdateEvent:FireClient(player, { error = "Pet slots full! Buy more slots or release a pet." })
+		return
+	end
+
+	data.coins = data.coins - hatchCost
+
+	local newPet = rollPet(hatchCost)
+	if newPet then
+		table.insert(data.pets, {
+			Name = newPet.Name,
+			Rarity = newPet.Rarity,
+			CoinBoost = newPet.CoinBoost,
+		})
+
+		petUpdateEvent:FireClient(player, {
+			hatched = newPet.Name,
+			rarity = newPet.Rarity,
+			coinBoost = newPet.CoinBoost,
+			pets = data.pets,
+			coins = data.coins,
+		})
+
+		print(player.Name .. " hatched a " .. newPet.Rarity .. " " .. newPet.Name)
+
+		spawnPetModel(player, {
+			Name = newPet.Name,
+			Rarity = newPet.Rarity,
+			CoinBoost = newPet.CoinBoost,
+		})
+	end
 end)
 
 -- Respawn pets when character loads
