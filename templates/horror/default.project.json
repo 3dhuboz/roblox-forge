@@ -22,6 +22,9 @@
       },
       "DataManager": {
         "$path": "src/server/DataManager.server.luau"
+      },
+      "EnemyAI": {
+        "$path": "src/server/EnemyAI.server.luau"
       }
     },
     "StarterPlayer": {
@@ -37,6 +40,9 @@
       "$className": "ReplicatedStorage",
       "HorrorConfig": {
         "$path": "src/shared/HorrorConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {

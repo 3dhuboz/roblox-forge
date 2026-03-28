@@ -40,6 +40,9 @@
       "$className": "ReplicatedStorage",
       "SimConfig": {
         "$path": "src/shared/SimConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {

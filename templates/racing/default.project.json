@@ -37,6 +37,9 @@
       "$className": "ReplicatedStorage",
       "RaceConfig": {
         "$path": "src/shared/RaceConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {

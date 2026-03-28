@@ -37,6 +37,26 @@
       "$className": "ReplicatedStorage",
       "BattleConfig": {
         "$path": "src/shared/BattleConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
+      }
+    },
+    "Teams": {
+      "$className": "Teams",
+      "Red": {
+        "$className": "Team",
+        "$properties": {
+          "TeamColor": 21,
+          "AutoAssignable": true
+        }
+      },
+      "Blue": {
+        "$className": "Team",
+        "$properties": {
+          "TeamColor": 23,
+          "AutoAssignable": true
+        }
       }
     },
     "Lighting": {
