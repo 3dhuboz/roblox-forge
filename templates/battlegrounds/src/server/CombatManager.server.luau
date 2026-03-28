@@ -5,11 +5,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BattleConfig = require(ReplicatedStorage:WaitForChild("BattleConfig"))
+local RateLimit = require(ReplicatedStorage:WaitForChild("RateLimit"))
 
 -- Remote events
 local useAbility = Instance.new("RemoteEvent")
 useAbility.Name = "UseAbility"
 useAbility.Parent = ReplicatedStorage
+
+local selectClassEvent = Instance.new("RemoteEvent")
+selectClassEvent.Name = "SelectClass"
+selectClassEvent.Parent = ReplicatedStorage
+
+local playerStatsEvent = Instance.new("RemoteEvent")
+playerStatsEvent.Name = "PlayerStats"
+playerStatsEvent.Parent = ReplicatedStorage
 
 local damageEvent = Instance.new("RemoteEvent")
 damageEvent.Name = "DamageEvent"
@@ -72,8 +81,75 @@ local function applyClassStats(player)
 	end
 end
 
+-- Handle class selection
+selectClassEvent.OnServerEvent:Connect(function(player, className)
+	if not RateLimit.check(player, "class_select", 1) then return end
+	local state = playerState[player]
+	if not state then return end
+
+	local classConfig = getClassConfig(className)
+	if not classConfig then
+		selectClassEvent:FireClient(player, { type = "error", message = "Unknown class: " .. tostring(className) })
+		return
+	end
+
+	state.class = className
+	applyClassStats(player)
+
+	selectClassEvent:FireClient(player, {
+		type = "class_selected",
+		class = className,
+		health = classConfig.Health,
+		speed = classConfig.Speed,
+		abilities = classConfig.Abilities,
+	})
+
+	-- Broadcast updated stats
+	playerStatsEvent:FireAllClients(player.Name, {
+		class = className,
+		kills = state.kills,
+		deaths = state.deaths,
+	})
+end)
+
+-- Leaderstats (visible on player list)
+local function setupLeaderstats(player)
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	folder.Parent = player
+
+	local kills = Instance.new("IntValue")
+	kills.Name = "Kills"
+	kills.Value = 0
+	kills.Parent = folder
+
+	local deaths = Instance.new("IntValue")
+	deaths.Name = "Deaths"
+	deaths.Value = 0
+	deaths.Parent = folder
+
+	local classVal = Instance.new("StringValue")
+	classVal.Name = "Class"
+	classVal.Value = "Warrior"
+	classVal.Parent = folder
+end
+
+local function updateLeaderstats(player)
+	local state = playerState[player]
+	if not state then return end
+	local stats = player:FindFirstChild("leaderstats")
+	if not stats then return end
+	local killsVal = stats:FindFirstChild("Kills")
+	if killsVal then killsVal.Value = state.kills end
+	local deathsVal = stats:FindFirstChild("Deaths")
+	if deathsVal then deathsVal.Value = state.deaths end
+	local classVal = stats:FindFirstChild("Class")
+	if classVal then classVal.Value = state.class end
+end
+
 -- Handle ability usage
 useAbility.OnServerEvent:Connect(function(player, abilityName, targetPosition)
+	if not RateLimit.check(player, "ability", 0.1) then return end
 	local state = playerState[player]
 	if not state or not state.inMatch then return end
 
@@ -190,7 +266,15 @@ useAbility.OnServerEvent:Connect(function(player, abilityName, targetPosition)
 end)
 
 -- Setup
-Players.PlayerAdded:Connect(initPlayer)
+Players.PlayerAdded:Connect(function(player)
+	initPlayer(player)
+	setupLeaderstats(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.1)
+		applyClassStats(player)
+	end)
+end)
+
 Players.PlayerRemoving:Connect(function(player)
 	playerState[player] = nil
 	cooldowns[player] = nil
@@ -198,14 +282,17 @@ end)
 
 for _, player in Players:GetPlayers() do
 	initPlayer(player)
+	setupLeaderstats(player)
 end
 
--- Respawn handling
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function()
-		task.wait(0.1)
-		applyClassStats(player)
-	end)
+-- Update leaderstats every 2 seconds
+task.spawn(function()
+	while true do
+		task.wait(2)
+		for _, player in Players:GetPlayers() do
+			updateLeaderstats(player)
+		end
+	end
 end)
 
 print("CombatManager loaded")

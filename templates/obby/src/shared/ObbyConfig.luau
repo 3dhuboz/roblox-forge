@@ -1,8 +1,8 @@
 local ObbyConfig = {}
 
 ObbyConfig.GameName = "My Obby"
-ObbyConfig.MaxStages = 2
-ObbyConfig.Difficulty = "easy"
+ObbyConfig.MaxStages = 5
+ObbyConfig.Difficulty = "medium"
 
 ObbyConfig.Features = {
 	EnableTimer = true,
@@ -13,7 +13,10 @@ ObbyConfig.Features = {
 
 ObbyConfig.StageNames = {
 	[1] = "The Beginning",
-	[2] = "Getting Harder",
+	[2] = "Bridge of Peril",
+	[3] = "Moving Madness",
+	[4] = "Vanishing Act",
+	[5] = "The Gauntlet",
 }
 
 ObbyConfig.KillBrickDamage = 100

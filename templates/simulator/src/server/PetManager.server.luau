@@ -76,7 +76,139 @@ hatchEvent.OnServerEvent:Connect(function(player, eggPad)
 		})
 
 		print(player.Name .. " hatched a " .. newPet.Rarity .. " " .. newPet.Name)
+
+		-- Spawn visible pet model
+		spawnPetModel(player, {
+			Name = newPet.Name,
+			Rarity = newPet.Rarity,
+			CoinBoost = newPet.CoinBoost,
+		})
 	end
+end)
+
+-- ── Visible pet models ──
+
+local activePetModels: { [Player]: { Model } } = {}
+
+local RARITY_COLORS = {
+	Common = Color3.fromRGB(150, 150, 150),
+	Uncommon = Color3.fromRGB(50, 200, 50),
+	Rare = Color3.fromRGB(50, 100, 255),
+	Epic = Color3.fromRGB(180, 50, 255),
+	Legendary = Color3.fromRGB(255, 200, 0),
+}
+
+local function spawnPetModel(player: Player, petData: { Name: string, Rarity: string, CoinBoost: number })
+	local character = player.Character
+	if not character then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local model = Instance.new("Model")
+	model.Name = petData.Name .. "_Pet"
+
+	-- Pet body
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Size = Vector3.new(2, 2, 2)
+	body.Shape = Enum.PartType.Ball
+	body.Color = RARITY_COLORS[petData.Rarity] or RARITY_COLORS.Common
+	body.Material = Enum.Material.SmoothPlastic
+	body.Anchored = true
+	body.CanCollide = false
+	body.Parent = model
+
+	-- Name label
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.new(0, 80, 0, 20)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = body
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, 0, 1, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = petData.Name
+	nameLabel.TextColor3 = RARITY_COLORS[petData.Rarity] or Color3.new(1, 1, 1)
+	nameLabel.TextScaled = true
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.Parent = billboard
+
+	-- Glow for rare+
+	if petData.Rarity == "Epic" or petData.Rarity == "Legendary" then
+		local light = Instance.new("PointLight")
+		light.Color = RARITY_COLORS[petData.Rarity]
+		light.Range = 8
+		light.Brightness = 1
+		light.Parent = body
+	end
+
+	model.PrimaryPart = body
+	model.Parent = workspace
+
+	-- Track
+	if not activePetModels[player] then
+		activePetModels[player] = {}
+	end
+	table.insert(activePetModels[player], model)
+
+	-- Follow loop
+	local petIndex = #activePetModels[player]
+	task.spawn(function()
+		while model.Parent and character.Parent do
+			local targetHRP = character:FindFirstChild("HumanoidRootPart")
+			if not targetHRP then break end
+
+			-- Orbit behind player at different angles per pet
+			local angle = tick() * 1.5 + petIndex * (math.pi * 2 / math.max(1, #(activePetModels[player] or {})))
+			local radius = 4
+			local offset = Vector3.new(
+				math.cos(angle) * radius,
+				1.5 + math.sin(tick() * 2) * 0.3, -- gentle bob
+				math.sin(angle) * radius
+			)
+			local targetPos = targetHRP.Position + offset
+			body.CFrame = body.CFrame:Lerp(CFrame.new(targetPos), 0.1)
+			task.wait(0.03)
+		end
+
+		if model.Parent then model:Destroy() end
+	end)
+end
+
+local function despawnPets(player: Player)
+	local pets = activePetModels[player]
+	if pets then
+		for _, model in pets do
+			if model.Parent then model:Destroy() end
+		end
+	end
+	activePetModels[player] = nil
+end
+
+-- Spawn pet model after hatching
+hatchEvent.OnServerEvent:Connect(function(player, eggPad)
+	-- (Existing hatch logic above handles the data side)
+	-- This secondary listener spawns the visible model
+	-- The main listener fires first due to connection order
+end)
+
+-- Respawn pets when character loads
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(1) -- Wait for character to fully load
+		local data = getPlayerData(player)
+		if data and data.pets then
+			despawnPets(player)
+			for _, petData in ipairs(data.pets) do
+				spawnPetModel(player, petData)
+			end
+		end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	despawnPets(player)
 end)
 
 -- Egg pad visual animation

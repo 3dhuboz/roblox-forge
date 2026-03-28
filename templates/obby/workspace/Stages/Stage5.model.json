@@ -1,0 +1,105 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "ConveyorRun" },
+        "Size": { "Vector3": [6.0, 1.0, 30.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 58.0, 310.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [138, 92, 246] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["Conveyor"] },
+        "Attributes": { "Attributes": { "ConveyorSpeed": { "Float64": 15 }, "ConveyorDirection": { "String": "backward" } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Spinner2" },
+        "Size": { "Vector3": [1.5, 1.5, 20.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 60.0, 315.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 80, 0] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["Spinner", "KillBrick"] },
+        "Attributes": { "Attributes": { "SpinSpeed": { "Float64": 4.0 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "MovingPlatform3" },
+        "Size": { "Vector3": [5.0, 1.0, 5.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 62.0, 340.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 200, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["MovingPlatform"] },
+        "Attributes": { "Attributes": { "MoveDistance": { "Float64": 25 }, "MoveSpeed": { "Float64": 8 }, "MoveDirection": { "String": "x" } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DisappearFinal1" },
+        "Size": { "Vector3": [4.0, 1.0, 4.0] },
+        "CFrame": { "CFrame": { "position": [12.0, 65.0, 355.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 215, 0] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["DisappearPlatform"] },
+        "Attributes": { "Attributes": { "DisappearDelay": { "Float64": 0.6 }, "ReappearDelay": { "Float64": 2.0 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DisappearFinal2" },
+        "Size": { "Vector3": [3.0, 1.0, 3.0] },
+        "CFrame": { "CFrame": { "position": [-8.0, 68.0, 365.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 215, 0] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["DisappearPlatform"] },
+        "Attributes": { "Attributes": { "DisappearDelay": { "Float64": 0.5 }, "ReappearDelay": { "Float64": 1.5 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "VictoryPlatform" },
+        "Size": { "Vector3": [20.0, 2.0, 20.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 70.0, 380.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 215, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LavaAbyss" },
+        "Size": { "Vector3": [60.0, 1.0, 100.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 50.0, 345.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 30, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["KillBrick"] }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Checkpoint5" },
+        "Size": { "Vector3": [10.0, 1.0, 10.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 70.5, 390.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 255, 50] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    }
+  ]
+}

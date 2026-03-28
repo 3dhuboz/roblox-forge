@@ -27,6 +27,7 @@ pub fn run() {
 
     // Pre-load API key from environment
     let app_state = AppState::default();
+    let rojo_state = commands::rojo::RojoState::default();
     if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
         if !key.is_empty() {
             *app_state.api_key.lock().unwrap() = Some(key);
@@ -38,6 +39,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .manage(app_state)
+        .manage(rojo_state)
         .invoke_handler(tauri::generate_handler![
             commands::project::create_project,
             commands::project::get_project_state,
@@ -52,6 +54,11 @@ pub fn run() {
             commands::auth::logout,
             commands::publish::publish_game,
             commands::validate::validate_project,
+            commands::validate::auto_fix_issue,
+            commands::dashboard::fetch_game_stats,
+            commands::rojo::check_rojo_status,
+            commands::rojo::start_rojo_serve,
+            commands::rojo::stop_rojo_serve,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -22,6 +22,9 @@
       },
       "DataManager": {
         "$path": "src/server/DataManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -37,12 +40,19 @@
       "$className": "ReplicatedStorage",
       "RaceConfig": {
         "$path": "src/shared/RaceConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.45, 0.45, 0.5],
+        "Ambient": [
+          0.45,
+          0.45,
+          0.5
+        ],
         "Brightness": 2.5,
         "ClockTime": 14
       }

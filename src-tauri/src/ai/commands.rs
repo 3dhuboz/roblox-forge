@@ -1,5 +1,5 @@
 use crate::commands::ai::AiChange;
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use std::fs;
 use std::path::Path;
 
@@ -19,8 +19,19 @@ pub fn parse_response(response: &str) -> (String, Vec<serde_json::Value>) {
 
             // Extract JSON
             let json_str = &response[start + 7..end].trim();
-            if let Ok(parsed) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
-                commands = parsed;
+            match serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
+                Ok(parsed) => commands = parsed,
+                Err(e) => {
+                    // Try parsing as a single object and wrap in array
+                    if let Ok(single) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        commands = vec![single];
+                    } else {
+                        eprintln!("[AI] Failed to parse command JSON: {}", e);
+                        if display_text.is_empty() {
+                            display_text = response.to_string();
+                        }
+                    }
+                }
             }
 
             // Anything after the closing ``` is also display text
@@ -43,6 +54,73 @@ pub fn parse_response(response: &str) -> (String, Vec<serde_json::Value>) {
     (display_text, commands)
 }
 
+/// Validate a command has required fields before applying it.
+fn validate_command(cmd: &serde_json::Value) -> Result<&str> {
+    let cmd_type = cmd
+        .get("type")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("Command missing 'type' field"))?;
+
+    match cmd_type {
+        "add_stage" => {
+            cmd.get("name")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("add_stage: missing 'name' field"))?;
+        }
+        "modify_script" => {
+            let path = cmd.get("path").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("modify_script: missing 'path' field"))?;
+            cmd.get("content").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("modify_script: missing 'content' for {}", path))?;
+        }
+        "update_config" => {
+            let changes = cmd.get("changes")
+                .ok_or_else(|| anyhow!("update_config: missing 'changes' field"))?;
+            if !changes.is_object() {
+                return Err(anyhow!("update_config: 'changes' must be an object"));
+            }
+        }
+        "add_part" => {
+            cmd.get("stage").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("add_part: missing 'stage' field"))?;
+            let part = cmd.get("part")
+                .ok_or_else(|| anyhow!("add_part: missing 'part' field"))?;
+            if !part.is_object() {
+                return Err(anyhow!("add_part: 'part' must be an object"));
+            }
+            // Validate part has className
+            part.get("className")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("add_part: part missing 'className'"))?;
+        }
+        "remove_part" => {
+            cmd.get("stage").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("remove_part: missing 'stage' field"))?;
+            cmd.get("part_name").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("remove_part: missing 'part_name' field"))?;
+        }
+        "write_file" => {
+            let path = cmd.get("path").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("write_file: missing 'path' field"))?;
+            if path.contains("..") {
+                return Err(anyhow!("write_file: path traversal not allowed"));
+            }
+            cmd.get("content").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("write_file: missing 'content' for {}", path))?;
+        }
+        "delete_file" => {
+            let path = cmd.get("path").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("delete_file: missing 'path' field"))?;
+            if path.contains("..") {
+                return Err(anyhow!("delete_file: path traversal not allowed"));
+            }
+        }
+        _ => {} // Unknown commands pass through
+    }
+
+    Ok(cmd_type)
+}
+
 /// Apply parsed commands to the project files on disk
 pub fn apply_commands(
     project_path: &str,
@@ -51,37 +129,43 @@ pub fn apply_commands(
     let mut changes = Vec::new();
     let path = Path::new(project_path);
 
-    for cmd in commands {
-        let cmd_type = cmd
-            .get("type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+    for (i, cmd) in commands.iter().enumerate() {
+        let cmd_type = match validate_command(cmd) {
+            Ok(t) => t,
+            Err(e) => {
+                changes.push(AiChange {
+                    r#type: "error".into(),
+                    description: format!("Command #{}: {}", i + 1, e),
+                    path: None,
+                });
+                continue;
+            }
+        };
 
-        match cmd_type {
-            "add_stage" => {
-                let change = apply_add_stage(path, cmd)?;
-                changes.push(change);
-            }
-            "modify_script" => {
-                let change = apply_modify_script(path, cmd)?;
-                changes.push(change);
-            }
-            "update_config" => {
-                let change = apply_update_config(path, cmd)?;
-                changes.push(change);
-            }
-            "add_part" => {
-                let change = apply_add_part(path, cmd)?;
-                changes.push(change);
-            }
-            "remove_part" => {
-                let change = apply_remove_part(path, cmd)?;
-                changes.push(change);
-            }
+        let result = match cmd_type {
+            "write_file" => apply_write_file(path, cmd),
+            "delete_file" => apply_delete_file(path, cmd),
+            "add_stage" => apply_add_stage(path, cmd),
+            "modify_script" => apply_write_file(path, cmd), // alias
+            "update_config" => apply_update_config(path, cmd),
+            "add_part" => apply_add_part(path, cmd),
+            "remove_part" => apply_remove_part(path, cmd),
             _ => {
                 changes.push(AiChange {
                     r#type: cmd_type.into(),
                     description: format!("Unknown command: {}", cmd_type),
+                    path: None,
+                });
+                continue;
+            }
+        };
+
+        match result {
+            Ok(change) => changes.push(change),
+            Err(e) => {
+                changes.push(AiChange {
+                    r#type: "error".into(),
+                    description: format!("Failed to apply {}: {}", cmd_type, e),
                     path: None,
                 });
             }
@@ -122,7 +206,7 @@ fn apply_add_stage(project_path: &Path, cmd: &serde_json::Value) -> Result<AiCha
     fs::write(&file_path, serde_json::to_string_pretty(&model)?)?;
 
     // Update config MaxStages
-    update_max_stages(project_path)?;
+    let _ = update_max_stages(project_path);
 
     Ok(AiChange {
         r#type: "add_stage".into(),
@@ -131,52 +215,88 @@ fn apply_add_stage(project_path: &Path, cmd: &serde_json::Value) -> Result<AiCha
     })
 }
 
-fn apply_modify_script(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
-    let script_path = cmd
-        .get("path")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let content = cmd
-        .get("content")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    let full_path = project_path.join(script_path);
-    if let Some(parent) = full_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    fs::write(&full_path, content)?;
-
-    Ok(AiChange {
-        r#type: "modify_script".into(),
-        description: format!("Updated {}", script_path),
-        path: Some(script_path.into()),
-    })
-}
-
 fn apply_update_config(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
     let changes = cmd.get("changes").cloned().unwrap_or(serde_json::json!({}));
-    let config_path = project_path.join("src").join("shared").join("ObbyConfig.luau");
-    let mut content = fs::read_to_string(&config_path).unwrap_or_default();
+
+    // Try template-specific config files in order
+    let config_candidates = [
+        "src/shared/ObbyConfig.luau",
+        "src/shared/TycoonConfig.luau",
+        "src/shared/SimulatorConfig.luau",
+        "src/shared/GameConfig.luau",
+    ];
+
+    let config_path = cmd
+        .get("config_file")
+        .and_then(|v| v.as_str())
+        .map(|p| project_path.join(p))
+        .or_else(|| {
+            config_candidates
+                .iter()
+                .map(|c| project_path.join(c))
+                .find(|p| p.exists())
+        })
+        .ok_or_else(|| anyhow!("No config file found"))?;
+
+    let content = fs::read_to_string(&config_path)
+        .with_context(|| format!("Cannot read config: {}", config_path.display()))?;
+
+    let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+    let mut applied = Vec::new();
 
     if let Some(obj) = changes.as_object() {
         for (key, value) in obj {
-            // Simple pattern-based replacement in the Luau config
-            let search = format!("ObbyConfig.{} = ", key);
-            if let Some(pos) = content.find(&search) {
-                let line_end = content[pos..].find('\n').unwrap_or(content.len() - pos);
-                let new_line = format!("ObbyConfig.{} = {}", key, lua_value(value));
-                content.replace_range(pos..pos + line_end, &new_line);
+            let lua_val = lua_value(value);
+            let mut found = false;
+
+            for line in &mut lines {
+                let trimmed = line.trim();
+                // Match patterns like: Config.Key = value  or  Key = value
+                // Handle both "Config.Key = ..." and standalone "Key = ..."
+                let patterns = [
+                    format!(".{} =", key),
+                    format!(".{}\t=", key),
+                ];
+
+                let is_match = patterns.iter().any(|p| trimmed.contains(p.as_str()))
+                    || (trimmed.starts_with(key.as_str()) && trimmed.contains('='));
+
+                if is_match && !trimmed.starts_with("--") {
+                    // Preserve the prefix (indentation + config name) up to and including '='
+                    if let Some(eq_pos) = line.find('=') {
+                        let prefix = &line[..=eq_pos];
+                        *line = format!("{} {}", prefix, lua_val);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if found {
+                applied.push(format!("{} = {}", key, lua_val));
             }
         }
     }
 
-    fs::write(&config_path, &content)?;
+    let output = lines.join("\n");
+    fs::write(&config_path, output)?;
+
+    let desc = if applied.is_empty() {
+        "Updated game config (no matching keys found)".into()
+    } else {
+        format!("Updated config: {}", applied.join(", "))
+    };
+
+    let relative = config_path
+        .strip_prefix(project_path)
+        .unwrap_or(&config_path)
+        .to_string_lossy()
+        .replace('\\', "/");
 
     Ok(AiChange {
         r#type: "update_config".into(),
-        description: "Updated game config".into(),
-        path: Some("src/shared/ObbyConfig.luau".into()),
+        description: desc,
+        path: Some(relative),
     })
 }
 
@@ -192,14 +312,21 @@ fn apply_add_part(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChan
         .join("Stages")
         .join(format!("{}.model.json", stage));
 
-    if model_path.exists() {
-        let content = fs::read_to_string(&model_path)?;
-        let mut model: serde_json::Value = serde_json::from_str(&content)?;
-        if let Some(children) = model.get_mut("children").and_then(|c| c.as_array_mut()) {
-            children.push(part);
-        }
-        fs::write(&model_path, serde_json::to_string_pretty(&model)?)?;
+    if !model_path.exists() {
+        return Err(anyhow!("Stage file not found: {}", stage));
     }
+
+    let content = fs::read_to_string(&model_path)?;
+    let mut model: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("Invalid JSON in {}.model.json", stage))?;
+
+    if let Some(children) = model.get_mut("children").and_then(|c| c.as_array_mut()) {
+        children.push(part);
+    } else {
+        model["children"] = serde_json::json!([part]);
+    }
+
+    fs::write(&model_path, serde_json::to_string_pretty(&model)?)?;
 
     let part_name = cmd
         .get("part")
@@ -231,26 +358,39 @@ fn apply_remove_part(project_path: &Path, cmd: &serde_json::Value) -> Result<AiC
         .join("Stages")
         .join(format!("{}.model.json", stage));
 
-    if model_path.exists() {
-        let content = fs::read_to_string(&model_path)?;
-        let mut model: serde_json::Value = serde_json::from_str(&content)?;
-        if let Some(children) = model.get_mut("children").and_then(|c| c.as_array_mut()) {
-            children.retain(|child| {
-                let name = child
-                    .get("properties")
-                    .and_then(|p| p.get("Name"))
-                    .and_then(|n| n.get("String"))
-                    .and_then(|s| s.as_str())
-                    .unwrap_or("");
-                name != part_name
-            });
-        }
-        fs::write(&model_path, serde_json::to_string_pretty(&model)?)?;
+    if !model_path.exists() {
+        return Err(anyhow!("Stage file not found: {}", stage));
     }
+
+    let content = fs::read_to_string(&model_path)?;
+    let mut model: serde_json::Value = serde_json::from_str(&content)?;
+    let mut removed = false;
+
+    if let Some(children) = model.get_mut("children").and_then(|c| c.as_array_mut()) {
+        let before_count = children.len();
+        children.retain(|child| {
+            let name = child
+                .get("properties")
+                .and_then(|p| p.get("Name"))
+                .and_then(|n| n.get("String"))
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
+            name != part_name
+        });
+        removed = children.len() < before_count;
+    }
+
+    fs::write(&model_path, serde_json::to_string_pretty(&model)?)?;
+
+    let desc = if removed {
+        format!("Removed {} from {}", part_name, stage)
+    } else {
+        format!("Part '{}' not found in {}", part_name, stage)
+    };
 
     Ok(AiChange {
         r#type: "remove_part".into(),
-        description: format!("Removed {} from {}", part_name, stage),
+        description: desc,
         path: Some(format!("workspace/Stages/{}.model.json", stage)),
     })
 }
@@ -264,23 +404,86 @@ fn update_max_stages(project_path: &Path) -> Result<()> {
 
     let config_path = project_path.join("src").join("shared").join("ObbyConfig.luau");
     if config_path.exists() {
-        let mut content = fs::read_to_string(&config_path)?;
-        let search = "ObbyConfig.MaxStages = ";
-        if let Some(pos) = content.find(search) {
-            let line_end = content[pos..].find('\n').unwrap_or(content.len() - pos);
-            let new_line = format!("ObbyConfig.MaxStages = {}", count);
-            content.replace_range(pos..pos + line_end, &new_line);
-            fs::write(&config_path, content)?;
+        let content = fs::read_to_string(&config_path)?;
+        let mut lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+
+        for line in &mut lines {
+            if line.contains("MaxStages") && line.contains('=') {
+                if let Some(eq_pos) = line.find('=') {
+                    let prefix = &line[..=eq_pos];
+                    *line = format!("{} {}", prefix, count);
+                    break;
+                }
+            }
         }
+
+        fs::write(&config_path, lines.join("\n"))?;
     }
 
     Ok(())
 }
 
+fn apply_write_file(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
+    let file_path = cmd
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let content = cmd
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if file_path.contains("..") {
+        return Err(anyhow!("Path traversal not allowed: {}", file_path));
+    }
+
+    let full_path = project_path.join(file_path);
+    if let Some(parent) = full_path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("Cannot create directory for {}", file_path))?;
+    }
+    fs::write(&full_path, content)
+        .with_context(|| format!("Failed to write: {}", file_path))?;
+
+    Ok(AiChange {
+        r#type: "write_file".into(),
+        description: format!("Wrote {}", file_path),
+        path: Some(file_path.into()),
+    })
+}
+
+fn apply_delete_file(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
+    let file_path = cmd
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if file_path.contains("..") {
+        return Err(anyhow!("Path traversal not allowed: {}", file_path));
+    }
+
+    let full_path = project_path.join(file_path);
+    if full_path.exists() {
+        fs::remove_file(&full_path)
+            .with_context(|| format!("Failed to delete: {}", file_path))?;
+        Ok(AiChange {
+            r#type: "delete_file".into(),
+            description: format!("Deleted {}", file_path),
+            path: Some(file_path.into()),
+        })
+    } else {
+        Ok(AiChange {
+            r#type: "delete_file".into(),
+            description: format!("File not found (already deleted): {}", file_path),
+            path: Some(file_path.into()),
+        })
+    }
+}
+
 fn lua_value(value: &serde_json::Value) -> String {
     match value {
         serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::String(s) => format!("\"{}\"", s),
+        serde_json::Value::String(s) => format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")),
         serde_json::Value::Bool(b) => b.to_string(),
         serde_json::Value::Object(obj) => {
             let entries: Vec<String> = obj

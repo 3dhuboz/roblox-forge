@@ -25,6 +25,9 @@
       },
       "RebirthManager": {
         "$path": "src/server/RebirthManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -40,12 +43,19 @@
       "$className": "ReplicatedStorage",
       "SimConfig": {
         "$path": "src/shared/SimConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.5, 0.5, 0.55],
+        "Ambient": [
+          0.5,
+          0.5,
+          0.55
+        ],
         "Brightness": 2.5,
         "ClockTime": 12
       }

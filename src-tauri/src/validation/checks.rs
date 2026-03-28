@@ -170,24 +170,47 @@ fn check_each_stage_has_checkpoint(path: &Path, issues: &mut Vec<ValidationIssue
 }
 
 fn check_config_valid(path: &Path, issues: &mut Vec<ValidationIssue>) {
-    let config_path = path.join("src").join("shared").join("ObbyConfig.luau");
-    if !config_path.exists() {
-        issues.push(ValidationIssue {
-            id: "config_missing".into(),
-            severity: "error".into(),
-            message: "ObbyConfig.luau is missing".into(),
-            location: Some("src/shared/ObbyConfig.luau".into()),
-            auto_fixable: false,
-            fix_description: None,
-        });
+    let shared_dir = path.join("src").join("shared");
+    if !shared_dir.exists() {
         return;
     }
 
+    // Find any *Config.luau file (works for all templates)
+    let config_file = fs::read_dir(&shared_dir)
+        .ok()
+        .and_then(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .find(|e| {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    name.ends_with("Config.luau") && name != "RateLimit.luau"
+                })
+        });
+
+    let config_entry = match config_file {
+        Some(entry) => entry,
+        None => {
+            issues.push(ValidationIssue {
+                id: "config_missing".into(),
+                severity: "warning".into(),
+                message: "No config module found in src/shared/".into(),
+                location: Some("src/shared/".into()),
+                auto_fixable: false,
+                fix_description: None,
+            });
+            return;
+        }
+    };
+
+    let config_path = config_entry.path();
+    let config_name = config_entry.file_name().to_string_lossy().to_string();
+    let relative = format!("src/shared/{}", config_name);
+
     if let Ok(content) = fs::read_to_string(&config_path) {
-        // Check MaxStages matches actual count
+        // Check MaxStages matches actual count (obby-specific but harmless for others)
         if let Some(max_str) = content
             .lines()
-            .find(|l| l.contains("ObbyConfig.MaxStages"))
+            .find(|l| l.contains("MaxStages"))
             .and_then(|l| l.split('=').last())
             .map(|s| s.trim())
         {
@@ -197,28 +220,29 @@ fn check_config_valid(path: &Path, issues: &mut Vec<ValidationIssue>) {
                     .map(|entries| {
                         entries
                             .filter_map(|e| e.ok())
-                            .filter(|e| {
-                                e.file_name().to_string_lossy().starts_with("Stage")
-                            })
+                            .filter(|e| e.file_name().to_string_lossy().starts_with("Stage"))
                             .count() as u32
                     })
                     .unwrap_or(0);
 
-                if max_stages != actual {
+                if actual > 0 && max_stages != actual {
                     issues.push(ValidationIssue {
                         id: "config_stage_mismatch".into(),
                         severity: "warning".into(),
                         message: format!(
-                            "ObbyConfig.MaxStages is {} but there are {} actual stages",
+                            "MaxStages is {} but there are {} actual stages",
                             max_stages, actual
                         ),
-                        location: Some("src/shared/ObbyConfig.luau".into()),
+                        location: Some(relative.clone()),
                         auto_fixable: true,
                         fix_description: Some(format!("Update MaxStages to {}", actual)),
                     });
                 }
             }
         }
+
+        // Check config parses (balanced brackets)
+        check_luau_balanced(&content, &config_path, path, issues);
     }
 }
 
@@ -236,7 +260,24 @@ fn check_scripts_parse(path: &Path, issues: &mut Vec<ValidationIssue>) {
                     walk_scripts(&p, base, issues);
                 } else if p.extension().map_or(false, |e| e == "luau" || e == "lua") {
                     if let Ok(content) = fs::read_to_string(&p) {
-                        check_luau_balanced(&content, &p, base, issues);
+                        let relative = p
+                            .strip_prefix(base)
+                            .unwrap_or(&p)
+                            .to_string_lossy()
+                            .replace('\\', "/");
+
+                        // Run the real Luau linter
+                        let lint_issues = crate::validation::luau_lint::lint_luau(&content, &p);
+                        for li in lint_issues {
+                            issues.push(ValidationIssue {
+                                id: format!("luau_{}_{}", relative.replace('/', "_"), li.line),
+                                severity: li.severity.into(),
+                                message: format!("{}:{}: {}", relative, li.line, li.message),
+                                location: Some(relative.clone()),
+                                auto_fixable: false,
+                                fix_description: None,
+                            });
+                        }
                     }
                 }
             }

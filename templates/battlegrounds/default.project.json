@@ -22,6 +22,9 @@
       },
       "DataManager": {
         "$path": "src/server/DataManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -37,12 +40,36 @@
       "$className": "ReplicatedStorage",
       "BattleConfig": {
         "$path": "src/shared/BattleConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
+      }
+    },
+    "Teams": {
+      "$className": "Teams",
+      "Red": {
+        "$className": "Team",
+        "$properties": {
+          "TeamColor": 21,
+          "AutoAssignable": true
+        }
+      },
+      "Blue": {
+        "$className": "Team",
+        "$properties": {
+          "TeamColor": 23,
+          "AutoAssignable": true
+        }
       }
     },
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.3, 0.3, 0.35],
+        "Ambient": [
+          0.3,
+          0.3,
+          0.35
+        ],
         "Brightness": 2,
         "ClockTime": 16
       }

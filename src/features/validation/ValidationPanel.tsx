@@ -1,5 +1,6 @@
-import { CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Info, Loader2 } from "lucide-react";
 import type { ValidationIssue, Severity } from "../../types/validation";
+import { useProjectStore } from "../../stores/projectStore";
 
 interface ValidationPanelProps {
   issues: ValidationIssue[];
@@ -19,6 +20,7 @@ const severityConfig: Record<
 };
 
 export function ValidationPanel({ issues }: ValidationPanelProps) {
+  const { autoFixIssue, fixingIssueId } = useProjectStore();
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
   const passed = errors.length === 0;
@@ -46,6 +48,7 @@ export function ValidationPanel({ issues }: ValidationPanelProps) {
           {issues.map((issue) => {
             const config = severityConfig[issue.severity];
             const Icon = config.icon;
+            const isFixing = fixingIssueId === issue.id;
             return (
               <div
                 key={issue.id}
@@ -60,8 +63,19 @@ export function ValidationPanel({ issues }: ValidationPanelProps) {
                     </p>
                   )}
                   {issue.autoFixable && issue.fixDescription && (
-                    <button className="mt-1.5 rounded bg-gray-800 px-2.5 py-1 text-xs text-indigo-400 hover:bg-gray-700">
-                      Auto-fix: {issue.fixDescription}
+                    <button
+                      onClick={() => autoFixIssue(issue.id)}
+                      disabled={fixingIssueId !== null}
+                      className="mt-1.5 flex items-center gap-1.5 rounded bg-gray-800 px-2.5 py-1 text-xs text-indigo-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isFixing ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin" />
+                          Fixing...
+                        </>
+                      ) : (
+                        <>Auto-fix: {issue.fixDescription}</>
+                      )}
                     </button>
                   )}
                 </div>

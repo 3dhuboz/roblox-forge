@@ -1,20 +1,43 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { AiSceneChat } from "../builder/AiSceneChat";
 import { useCanvasStore } from "../../stores/canvasStore";
 
 export function BuildPage() {
-  const { project } = useProjectStore();
+  const { project, projectState, refreshProjectState } = useProjectStore();
   const navigate = useNavigate();
-  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate } = useCanvasStore();
+  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
 
   // Sync template to canvas store so game logic is template-aware
   useEffect(() => {
     if (project?.template) setTemplate(project.template);
   }, [project?.template, setTemplate]);
+
+  // Load real project state into canvas preview
+  useEffect(() => {
+    if (projectState?.hierarchy && project?.template) {
+      loadFromProject(projectState.hierarchy, project.template);
+    }
+  }, [projectState?.hierarchy, project?.template, loadFromProject]);
+
+  // Auto-save canvas to project files when elements change (debounced)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSave = useCallback(() => {
+    if (!project) return;
+    saveToProject(project.path);
+  }, [project, saveToProject]);
+
+  useEffect(() => {
+    if (!project || elements.length === 0) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(handleSave, 2000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [elements, project, handleSave]);
 
   if (!project) {
     return (
@@ -35,6 +58,8 @@ export function BuildPage() {
       </div>
     );
   }
+
+  const savedRecently = lastSavedAt && Date.now() - lastSavedAt < 3000;
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -61,6 +86,24 @@ export function BuildPage() {
         <button onClick={() => setZoom(zoom - 0.15)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"><ZoomOut size={14} /></button>
         <span className="text-[10px] text-gray-500 w-8 text-center font-mono">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom(zoom + 0.15)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"><ZoomIn size={14} /></button>
+
+        <div className="h-4 w-px bg-gray-800 mx-1" />
+
+        <button
+          onClick={handleSave}
+          disabled={isSaving || elements.length === 0}
+          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30"
+          title="Save to project"
+        >
+          {isSaving ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : savedRecently ? (
+            <Check size={13} className="text-green-400" />
+          ) : (
+            <Save size={13} />
+          )}
+          {isSaving ? "Saving..." : savedRecently ? "Saved" : "Save"}
+        </button>
 
         <div className="flex-1" />
 

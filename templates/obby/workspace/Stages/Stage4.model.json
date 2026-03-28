@@ -1,0 +1,93 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DisappearBlock1" },
+        "Size": { "Vector3": [6.0, 1.0, 6.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 38.0, 225.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [245, 205, 48] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["DisappearPlatform"] },
+        "Attributes": { "Attributes": { "DisappearDelay": { "Float64": 1.5 }, "ReappearDelay": { "Float64": 3.0 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DisappearBlock2" },
+        "Size": { "Vector3": [5.0, 1.0, 5.0] },
+        "CFrame": { "CFrame": { "position": [10.0, 40.0, 240.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [245, 205, 48] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["DisappearPlatform"] },
+        "Attributes": { "Attributes": { "DisappearDelay": { "Float64": 1.0 }, "ReappearDelay": { "Float64": 2.5 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "DisappearBlock3" },
+        "Size": { "Vector3": [4.0, 1.0, 4.0] },
+        "CFrame": { "CFrame": { "position": [-5.0, 42.0, 255.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [245, 205, 48] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["DisappearPlatform"] },
+        "Attributes": { "Attributes": { "DisappearDelay": { "Float64": 0.8 }, "ReappearDelay": { "Float64": 2.0 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "BouncePad1" },
+        "Size": { "Vector3": [6.0, 1.0, 6.0] },
+        "CFrame": { "CFrame": { "position": [5.0, 42.0, 270.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 110, 180] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["BouncyPlatform"] },
+        "Attributes": { "Attributes": { "BounceForce": { "Float64": 100 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "HighPlatform" },
+        "Size": { "Vector3": [8.0, 1.0, 8.0] },
+        "CFrame": { "CFrame": { "position": [5.0, 55.0, 280.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 200, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "VoidFloor" },
+        "Size": { "Vector3": [50.0, 1.0, 70.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 30.0, 255.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [30, 30, 30] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Transparency": { "Float32": 0.6 },
+        "Tags": { "Tags": ["KillBrick"] }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Checkpoint4" },
+        "Size": { "Vector3": [8.0, 1.0, 8.0] },
+        "CFrame": { "CFrame": { "position": [5.0, 55.5, 290.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    }
+  ]
+}

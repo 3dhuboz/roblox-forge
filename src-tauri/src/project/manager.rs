@@ -132,7 +132,7 @@ pub fn get_project_state(project_path: &str) -> Result<ProjectState> {
     Ok(ProjectState {
         name,
         path: project_path.into(),
-        template: "obby".into(),
+        template: detect_template(path),
         hierarchy,
         scripts,
         stage_count,
@@ -195,48 +195,8 @@ fn build_hierarchy(project_path: &Path, project_json: &serde_json::Value) -> Res
                     };
                 }
             } else if full_path.is_dir() {
-                // Directory — each entry is a child
-                if let Ok(entries) = fs::read_dir(&full_path) {
-                    for entry in entries.filter_map(|e| e.ok()) {
-                        let fname = entry.file_name().to_string_lossy().to_string();
-                        let child_name = fname
-                            .strip_suffix(".model.json")
-                            .or_else(|| fname.strip_suffix(".server.luau"))
-                            .or_else(|| fname.strip_suffix(".client.luau"))
-                            .or_else(|| fname.strip_suffix(".luau"))
-                            .unwrap_or(&fname)
-                            .to_string();
-
-                        let child_path = entry.path();
-                        if child_path.is_file() {
-                            if fname.ends_with(".model.json") {
-                                if let Ok(content) = fs::read_to_string(&child_path) {
-                                    if let Ok(model) =
-                                        serde_json::from_str::<serde_json::Value>(&content)
-                                    {
-                                        children.push(parse_model_json(&model, &child_name));
-                                    }
-                                }
-                            } else if fname.ends_with(".luau") || fname.ends_with(".lua") {
-                                let st = if fname.contains(".server.") {
-                                    "Script"
-                                } else if fname.contains(".client.") {
-                                    "LocalScript"
-                                } else {
-                                    "ModuleScript"
-                                };
-                                children.push(InstanceNode {
-                                    class_name: st.into(),
-                                    name: child_name,
-                                    properties: serde_json::json!({}),
-                                    children: vec![],
-                                    tags: None,
-                                    script_source: None,
-                                });
-                            }
-                        }
-                    }
-                }
+                // Directory — each entry is a child (recursive)
+                children = parse_directory_children(&full_path);
                 return InstanceNode {
                     class_name: "Folder".into(),
                     name: name.into(),
@@ -269,6 +229,100 @@ fn build_hierarchy(project_path: &Path, project_json: &serde_json::Value) -> Res
     }
 
     Ok(parse_tree_node(tree, "DataModel", project_path))
+}
+
+/// Recursively parse all files and subdirectories into InstanceNode children.
+fn parse_directory_children(dir: &Path) -> Vec<InstanceNode> {
+    let mut children = Vec::new();
+
+    let Ok(entries) = fs::read_dir(dir) else {
+        return children;
+    };
+
+    let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+    entries.sort_by_key(|e| e.file_name());
+
+    for entry in entries {
+        let fname = entry.file_name().to_string_lossy().to_string();
+        let child_path = entry.path();
+
+        let child_name = fname
+            .strip_suffix(".model.json")
+            .or_else(|| fname.strip_suffix(".server.luau"))
+            .or_else(|| fname.strip_suffix(".client.luau"))
+            .or_else(|| fname.strip_suffix(".luau"))
+            .or_else(|| fname.strip_suffix(".lua"))
+            .unwrap_or(&fname)
+            .to_string();
+
+        if child_path.is_dir() {
+            // Subdirectory becomes a Folder with recursive children
+            children.push(InstanceNode {
+                class_name: "Folder".into(),
+                name: child_name,
+                properties: serde_json::json!({}),
+                children: parse_directory_children(&child_path),
+                tags: None,
+                script_source: None,
+            });
+        } else if fname.ends_with(".model.json") {
+            if let Ok(content) = fs::read_to_string(&child_path) {
+                if let Ok(model) = serde_json::from_str::<serde_json::Value>(&content) {
+                    children.push(parse_model_json(&model, &child_name));
+                }
+            }
+        } else if fname.ends_with(".luau") || fname.ends_with(".lua") {
+            let st = if fname.contains(".server.") {
+                "Script"
+            } else if fname.contains(".client.") {
+                "LocalScript"
+            } else {
+                "ModuleScript"
+            };
+            children.push(InstanceNode {
+                class_name: st.into(),
+                name: child_name,
+                properties: serde_json::json!({}),
+                children: vec![],
+                tags: None,
+                script_source: None,
+            });
+        }
+    }
+
+    children
+}
+
+/// Detect the template type from the project's config files.
+fn detect_template(project_path: &Path) -> String {
+    let shared_dir = project_path.join("src").join("shared");
+    if !shared_dir.exists() {
+        return "obby".into();
+    }
+
+    let config_map = [
+        ("ObbyConfig", "obby"),
+        ("TycoonConfig", "tycoon"),
+        ("SimConfig", "simulator"),
+        ("RPGConfig", "rpg"),
+        ("RaceConfig", "racing"),
+        ("HorrorConfig", "horror"),
+        ("MiniConfig", "minigames"),
+        ("BattleConfig", "battlegrounds"),
+    ];
+
+    if let Ok(entries) = fs::read_dir(&shared_dir) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let fname = entry.file_name().to_string_lossy().to_string();
+            for (prefix, template) in &config_map {
+                if fname.starts_with(prefix) {
+                    return template.to_string();
+                }
+            }
+        }
+    }
+
+    "obby".into()
 }
 
 fn parse_model_json(model: &serde_json::Value, name: &str) -> InstanceNode {

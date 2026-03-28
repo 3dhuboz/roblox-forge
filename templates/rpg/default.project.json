@@ -20,11 +20,17 @@
       "CombatManager": {
         "$path": "src/server/CombatManager.server.luau"
       },
+      "EnemyAI": {
+        "$path": "src/server/EnemyAI.server.luau"
+      },
       "InventoryManager": {
         "$path": "src/server/InventoryManager.server.luau"
       },
       "DataManager": {
         "$path": "src/server/DataManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -40,12 +46,19 @@
       "$className": "ReplicatedStorage",
       "RPGConfig": {
         "$path": "src/shared/RPGConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.35, 0.35, 0.4],
+        "Ambient": [
+          0.35,
+          0.35,
+          0.4
+        ],
         "Brightness": 2,
         "ClockTime": 10
       }

@@ -1,0 +1,79 @@
+{
+  "className": "Folder",
+  "children": [
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "MovingPlatform1" },
+        "Size": { "Vector3": [8.0, 1.5, 8.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 26.0, 155.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 162, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["MovingPlatform"] },
+        "Attributes": { "Attributes": { "MoveDistance": { "Float64": 20 }, "MoveSpeed": { "Float64": 5 }, "MoveDirection": { "String": "x" } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "MovingPlatform2" },
+        "Size": { "Vector3": [6.0, 1.5, 6.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 29.0, 175.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 162, 255] },
+        "Material": { "Enum": 272 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["MovingPlatform"] },
+        "Attributes": { "Attributes": { "MoveDistance": { "Float64": 15 }, "MoveSpeed": { "Float64": 7 }, "MoveDirection": { "String": "z" } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "Spinner1" },
+        "Size": { "Vector3": [1.5, 1.5, 16.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 32.0, 190.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 140, 0] },
+        "Material": { "Enum": 1040 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["Spinner", "KillBrick"] },
+        "Attributes": { "Attributes": { "SpinSpeed": { "Float64": 2.5 } } }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "SafePlatform" },
+        "Size": { "Vector3": [10.0, 1.0, 10.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 32.0, 190.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [100, 100, 100] },
+        "Material": { "Enum": 816 },
+        "Anchored": { "Bool": true }
+      }
+    },
+    {
+      "className": "Part",
+      "properties": {
+        "Name": { "String": "LavaFloor3" },
+        "Size": { "Vector3": [40.0, 1.0, 50.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 22.0, 175.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [255, 50, 0] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Tags": { "Tags": ["KillBrick"] }
+      }
+    },
+    {
+      "className": "SpawnLocation",
+      "properties": {
+        "Name": { "String": "Checkpoint3" },
+        "Size": { "Vector3": [8.0, 1.0, 8.0] },
+        "CFrame": { "CFrame": { "position": [0.0, 35.0, 205.0], "orientation": [0, 0, 0, 1, 0, 0, 0, 1, 0] } },
+        "Color3uint8": { "Color3uint8": [0, 255, 100] },
+        "Material": { "Enum": 288 },
+        "Anchored": { "Bool": true },
+        "Neutral": { "Bool": false }
+      }
+    }
+  ]
+}
