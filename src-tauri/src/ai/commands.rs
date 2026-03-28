@@ -99,6 +99,22 @@ fn validate_command(cmd: &serde_json::Value) -> Result<&str> {
             cmd.get("part_name").and_then(|v| v.as_str())
                 .ok_or_else(|| anyhow!("remove_part: missing 'part_name' field"))?;
         }
+        "write_file" => {
+            let path = cmd.get("path").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("write_file: missing 'path' field"))?;
+            if path.contains("..") {
+                return Err(anyhow!("write_file: path traversal not allowed"));
+            }
+            cmd.get("content").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("write_file: missing 'content' for {}", path))?;
+        }
+        "delete_file" => {
+            let path = cmd.get("path").and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("delete_file: missing 'path' field"))?;
+            if path.contains("..") {
+                return Err(anyhow!("delete_file: path traversal not allowed"));
+            }
+        }
         _ => {} // Unknown commands pass through
     }
 
@@ -127,8 +143,10 @@ pub fn apply_commands(
         };
 
         let result = match cmd_type {
+            "write_file" => apply_write_file(path, cmd),
+            "delete_file" => apply_delete_file(path, cmd),
             "add_stage" => apply_add_stage(path, cmd),
-            "modify_script" => apply_modify_script(path, cmd),
+            "modify_script" => apply_write_file(path, cmd), // alias
             "update_config" => apply_update_config(path, cmd),
             "add_part" => apply_add_part(path, cmd),
             "remove_part" => apply_remove_part(path, cmd),
@@ -194,35 +212,6 @@ fn apply_add_stage(project_path: &Path, cmd: &serde_json::Value) -> Result<AiCha
         r#type: "add_stage".into(),
         description: format!("Added {}", stage_name),
         path: Some(format!("workspace/Stages/{}.model.json", stage_name)),
-    })
-}
-
-fn apply_modify_script(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
-    let script_path = cmd
-        .get("path")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let content = cmd
-        .get("content")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    // Prevent path traversal
-    if script_path.contains("..") {
-        return Err(anyhow!("Path traversal not allowed: {}", script_path));
-    }
-
-    let full_path = project_path.join(script_path);
-    if let Some(parent) = full_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    fs::write(&full_path, content)
-        .with_context(|| format!("Failed to write script: {}", script_path))?;
-
-    Ok(AiChange {
-        r#type: "modify_script".into(),
-        description: format!("Updated {}", script_path),
-        path: Some(script_path.into()),
     })
 }
 
@@ -432,6 +421,63 @@ fn update_max_stages(project_path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn apply_write_file(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
+    let file_path = cmd
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let content = cmd
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if file_path.contains("..") {
+        return Err(anyhow!("Path traversal not allowed: {}", file_path));
+    }
+
+    let full_path = project_path.join(file_path);
+    if let Some(parent) = full_path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("Cannot create directory for {}", file_path))?;
+    }
+    fs::write(&full_path, content)
+        .with_context(|| format!("Failed to write: {}", file_path))?;
+
+    Ok(AiChange {
+        r#type: "write_file".into(),
+        description: format!("Wrote {}", file_path),
+        path: Some(file_path.into()),
+    })
+}
+
+fn apply_delete_file(project_path: &Path, cmd: &serde_json::Value) -> Result<AiChange> {
+    let file_path = cmd
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    if file_path.contains("..") {
+        return Err(anyhow!("Path traversal not allowed: {}", file_path));
+    }
+
+    let full_path = project_path.join(file_path);
+    if full_path.exists() {
+        fs::remove_file(&full_path)
+            .with_context(|| format!("Failed to delete: {}", file_path))?;
+        Ok(AiChange {
+            r#type: "delete_file".into(),
+            description: format!("Deleted {}", file_path),
+            path: Some(file_path.into()),
+        })
+    } else {
+        Ok(AiChange {
+            r#type: "delete_file".into(),
+            description: format!("File not found (already deleted): {}", file_path),
+            path: Some(file_path.into()),
+        })
+    }
 }
 
 fn lua_value(value: &serde_json::Value) -> String {
