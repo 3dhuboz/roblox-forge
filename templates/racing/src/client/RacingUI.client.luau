@@ -1,9 +1,13 @@
 -- RacingUI: client-side HUD for racing game
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Racing camera: wider FOV, follow behind vehicle
+workspace.CurrentCamera.FieldOfView = 80
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RaceHUD"

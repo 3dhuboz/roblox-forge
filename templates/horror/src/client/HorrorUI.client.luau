@@ -2,9 +2,16 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Force first-person camera for horror immersion
+StarterPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+player.CameraMode = Enum.CameraMode.LockFirstPerson
+-- Narrow FOV for claustrophobic feel
+workspace.CurrentCamera.FieldOfView = 65
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HorrorHUD"

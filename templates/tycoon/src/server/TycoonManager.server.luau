@@ -93,9 +93,20 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 end)
 
--- Conveyor system
+-- Conveyor system (reads direction from Attributes, fallback to Z-axis)
 for _, conveyor in CollectionService:GetTagged("Conveyor") do
-	conveyor.AssemblyLinearVelocity = Vector3.new(0, 0, TycoonConfig.ConveyorSpeed)
+	local speed = conveyor:GetAttribute("ConveyorSpeed") or TycoonConfig.ConveyorSpeed
+	local dir = conveyor:GetAttribute("ConveyorDirection") or "forward"
+
+	if dir == "left" then
+		conveyor.AssemblyLinearVelocity = Vector3.new(-speed, 0, 0)
+	elseif dir == "right" then
+		conveyor.AssemblyLinearVelocity = Vector3.new(speed, 0, 0)
+	elseif dir == "backward" then
+		conveyor.AssemblyLinearVelocity = Vector3.new(0, 0, -speed)
+	else
+		conveyor.AssemblyLinearVelocity = Vector3.new(0, 0, speed)
+	end
 end
 
 -- Collector system
@@ -138,6 +149,85 @@ getCash.Parent = ReplicatedStorage
 getCash.OnServerInvoke = function(player)
 	return playerCash[player] or 0
 end
+
+-- Upgrade button system
+local upgradeEvent = Instance.new("RemoteEvent")
+upgradeEvent.Name = "UpgradeEvent"
+upgradeEvent.Parent = ReplicatedStorage
+
+local function setupUpgradeButton(button)
+	local upgradeName = button:GetAttribute("UpgradeName") or button.Name
+	local upgradeCost = button:GetAttribute("UpgradeCost") or 100
+	local upgradeMultiplier = button:GetAttribute("UpgradeMultiplier") or 2
+
+	button.Touched:Connect(function(hit)
+		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		if not player then return end
+
+		local plot = button.Parent
+		if plotOwners[plot] ~= player then return end
+
+		local cash = playerCash[player] or 0
+		if cash < upgradeCost then
+			upgradeEvent:FireClient(player, {
+				type = "error",
+				message = "Need $" .. upgradeCost .. " (you have $" .. cash .. ")",
+			})
+			return
+		end
+
+		-- Check if already purchased
+		local upgradesFolder = player:FindFirstChild("Upgrades")
+		if not upgradesFolder then
+			upgradesFolder = Instance.new("Folder")
+			upgradesFolder.Name = "Upgrades"
+			upgradesFolder.Parent = player
+		end
+
+		if upgradesFolder:FindFirstChild(upgradeName) then
+			upgradeEvent:FireClient(player, { type = "error", message = "Already purchased!" })
+			return
+		end
+
+		-- Purchase
+		playerCash[player] = cash - upgradeCost
+		local tag = Instance.new("StringValue")
+		tag.Name = upgradeName
+		tag.Value = upgradeName
+		tag.Parent = upgradesFolder
+
+		-- Hide the button
+		button.Transparency = 1
+		button.CanCollide = false
+
+		-- Apply upgrade effect (e.g., faster dropper)
+		if upgradeName:find("Speed") then
+			-- Reduce dropper interval
+			for _, dropper in CollectionService:GetTagged("Dropper") do
+				if dropper.Parent == plot then
+					local attr = dropper:GetAttribute("DropInterval")
+					if attr then
+						dropper:SetAttribute("DropInterval", attr / upgradeMultiplier)
+					end
+				end
+			end
+		end
+
+		upgradeEvent:FireClient(player, {
+			type = "purchased",
+			name = upgradeName,
+			cost = upgradeCost,
+			cash = playerCash[player],
+		})
+
+		cashEvent:FireClient(player, playerCash[player])
+	end)
+end
+
+for _, button in CollectionService:GetTagged("UpgradeButton") do
+	setupUpgradeButton(button)
+end
+CollectionService:GetInstanceAddedSignal("UpgradeButton"):Connect(setupUpgradeButton)
 
 -- Cleanup on player leaving
 Players.PlayerRemoving:Connect(function(player)
