@@ -981,7 +981,15 @@ export function mockFetchGameStats() {
 }
 
 export function mockGetAuthState(): AuthState | null {
-  return null;
+  return {
+    accessToken: "mock-access-token",
+    refreshToken: "mock-refresh-token",
+    expiresAt: Date.now() + 3600000,
+    userId: "12345678",
+    username: "RobloxBuilder",
+    displayName: "Steve",
+    avatarUrl: undefined,
+  };
 }
 
 export function mockBuildProject(projectPath: string): {
@@ -996,9 +1004,15 @@ export function mockBuildProject(projectPath: string): {
   };
 }
 
-export function mockPublishGame(): PublishResult {
-  return {
-    success: false,
-    error: "Publishing requires the desktop app. Run npm run tauri dev after installing Rust.",
-  };
+export function mockPublishGame(): Promise<PublishResult> {
+  // Simulate a 3-second publish with progress
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        success: true,
+        versionNumber: 1,
+        gameUrl: "https://www.roblox.com/games/12345678",
+      });
+    }, 3000);
+  });
 }
