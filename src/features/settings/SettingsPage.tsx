@@ -76,6 +76,7 @@ export function SettingsPage() {
     if (!apiKey.trim()) return;
     try {
       await aiCommands.setApiKey(apiKey.trim());
+      updateProfile({ hasSetApiKey: true });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {

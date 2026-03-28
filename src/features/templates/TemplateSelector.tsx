@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2 } from "lucide-react";
+import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, CheckCircle, Circle, Key, Radio, Gamepad2, X, ChevronRight } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
+import { rojoCommands } from "../../services/tauriCommands";
+import type { RojoStatus } from "../../services/tauriCommands";
 
 interface Template {
   id: string;
@@ -390,6 +392,107 @@ function TemplateScene({ id }: { id: string }) {
   }
 }
 
+function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
+  const navigate = useNavigate();
+  const { profile } = useUserStore();
+  const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem("roblox-forge-setup-dismissed") === "true"; } catch { return false; }
+  });
+
+  useEffect(() => {
+    rojoCommands.checkStatus().then(setRojoStatus).catch(() => {});
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+    localStorage.setItem("roblox-forge-setup-dismissed", "true");
+  }, []);
+
+  if (dismissed) return null;
+
+  const apiKeyDone = profile.hasSetApiKey;
+  const rojoDone = rojoStatus?.installed ?? false;
+  const projectDone = hasProjects;
+  const allDone = apiKeyDone && rojoDone && projectDone;
+
+  if (allDone) return null;
+
+  const items = [
+    {
+      done: apiKeyDone,
+      icon: Key,
+      label: "Set up your AI key",
+      hint: "Needed to use the AI builder",
+      action: () => navigate("/settings"),
+      actionLabel: "Settings",
+    },
+    {
+      done: rojoDone,
+      icon: Radio,
+      label: "Install Rojo",
+      hint: rojoStatus ? (rojoDone ? rojoStatus.version ?? "Installed" : "Optional — needed to sync to Studio") : "Checking...",
+      action: () => navigate("/settings"),
+      actionLabel: "Details",
+    },
+    {
+      done: projectDone,
+      icon: Gamepad2,
+      label: "Create your first game",
+      hint: "Pick a template below to get started",
+      action: null,
+      actionLabel: null,
+    },
+  ];
+
+  const doneCount = items.filter((i) => i.done).length;
+
+  return (
+    <div className="mx-8 mb-4 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 p-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600/30 text-[13px] font-bold text-indigo-300">
+            {doneCount}/3
+          </div>
+          <h3 className="text-[14px] font-bold text-white">Getting Started</h3>
+        </div>
+        <button onClick={handleDismiss} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-gray-300">
+          <X size={14} />
+        </button>
+      </div>
+      <div className="mt-3.5 space-y-2">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="flex items-center gap-3 rounded-xl bg-gray-900/50 px-3.5 py-2.5">
+              {item.done ? (
+                <CheckCircle size={16} className="shrink-0 text-green-400" />
+              ) : (
+                <Circle size={16} className="shrink-0 text-gray-600" />
+              )}
+              <Icon size={15} className={item.done ? "shrink-0 text-green-400/60" : "shrink-0 text-gray-500"} />
+              <div className="min-w-0 flex-1">
+                <p className={`text-[13px] font-medium ${item.done ? "text-gray-500 line-through" : "text-gray-200"}`}>
+                  {item.label}
+                </p>
+                <p className="text-[11px] text-gray-500">{item.hint}</p>
+              </div>
+              {!item.done && item.action && (
+                <button
+                  onClick={item.action}
+                  className="flex shrink-0 items-center gap-1 rounded-lg bg-indigo-600/20 px-2.5 py-1 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-600/30"
+                >
+                  {item.actionLabel} <ChevronRight size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function TemplateSelector() {
   const navigate = useNavigate();
   const { project, createProject, isLoading } = useProjectStore();
@@ -442,6 +545,8 @@ export function TemplateSelector() {
           Pick a game and tell the AI what you want. It handles the code!
         </p>
       </div>
+
+      <SetupChecklist hasProjects={recentProjects.length > 0} />
 
       <div className="flex-1 overflow-y-auto px-8 py-4">
         {/* Continue current project */}

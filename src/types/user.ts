@@ -11,6 +11,7 @@ export interface UserProfile {
   gamesCreated: number;
   showTooltips: boolean;
   preferGuidedMode: boolean;
+  hasSetApiKey: boolean;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -23,6 +24,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   gamesCreated: 0,
   showTooltips: true,
   preferGuidedMode: true,
+  hasSetApiKey: false,
 };
 
 export const EXPERIENCE_DESCRIPTIONS: Record<ExperienceLevel, { title: string; subtitle: string; detail: string }> = {
