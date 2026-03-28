@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
 import { serializeCanvasToModelJson } from "../lib/canvasSerializer";
 import { projectCommands } from "../services/tauriCommands";
+import { projectStateToCanvasElements } from "../lib/projectToCanvas";
+import type { InstanceNode } from "../types/project";
 
 // ── Types ──
 
@@ -134,6 +136,7 @@ interface CanvasStore {
   clearAll: () => void;
   getSelected: () => CanvasElement | null;
   saveToProject: (projectPath: string) => Promise<void>;
+  loadFromProject: (hierarchy: InstanceNode, template: string) => void;
   isSaving: boolean;
   lastSavedAt: number | null;
 }
@@ -287,6 +290,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   getSelected: () => {
     const { elements, selectedId } = get();
     return elements.find((e) => e.id === selectedId) || null;
+  },
+
+  loadFromProject: (hierarchy: InstanceNode, template: string) => {
+    const elements = projectStateToCanvasElements(hierarchy, template);
+    set({
+      elements,
+      selectedId: null,
+      undoStack: [],
+      redoStack: [],
+    });
   },
 
   saveToProject: async (projectPath: string) => {

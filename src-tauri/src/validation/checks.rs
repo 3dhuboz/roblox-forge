@@ -260,7 +260,24 @@ fn check_scripts_parse(path: &Path, issues: &mut Vec<ValidationIssue>) {
                     walk_scripts(&p, base, issues);
                 } else if p.extension().map_or(false, |e| e == "luau" || e == "lua") {
                     if let Ok(content) = fs::read_to_string(&p) {
-                        check_luau_balanced(&content, &p, base, issues);
+                        let relative = p
+                            .strip_prefix(base)
+                            .unwrap_or(&p)
+                            .to_string_lossy()
+                            .replace('\\', "/");
+
+                        // Run the real Luau linter
+                        let lint_issues = crate::validation::luau_lint::lint_luau(&content, &p);
+                        for li in lint_issues {
+                            issues.push(ValidationIssue {
+                                id: format!("luau_{}_{}", relative.replace('/', "_"), li.line),
+                                severity: li.severity.into(),
+                                message: format!("{}:{}: {}", relative, li.line, li.message),
+                                location: Some(relative.clone()),
+                                auto_fixable: false,
+                                fix_description: None,
+                            });
+                        }
                     }
                 }
             }

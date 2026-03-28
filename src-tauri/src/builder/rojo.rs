@@ -45,6 +45,10 @@ pub async fn build(project_path: &str) -> Result<BuildResult> {
     })
 }
 
+pub fn find_rojo_binary() -> Option<String> {
+    find_rojo()
+}
+
 fn find_rojo() -> Option<String> {
     // Check PATH
     if Command::new("rojo").arg("--version").output().is_ok() {

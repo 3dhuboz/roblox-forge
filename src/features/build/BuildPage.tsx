@@ -7,14 +7,21 @@ import { AiSceneChat } from "../builder/AiSceneChat";
 import { useCanvasStore } from "../../stores/canvasStore";
 
 export function BuildPage() {
-  const { project } = useProjectStore();
+  const { project, projectState, refreshProjectState } = useProjectStore();
   const navigate = useNavigate();
-  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, isSaving, lastSavedAt } = useCanvasStore();
+  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
 
   // Sync template to canvas store so game logic is template-aware
   useEffect(() => {
     if (project?.template) setTemplate(project.template);
   }, [project?.template, setTemplate]);
+
+  // Load real project state into canvas preview
+  useEffect(() => {
+    if (projectState?.hierarchy && project?.template) {
+      loadFromProject(projectState.hierarchy, project.template);
+    }
+  }, [projectState?.hierarchy, project?.template, loadFromProject]);
 
   // Auto-save canvas to project files when elements change (debounced)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
