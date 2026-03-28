@@ -25,6 +25,9 @@
       },
       "EnemyAI": {
         "$path": "src/server/EnemyAI.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -48,11 +51,19 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.05, 0.05, 0.08],
+        "Ambient": [
+          0.05,
+          0.05,
+          0.08
+        ],
         "Brightness": 0.5,
         "ClockTime": 0,
         "FogEnd": 120,
-        "FogColor": [0.02, 0.02, 0.04]
+        "FogColor": [
+          0.02,
+          0.02,
+          0.04
+        ]
       }
     }
   }

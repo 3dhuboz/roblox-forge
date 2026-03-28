@@ -73,6 +73,22 @@ local function loadPlayerData(player)
 	end
 end
 
+
+-- Leaderstats
+local function setupLeaderstats(player)
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	folder.Parent = player
+	local level = Instance.new("IntValue")
+	level.Name = "Level"
+	level.Value = 1
+	level.Parent = folder
+	local gold = Instance.new("IntValue")
+	gold.Name = "Gold"
+	gold.Value = 0
+	gold.Parent = folder
+end
+
 Players.PlayerAdded:Connect(function(player)
 	task.defer(function()
 		loadPlayerData(player)

@@ -107,7 +107,22 @@ local function savePlayerData(player)
 	end
 end
 
-Players.PlayerAdded:Connect(loadPlayerData)
+
+-- Leaderstats
+local function setupLeaderstats(player)
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	folder.Parent = player
+	local cash = Instance.new("IntValue")
+	cash.Name = "Cash"
+	cash.Value = 0
+	cash.Parent = folder
+end
+
+Players.PlayerAdded:Connect(function(player)
+	setupLeaderstats(player)
+	loadPlayerData(player)
+end)
 Players.PlayerRemoving:Connect(savePlayerData)
 
 -- Auto-save every 5 minutes

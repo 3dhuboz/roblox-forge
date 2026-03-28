@@ -215,10 +215,13 @@ fn apply_model_json(
     instance_ref: rbx_dom_weak::types::Ref,
     model: &serde_json::Value,
 ) -> Result<()> {
-    // Apply properties to this instance
+    // Apply properties to this instance (skip Name — handled by InstanceBuilder)
     if let Some(props) = model.get("properties").and_then(|v| v.as_object()) {
         let instance = dom.get_by_ref_mut(instance_ref).unwrap();
         for (key, value) in props {
+            if key == "Name" {
+                continue; // Name is set via InstanceBuilder, not as a property
+            }
             if let Some(variant) = parse_model_property(key, value) {
                 instance.properties.insert(key.as_str().into(), variant);
             }
@@ -345,10 +348,25 @@ fn parse_model_property(key: &str, value: &serde_json::Value) -> Option<Variant>
         }
     }
 
-    // Direct value (number for Font enum, etc.)
+    // Direct value (bare number — could be Float32, Int32, or Enum)
+    // Use key name heuristics to decide
     if let Some(n) = value.as_f64() {
-        // Guess: if used as Enum
-        return Some(Variant::Enum(rbx_dom_weak::types::Enum::from_u32(n as u32)));
+        let enum_keys = [
+            "Material", "Font", "Face", "Shape", "SurfaceType",
+            "TopSurface", "BottomSurface", "LeftSurface", "RightSurface",
+            "FrontSurface", "BackSurface", "CameraMode", "CameraType",
+            "EasingStyle", "EasingDirection", "HorizontalAlignment",
+            "VerticalAlignment", "SortOrder", "BorderMode", "SizeConstraint",
+            "TextXAlignment", "TextYAlignment", "ScaleType",
+        ];
+        if enum_keys.iter().any(|k| key.contains(k)) {
+            return Some(Variant::Enum(rbx_dom_weak::types::Enum::from_u32(n as u32)));
+        }
+        // Integer-looking values for IntValue-like properties
+        if n.fract() == 0.0 && key.contains("Value") {
+            return Some(Variant::Int32(n as i32));
+        }
+        return Some(Variant::Float32(n as f32));
     }
     if let Some(s) = value.as_str() {
         return Some(Variant::String(s.to_string()));
@@ -459,4 +477,79 @@ fn json_to_variant(key: &str, value: &serde_json::Value) -> Option<Variant> {
     // project.json $properties use direct values, not typed wrappers
     // e.g., "Brightness": 2, "Ambient": [0.5, 0.5, 0.5]
     parse_model_property(key, value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_obby_template() {
+        // Find the obby template relative to CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let template_path = Path::new(manifest_dir)
+            .parent()
+            .unwrap()
+            .join("templates")
+            .join("obby");
+
+        if !template_path.exists() {
+            eprintln!("Obby template not found at {:?}, skipping", template_path);
+            return;
+        }
+
+        let result = build_rbxl(template_path.to_str().unwrap());
+        match &result {
+            Ok(data) => {
+                assert!(data.len() > 100, "rbxl file too small: {} bytes", data.len());
+                eprintln!("Built obby template: {} bytes", data.len());
+            }
+            Err(e) => {
+                // Print full error chain
+                eprintln!("Error: {}", e);
+                let mut source = e.source();
+                while let Some(cause) = source {
+                    eprintln!("Caused by: {}", cause);
+                    source = std::error::Error::source(cause);
+                }
+                panic!("Failed to build obby template: {:?}", e);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_model_property_types() {
+        // String
+        let v = parse_model_property("Name", &serde_json::json!({"String": "TestPart"}));
+        assert!(matches!(v, Some(Variant::String(_))));
+
+        // Bool
+        let v = parse_model_property("Anchored", &serde_json::json!({"Bool": true}));
+        assert!(matches!(v, Some(Variant::Bool(true))));
+
+        // Vector3
+        let v = parse_model_property("Size", &serde_json::json!({"Vector3": [10.0, 5.0, 20.0]}));
+        assert!(matches!(v, Some(Variant::Vector3(_))));
+
+        // Color3uint8
+        let v = parse_model_property("Color3uint8", &serde_json::json!({"Color3uint8": [255, 0, 0]}));
+        assert!(matches!(v, Some(Variant::Color3uint8(_))));
+
+        // Enum
+        let v = parse_model_property("Material", &serde_json::json!({"Enum": 256}));
+        assert!(matches!(v, Some(Variant::Enum(_))));
+
+        // Tags
+        let v = parse_model_property("Tags", &serde_json::json!({"Tags": ["KillBrick", "Spinner"]}));
+        assert!(matches!(v, Some(Variant::Tags(_))));
+    }
+
+    #[test]
+    fn test_parse_cframe() {
+        let cf = super::parse_cframe(&serde_json::json!({
+            "position": [10.0, 5.0, 20.0],
+            "orientation": [1, 0, 0, 0, 1, 0, 0, 0, 1]
+        }));
+        assert!(cf.is_some());
+    }
 }

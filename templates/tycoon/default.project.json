@@ -25,6 +25,9 @@
       },
       "IncomeManager": {
         "$path": "src/server/IncomeManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -48,7 +51,11 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.4, 0.4, 0.4],
+        "Ambient": [
+          0.4,
+          0.4,
+          0.4
+        ],
         "Brightness": 2,
         "ClockTime": 14
       }

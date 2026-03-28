@@ -22,6 +22,9 @@
       },
       "DataManager": {
         "$path": "src/server/DataManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -62,7 +65,11 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [0.3, 0.3, 0.35],
+        "Ambient": [
+          0.3,
+          0.3,
+          0.35
+        ],
         "Brightness": 2,
         "ClockTime": 16
       }

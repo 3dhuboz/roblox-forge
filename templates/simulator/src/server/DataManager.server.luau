@@ -105,6 +105,22 @@ local function savePlayerData(player)
 	end
 end
 
+
+-- Leaderstats
+local function setupLeaderstats(player)
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	folder.Parent = player
+	local coins = Instance.new("IntValue")
+	coins.Name = "Coins"
+	coins.Value = 0
+	coins.Parent = folder
+	local rebirths = Instance.new("IntValue")
+	rebirths.Name = "Rebirths"
+	rebirths.Value = 0
+	rebirths.Parent = folder
+end
+
 Players.PlayerAdded:Connect(loadPlayerData)
 Players.PlayerRemoving:Connect(savePlayerData)
 
