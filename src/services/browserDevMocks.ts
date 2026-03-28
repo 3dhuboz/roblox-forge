@@ -938,6 +938,27 @@ export function mockValidateProject(): ValidationIssue[] {
   return [];
 }
 
+export function mockFetchGameStats() {
+  return [
+    {
+      universe_id: "mock-1",
+      name: "Space Obby Adventure",
+      playing: 23,
+      visits: 12847,
+      favorites: 342,
+      updated: new Date().toISOString(),
+    },
+    {
+      universe_id: "mock-2",
+      name: "Lava Obby Challenge",
+      playing: 8,
+      visits: 5621,
+      favorites: 128,
+      updated: new Date().toISOString(),
+    },
+  ];
+}
+
 export function mockGetAuthState(): AuthState | null {
   return null;
 }

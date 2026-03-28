@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
+import { serializeCanvasToModelJson } from "../lib/canvasSerializer";
+import { projectCommands } from "../services/tauriCommands";
 
 // ── Types ──
 
@@ -131,6 +133,9 @@ interface CanvasStore {
   redo: () => void;
   clearAll: () => void;
   getSelected: () => CanvasElement | null;
+  saveToProject: (projectPath: string) => Promise<void>;
+  isSaving: boolean;
+  lastSavedAt: number | null;
 }
 
 let idCounter = 0;
@@ -153,6 +158,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   undoStack: [],
   redoStack: [],
   template: "obby",
+  isSaving: false,
+  lastSavedAt: null,
 
   setTemplate: (template) => set({ template }),
 
@@ -280,5 +287,22 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   getSelected: () => {
     const { elements, selectedId } = get();
     return elements.find((e) => e.id === selectedId) || null;
+  },
+
+  saveToProject: async (projectPath: string) => {
+    const { elements } = get();
+    if (elements.length === 0) return;
+    set({ isSaving: true });
+    try {
+      const modelJson = serializeCanvasToModelJson(elements);
+      await projectCommands.writeFile(
+        projectPath,
+        "workspace/CanvasWorld.model.json",
+        modelJson,
+      );
+      set({ lastSavedAt: Date.now() });
+    } finally {
+      set({ isSaving: false });
+    }
   },
 }));

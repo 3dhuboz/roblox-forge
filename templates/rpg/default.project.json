@@ -20,6 +20,9 @@
       "CombatManager": {
         "$path": "src/server/CombatManager.server.luau"
       },
+      "EnemyAI": {
+        "$path": "src/server/EnemyAI.server.luau"
+      },
       "InventoryManager": {
         "$path": "src/server/InventoryManager.server.luau"
       },
@@ -40,6 +43,9 @@
       "$className": "ReplicatedStorage",
       "RPGConfig": {
         "$path": "src/shared/RPGConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Lighting": {

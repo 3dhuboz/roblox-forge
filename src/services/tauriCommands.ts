@@ -139,10 +139,33 @@ export const publishCommands = {
     ),
 };
 
+export interface GameStats {
+  universe_id: string;
+  name: string;
+  playing: number;
+  visits: number;
+  favorites: number;
+  updated: string;
+}
+
+export const dashboardCommands = {
+  fetchGameStats: () =>
+    devOrInvoke(
+      () => invoke<GameStats[]>("fetch_game_stats"),
+      () => mock.mockFetchGameStats(),
+    ),
+};
+
 export const validationCommands = {
   validateProject: (projectPath: string) =>
     devOrInvoke(
       () => invoke<ValidationIssue[]>("validate_project", { projectPath }),
       () => mock.mockValidateProject(),
+    ),
+
+  autoFixIssue: (projectPath: string, issueId: string) =>
+    devOrInvoke(
+      () => invoke<string>("auto_fix_issue", { projectPath, issueId }),
+      async () => `Mock fix applied for ${issueId}`,
     ),
 };

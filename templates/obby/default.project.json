@@ -12,6 +12,9 @@
       },
       "LeaderboardManager": {
         "$path": "src/server/LeaderboardManager.server.luau"
+      },
+      "PlatformBehaviors": {
+        "$path": "src/server/PlatformBehaviors.server.luau"
       }
     },
     "StarterPlayer": {
@@ -27,6 +30,9 @@
       "$className": "ReplicatedStorage",
       "ObbyConfig": {
         "$path": "src/shared/ObbyConfig.luau"
+      },
+      "RateLimit": {
+        "$path": "src/shared/RateLimit.luau"
       }
     },
     "Workspace": {

@@ -8,8 +8,9 @@ use std::net::TcpListener;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
 
-// Replace with your actual Roblox OAuth client ID
-const CLIENT_ID: &str = "YOUR_ROBLOX_CLIENT_ID";
+fn get_client_id() -> String {
+    std::env::var("ROBLOX_CLIENT_ID").unwrap_or_default()
+}
 const REDIRECT_PORT: u16 = 23847;
 const REDIRECT_URI: &str = "http://localhost:23847/callback";
 
@@ -59,7 +60,7 @@ pub async fn start_flow(state: &State<'_, AppState>) -> Result<String> {
         code_challenge={}&\
         code_challenge_method=S256&\
         state={}",
-        CLIENT_ID,
+        &get_client_id(),
         urlencoding::encode(REDIRECT_URI),
         code_challenge,
         oauth_state
@@ -153,7 +154,7 @@ async fn exchange_code(code: &str, code_verifier: &str) -> Result<AuthTokens> {
     let params = [
         ("grant_type", "authorization_code"),
         ("code", code),
-        ("client_id", CLIENT_ID),
+        ("client_id", &get_client_id()),
         ("code_verifier", code_verifier),
         ("redirect_uri", REDIRECT_URI),
     ];
@@ -258,7 +259,7 @@ pub async fn refresh_token(state: &State<'_, AppState>) -> Result<AuthTokens> {
     let params = [
         ("grant_type", "refresh_token"),
         ("refresh_token", &current.refresh_token),
-        ("client_id", CLIENT_ID),
+        ("client_id", &get_client_id()),
     ];
 
     let response = client

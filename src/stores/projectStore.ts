@@ -10,10 +10,12 @@ interface ProjectStore {
   validationIssues: ValidationIssue[];
   isLoading: boolean;
   error: string | null;
+  fixingIssueId: string | null;
 
   createProject: (template: string, name: string) => Promise<void>;
   refreshProjectState: () => Promise<void>;
   validateProject: () => Promise<void>;
+  autoFixIssue: (issueId: string) => Promise<void>;
   clearProject: () => void;
 }
 
@@ -23,6 +25,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   validationIssues: [],
   isLoading: false,
   error: null,
+  fixingIssueId: null,
 
   createProject: async (template, name) => {
     set({ isLoading: true, error: null });
@@ -68,12 +71,30 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }
   },
 
+  autoFixIssue: async (issueId: string) => {
+    const { project } = get();
+    if (!project) return;
+    set({ fixingIssueId: issueId });
+    try {
+      const message = await validationCommands.autoFixIssue(project.path, issueId);
+      useToastStore.getState().addToast("success", message);
+      // Re-validate after fix
+      await get().validateProject();
+      await get().refreshProjectState();
+    } catch (e) {
+      useToastStore.getState().addToast("error", `Auto-fix failed: ${e}`);
+    } finally {
+      set({ fixingIssueId: null });
+    }
+  },
+
   clearProject: () => {
     set({
       project: null,
       projectState: null,
       validationIssues: [],
       error: null,
+      fixingIssueId: null,
     });
   },
 }));

@@ -52,6 +52,8 @@ pub fn run() {
             commands::auth::logout,
             commands::publish::publish_game,
             commands::validate::validate_project,
+            commands::validate::auto_fix_issue,
+            commands::dashboard::fetch_game_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

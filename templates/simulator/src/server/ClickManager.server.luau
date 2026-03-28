@@ -4,6 +4,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SimConfig = require(ReplicatedStorage:WaitForChild("SimConfig"))
+local RateLimit = require(ReplicatedStorage:WaitForChild("RateLimit"))
 
 -- Remote events
 local clickEvent = Instance.new("RemoteEvent")
@@ -34,8 +35,9 @@ local function getPlayerData(player)
 	return playerData[player]
 end
 
--- Handle click events from client
+-- Handle click events from client (rate-limited to prevent exploits)
 clickEvent.OnServerEvent:Connect(function(player, orbInstance)
+	if not RateLimit.check(player, "click", 0.1) then return end
 	if not orbInstance or not orbInstance:IsA("BasePart") then return end
 	if not CollectionService:HasTag(orbInstance, "ClickOrb") then return end
 
