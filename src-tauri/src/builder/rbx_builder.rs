@@ -288,11 +288,24 @@ fn parse_model_property(key: &str, value: &serde_json::Value) -> Option<Variant>
         }
         if let Some(arr) = obj.get("Color3uint8").and_then(|v| v.as_array()) {
             if arr.len() == 3 {
-                return Some(Variant::Color3uint8(Color3uint8::new(
-                    arr[0].as_u64().unwrap_or(0) as u8,
-                    arr[1].as_u64().unwrap_or(0) as u8,
-                    arr[2].as_u64().unwrap_or(0) as u8,
-                )));
+                let r = arr[0].as_u64().unwrap_or(0) as u8;
+                let g = arr[1].as_u64().unwrap_or(0) as u8;
+                let b = arr[2].as_u64().unwrap_or(0) as u8;
+
+                // Some properties expect Color3 (0.0-1.0), not Color3uint8
+                let color3_props = [
+                    "TextColor3", "BackgroundColor3", "BorderColor3",
+                    "ImageColor3", "PlaceholderColor3", "ScrollBarImageColor3",
+                ];
+                if color3_props.iter().any(|k| key == *k) {
+                    return Some(Variant::Color3(Color3::new(
+                        r as f32 / 255.0,
+                        g as f32 / 255.0,
+                        b as f32 / 255.0,
+                    )));
+                }
+
+                return Some(Variant::Color3uint8(Color3uint8::new(r, g, b)));
             }
         }
         if let Some(arr) = obj.get("Color3").and_then(|v| v.as_array()) {
@@ -351,6 +364,11 @@ fn parse_model_property(key: &str, value: &serde_json::Value) -> Option<Variant>
     // Direct value (bare number — could be Float32, Int32, or Enum)
     // Use key name heuristics to decide
     if let Some(n) = value.as_f64() {
+        // BrickColor properties
+        if key == "TeamColor" || key == "BrickColor" {
+            return Some(Variant::BrickColor(rbx_dom_weak::types::BrickColor::from_number(n as u16).unwrap_or(rbx_dom_weak::types::BrickColor::MediumStoneGrey)));
+        }
+
         let enum_keys = [
             "Material", "Font", "Face", "Shape", "SurfaceType",
             "TopSurface", "BottomSurface", "LeftSurface", "RightSurface",
@@ -542,6 +560,64 @@ mod tests {
         // Tags
         let v = parse_model_property("Tags", &serde_json::json!({"Tags": ["KillBrick", "Spinner"]}));
         assert!(matches!(v, Some(Variant::Tags(_))));
+    }
+
+    #[test]
+    fn test_build_all_templates() {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let templates_dir = Path::new(manifest_dir)
+            .parent()
+            .unwrap()
+            .join("templates");
+
+        if !templates_dir.exists() {
+            eprintln!("Templates dir not found, skipping");
+            return;
+        }
+
+        let templates = [
+            "obby", "tycoon", "simulator", "rpg",
+            "racing", "horror", "minigames", "battlegrounds",
+        ];
+
+        let mut results = Vec::new();
+
+        for name in &templates {
+            let path = templates_dir.join(name);
+            if !path.exists() {
+                results.push(format!("  {} — SKIP (not found)", name));
+                continue;
+            }
+
+            match build_rbxl(path.to_str().unwrap()) {
+                Ok(data) => {
+                    results.push(format!("  {} — OK ({} bytes)", name, data.len()));
+                }
+                Err(e) => {
+                    let mut msg = format!("{}", e);
+                    let mut source = std::error::Error::source(&*e);
+                    while let Some(cause) = source {
+                        msg.push_str(&format!(" -> {}", cause));
+                        source = std::error::Error::source(cause);
+                    }
+                    results.push(format!("  {} — FAIL: {}", name, msg));
+                }
+            }
+        }
+
+        eprintln!("\n=== Template Build Results ===");
+        for r in &results {
+            eprintln!("{}", r);
+        }
+        eprintln!("==============================\n");
+
+        // All templates must build
+        let failures: Vec<_> = results.iter().filter(|r| r.contains("FAIL")).collect();
+        assert!(
+            failures.is_empty(),
+            "Some templates failed to build:\n{}",
+            failures.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")
+        );
     }
 
     #[test]
