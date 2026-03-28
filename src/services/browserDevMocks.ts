@@ -934,6 +934,10 @@ export function mockSendChatMessage(message: string): AiResponse {
   };
 }
 
+export function mockCheckApiKey(): string | null {
+  return "openrouter";
+}
+
 export function mockCheckRojoStatus() {
   return {
     installed: true,

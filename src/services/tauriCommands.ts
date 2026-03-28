@@ -87,7 +87,7 @@ export const aiCommands = {
   checkApiKey: () =>
     devOrInvoke(
       () => invoke<string | null>("check_api_key"),
-      () => null as string | null,
+      () => mock.mockCheckApiKey(),
     ),
 };
 
