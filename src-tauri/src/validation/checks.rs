@@ -25,6 +25,9 @@ pub fn validate(project_path: &str) -> Vec<ValidationIssue> {
     check_no_parts_at_origin(path, &mut issues);
     check_total_part_count(path, &mut issues);
 
+    // Run selene if available (optional external linter)
+    issues.extend(crate::validation::selene::run_selene(path));
+
     issues
 }
 

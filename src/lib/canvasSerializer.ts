@@ -215,6 +215,56 @@ function getSizeY(type: string): number {
  * Serialize all canvas elements into a Roblox model.json string.
  * This produces a Folder containing all placed parts.
  */
+// Roblox Terrain material names for FillBlock()
+const TERRAIN_MATERIALS: Record<string, string> = {
+  grass: "Grass",
+  water: "Water",
+  sand: "Sand",
+  ice: "Ice",
+  ground: "Ground",
+  lava: "CrackedLava",
+};
+
+/**
+ * Generate a Luau startup script that fills terrain blocks for terrain-type elements.
+ * Returns null if no terrain elements exist.
+ */
+export function generateTerrainScript(elements: CanvasElement[]): string | null {
+  const terrainElements = elements.filter(
+    (el) => el.visible && TERRAIN_MATERIALS[el.type],
+  );
+
+  if (terrainElements.length === 0) return null;
+
+  const lines: string[] = [
+    "-- TerrainFill: auto-generated from canvas terrain elements",
+    "-- Fills terrain blocks on server startup, then deletes itself from workspace",
+    "",
+    "local Terrain = workspace.Terrain",
+    "",
+  ];
+
+  for (const el of terrainElements) {
+    const material = TERRAIN_MATERIALS[el.type];
+    // Convert canvas coords to Roblox world coords
+    const rx = ((el.x - 700) / 50) * 4; // studs
+    const rz = ((el.y - 350) / 50) * 4;
+    const sx = (el.width / 50) * 4;
+    const sy = el.type === "water" ? 8 : 4; // water is deeper
+    const sz = (el.height / 50) * 4;
+    const yOffset = el.type === "water" ? -4 : -2; // water sits lower
+
+    lines.push(
+      `Terrain:FillBlock(CFrame.new(${rx}, ${yOffset}, ${rz}), Vector3.new(${sx}, ${sy}, ${sz}), Enum.Material.${material})`,
+    );
+  }
+
+  lines.push("");
+  lines.push("print(\"Terrain generated: \" .. tostring(" + terrainElements.length + ") .. \" blocks\")");
+
+  return lines.join("\n");
+}
+
 export function serializeCanvasToModelJson(elements: CanvasElement[]): string {
   const children = elements
     .filter((el) => el.visible)

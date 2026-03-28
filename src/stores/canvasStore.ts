@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
-import { serializeCanvasToModelJson } from "../lib/canvasSerializer";
+import { serializeCanvasToModelJson, generateTerrainScript } from "../lib/canvasSerializer";
 import { projectCommands } from "../services/tauriCommands";
 import { projectStateToCanvasElements } from "../lib/projectToCanvas";
 import type { InstanceNode } from "../types/project";
@@ -313,6 +313,17 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         "workspace/CanvasWorld.model.json",
         modelJson,
       );
+
+      // Generate terrain fill script if canvas has terrain elements
+      const terrainScript = generateTerrainScript(elements);
+      if (terrainScript) {
+        await projectCommands.writeFile(
+          projectPath,
+          "src/server/TerrainFill.server.luau",
+          terrainScript,
+        );
+      }
+
       set({ lastSavedAt: Date.now() });
     } finally {
       set({ isSaving: false });
