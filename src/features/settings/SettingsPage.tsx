@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { aiCommands, rojoCommands } from "../../services/tauriCommands";
+import { isTauriRuntime } from "../../lib/isTauriRuntime";
 import type { RojoStatus } from "../../services/tauriCommands";
 import { useUserStore } from "../../stores/userStore";
 import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";
@@ -30,6 +31,7 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [envKeyProvider, setEnvKeyProvider] = useState<string | null>(null);
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
   const [rojoLoading, setRojoLoading] = useState(false);
   const [rojoError, setRojoError] = useState<string | null>(null);
@@ -46,7 +48,13 @@ export function SettingsPage() {
 
   useEffect(() => {
     refreshRojoStatus();
-  }, [refreshRojoStatus]);
+    aiCommands.checkApiKey().then((provider) => {
+      if (provider) {
+        setEnvKeyProvider(provider);
+        updateProfile({ hasSetApiKey: true });
+      }
+    }).catch(() => {});
+  }, [refreshRojoStatus, updateProfile]);
 
   const handleStartServe = async () => {
     setRojoLoading(true);
@@ -227,24 +235,27 @@ export function SettingsPage() {
               <Key size={20} className="text-indigo-400" />
               <h3 className="text-[15px] font-bold text-white">AI Key</h3>
             </div>
-            <p className="mt-2 text-[13px] text-gray-400">
-              Needed to use the AI builder. Get yours from{" "}
-              <a
-                href="https://console.anthropic.com"
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300"
-              >
-                console.anthropic.com <ExternalLink size={12} />
-              </a>
-            </p>
+            {envKeyProvider ? (
+              <div className="mt-3 rounded-xl bg-green-950/20 border border-green-900/40 px-4 py-3 text-[13px] text-green-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={16} />
+                  Key auto-loaded from .env ({envKeyProvider === "openrouter" ? "OpenRouter" : "Anthropic"})
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-[13px] text-gray-400">
+                Add <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">OPENROUTER_API_KEY</code> or{" "}
+                <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">ANTHROPIC_API_KEY</code> to your{" "}
+                <code className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">.env</code> file, or paste below.
+              </p>
+            )}
             <div className="mt-4 flex gap-2">
               <div className="relative flex-1">
                 <input
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-ant-..."
+                  placeholder="sk-or-... or sk-ant-..."
                   className="w-full rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-3 pr-10 text-white outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                 />
                 <button

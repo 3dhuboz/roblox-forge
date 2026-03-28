@@ -83,6 +83,12 @@ export const aiCommands = {
         void apiKey;
       },
     ),
+
+  checkApiKey: () =>
+    devOrInvoke(
+      () => invoke<string | null>("check_api_key"),
+      () => null as string | null,
+    ),
 };
 
 export const buildCommands = {

@@ -25,14 +25,17 @@ pub fn run() {
             .unwrap_or_default(),
     );
 
-    // Pre-load API key from environment
+    // Pre-load API key from environment (OpenRouter preferred, Anthropic fallback)
     let app_state = AppState::default();
     let rojo_state = commands::rojo::RojoState::default();
-    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
-        if !key.is_empty() {
-            *app_state.api_key.lock().unwrap() = Some(key);
-            eprintln!("[RobloxForge] API key loaded from .env");
-        }
+    let env_key = std::env::var("OPENROUTER_API_KEY")
+        .or_else(|_| std::env::var("ANTHROPIC_API_KEY"))
+        .ok()
+        .filter(|k| !k.is_empty());
+    if let Some(key) = env_key {
+        let provider = if key.starts_with("sk-or-") { "OpenRouter" } else { "Anthropic" };
+        *app_state.api_key.lock().unwrap() = Some(key);
+        eprintln!("[RobloxForge] API key loaded from .env ({})", provider);
     }
 
     tauri::Builder::default()
@@ -46,6 +49,7 @@ pub fn run() {
             commands::project::write_file,
             commands::ai::send_chat_message,
             commands::ai::set_api_key,
+            commands::ai::check_api_key,
             commands::build::build_project,
             commands::auth::start_oauth_flow,
             commands::auth::handle_oauth_callback,

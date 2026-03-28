@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, CheckCircle, Circle, Key, Radio, Gamepad2, X, ChevronRight } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
-import { rojoCommands } from "../../services/tauriCommands";
+import { rojoCommands, aiCommands } from "../../services/tauriCommands";
 import type { RojoStatus } from "../../services/tauriCommands";
 
 interface Template {
@@ -394,15 +394,22 @@ function TemplateScene({ id }: { id: string }) {
 
 function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
   const navigate = useNavigate();
-  const { profile } = useUserStore();
+  const { profile, updateProfile } = useUserStore();
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
+  const [envKeyLoaded, setEnvKeyLoaded] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem("roblox-forge-setup-dismissed") === "true"; } catch { return false; }
   });
 
   useEffect(() => {
     rojoCommands.checkStatus().then(setRojoStatus).catch(() => {});
-  }, []);
+    aiCommands.checkApiKey().then((provider) => {
+      if (provider) {
+        setEnvKeyLoaded(true);
+        updateProfile({ hasSetApiKey: true });
+      }
+    }).catch(() => {});
+  }, [updateProfile]);
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);
@@ -411,7 +418,7 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
 
   if (dismissed) return null;
 
-  const apiKeyDone = profile.hasSetApiKey;
+  const apiKeyDone = profile.hasSetApiKey || envKeyLoaded;
   const rojoDone = rojoStatus?.installed ?? false;
   const projectDone = hasProjects;
   const allDone = apiKeyDone && rojoDone && projectDone;
