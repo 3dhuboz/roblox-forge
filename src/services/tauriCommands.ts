@@ -54,6 +54,12 @@ export const projectCommands = {
         mock.mockWriteFile(projectPath, relativePath, content);
       },
     ),
+
+  readFile: (projectPath: string, relativePath: string) =>
+    devOrInvoke(
+      () => invoke<string>("read_file", { projectPath, relativePath }),
+      () => mock.mockReadFile(projectPath, relativePath),
+    ),
 };
 
 export const aiCommands = {

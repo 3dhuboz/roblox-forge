@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import {
   ReactFlow,
   Controls,
@@ -16,7 +16,7 @@ import "@xyflow/react/dist/style.css";
 import { TriggerNode, ActionNode, LogicNode } from "./nodes/ScriptNode";
 import { useVisualScriptStore, canConnect } from "../../stores/visualScriptStore";
 import { NODE_TYPES, NODE_TYPE_LIST, NODE_CATEGORIES } from "../../lib/nodeTypes";
-import { Play, Save, Trash2, Code, Plus, X } from "lucide-react";
+import { Play, Save, Trash2, Code, Plus, X, Search } from "lucide-react";
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -43,9 +43,16 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
     addGraph,
     switchGraph,
     removeGraph,
+    loadGraphJson,
   } = useVisualScriptStore();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [paletteSearch, setPaletteSearch] = useState("");
+
+  // Load saved graph on mount / when project changes
+  useEffect(() => {
+    loadGraphJson(projectPath);
+  }, [projectPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ReactFlow change handlers — write directly to store
   const onNodesChange: OnNodesChange = useCallback(
@@ -199,16 +206,37 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Node Palette */}
         <div className="w-36 shrink-0 overflow-y-auto border-r border-gray-800/40 p-2">
-          <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-gray-500">
-            Drag to add
-          </p>
-          {NODE_CATEGORIES.map((cat) => (
-            <div key={cat.id} className="mb-3">
-              <p className={`mb-1 text-[9px] font-bold uppercase ${cat.color}`}>
-                {cat.label}
-              </p>
-              {NODE_TYPE_LIST.filter((n) => n.category === cat.id).map(
-                (nodeDef) => (
+          {/* Search */}
+          <div className="mb-2 flex items-center gap-1 rounded border border-gray-800 bg-gray-900 px-1.5 py-1">
+            <Search size={9} className="shrink-0 text-gray-600" />
+            <input
+              type="text"
+              value={paletteSearch}
+              onChange={(e) => setPaletteSearch(e.target.value)}
+              placeholder="Search…"
+              className="w-full bg-transparent text-[10px] text-gray-300 outline-none placeholder:text-gray-600"
+            />
+            {paletteSearch && (
+              <button onClick={() => setPaletteSearch("")} className="shrink-0 text-gray-600 hover:text-gray-400">
+                <X size={9} />
+              </button>
+            )}
+          </div>
+          {NODE_CATEGORIES.map((cat) => {
+            const items = NODE_TYPE_LIST.filter(
+              (n) =>
+                n.category === cat.id &&
+                (!paletteSearch ||
+                  n.label.toLowerCase().includes(paletteSearch.toLowerCase()) ||
+                  n.description.toLowerCase().includes(paletteSearch.toLowerCase())),
+            );
+            if (items.length === 0) return null;
+            return (
+              <div key={cat.id} className="mb-3">
+                <p className={`mb-1 text-[9px] font-bold uppercase ${cat.color}`}>
+                  {cat.label}
+                </p>
+                {items.map((nodeDef) => (
                   <div
                     key={nodeDef.type}
                     draggable
@@ -218,10 +246,10 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
                   >
                     {nodeDef.label}
                   </div>
-                ),
-              )}
-            </div>
-          ))}
+                ))}
+              </div>
+            );
+          })}
         </div>
 
         {/* Right: ReactFlow canvas + code preview */}

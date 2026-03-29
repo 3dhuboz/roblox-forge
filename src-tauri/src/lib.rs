@@ -47,6 +47,7 @@ pub fn run() {
             commands::project::create_project,
             commands::project::get_project_state,
             commands::project::write_file,
+            commands::project::read_file,
             commands::ai::send_chat_message,
             commands::ai::set_api_key,
             commands::ai::check_api_key,

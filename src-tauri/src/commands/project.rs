@@ -60,3 +60,11 @@ pub async fn write_file(
 ) -> Result<(), String> {
     manager::write_project_file(&project_path, &relative_path, &content).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn read_file(
+    project_path: String,
+    relative_path: String,
+) -> Result<String, String> {
+    manager::read_project_file(&project_path, &relative_path).map_err(|e| e.to_string())
+}

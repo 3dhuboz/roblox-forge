@@ -247,8 +247,27 @@ export const useVisualScriptStore = create<VisualScriptStore>()((set, get) => ({
 
   loadGraphJson: async (projectPath) => {
     try {
-      // Read the file via the project state (simplified — in real app would use a read command)
-      // For now, this is a placeholder that initializes from saved state
+      const json = await projectCommands.readFile(projectPath, "visual-scripts.json");
+      const parsed = JSON.parse(json) as Array<{
+        name: string;
+        nodes: Node<NodeData>[];
+        edges: Edge[];
+      }>;
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const graphs: ScriptGraph[] = parsed.map((g) => ({
+        name: g.name ?? "VisualScript",
+        nodes: g.nodes ?? [],
+        edges: g.edges ?? [],
+      }));
+      const g = graphs[0];
+      set({
+        graphs,
+        activeGraphIndex: 0,
+        nodes: g.nodes,
+        edges: g.edges,
+        scriptName: g.name,
+        compiledCode: null,
+      });
     } catch {
       // No saved graphs — keep defaults
     }

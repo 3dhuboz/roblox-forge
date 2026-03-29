@@ -278,20 +278,35 @@ export function mockGetProjectState(projectPath: string): ProjectState {
   return state;
 }
 
+// In-memory store for files written during the session (keyed by "projectPath::relativePath")
+const mockFileStore = new Map<string, string>();
+
 export function mockWriteFile(
   projectPath: string,
   relativePath: string,
   content: string,
 ): void {
+  const rel = relativePath.replace(/\\/g, "/");
+  // Persist to in-memory file store so mockReadFile can retrieve it
+  mockFileStore.set(`${projectPath}::${rel}`, content);
   const state = mockProjects.get(projectPath);
   if (!state) return;
-  const rel = relativePath.replace(/\\/g, "/");
   const idx = state.scripts.findIndex((s) => s.relativePath === rel);
   if (idx >= 0) {
     const next = [...state.scripts];
     next[idx] = { ...next[idx], content };
     mockProjects.set(projectPath, { ...state, scripts: next });
   }
+}
+
+export async function mockReadFile(
+  projectPath: string,
+  relativePath: string,
+): Promise<string> {
+  const key = `${projectPath}::${relativePath}`;
+  const stored = mockFileStore.get(key);
+  if (stored !== undefined) return stored;
+  throw new Error(`File not found: ${relativePath}`);
 }
 
 let mockMessageCount = 0;

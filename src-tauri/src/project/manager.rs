@@ -148,6 +148,12 @@ pub fn write_project_file(project_path: &str, relative_path: &str, content: &str
     Ok(())
 }
 
+pub fn read_project_file(project_path: &str, relative_path: &str) -> Result<String> {
+    let full_path = Path::new(project_path).join(relative_path);
+    let content = fs::read_to_string(&full_path)?;
+    Ok(content)
+}
+
 fn build_hierarchy(project_path: &Path, project_json: &serde_json::Value) -> Result<InstanceNode> {
     let tree = project_json
         .get("tree")
