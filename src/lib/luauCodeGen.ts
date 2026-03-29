@@ -38,17 +38,23 @@ export function compileGraphToLuau(
       services.add("CollectionService");
       services.add("Players");
     }
-    if (t === "on_timer") {
-      // no extra services
+    if (t === "on_player_join" || t === "on_died" || t === "on_player_leave") {
+      services.add("Players");
     }
-    if (t === "on_player_join" || t === "on_died") {
+    if (t === "on_chat") {
       services.add("Players");
     }
   }
 
-  // Check if any action needs TweenService
+  // Check which services are needed by action nodes
   const hasMove = nodes.some((n) => n.data.nodeType === "move_object");
   if (hasMove) services.add("TweenService");
+
+  const hasHint = nodes.some((n) => n.data.nodeType === "show_hint");
+  if (hasHint) services.add("Players");
+
+  const hasSetColor = nodes.some((n) => n.data.nodeType === "set_part_color");
+  if (hasSetColor) services.add("CollectionService");
 
   // Emit service requires
   for (const svc of services) {
@@ -193,6 +199,22 @@ function generateTriggerBlock(
     lines.push(`\t\tend)`);
     lines.push(`\tend)`);
     lines.push(`end)`);
+  } else if (t === "on_player_leave") {
+    lines.push(`-- On Player Leave`);
+    lines.push(`Players.PlayerRemoving:Connect(function(player)`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 1));
+    lines.push(`end)`);
+  } else if (t === "on_chat") {
+    const keyword = getInputValue(trigger.id, "keyword", allNodes, allEdges);
+    lines.push(`-- On Chat${keyword !== '""' ? ` (keyword: ${keyword})` : ""}`);
+    lines.push(`Players.PlayerAdded:Connect(function(player)`);
+    lines.push(`\tplayer.Chatted:Connect(function(message)`);
+    if (keyword !== '""') {
+      lines.push(`\t\tif not string.find(string.lower(message), string.lower(${keyword})) then return end`);
+    }
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\tend)`);
+    lines.push(`end)`);
   }
 
   return lines;
@@ -240,6 +262,97 @@ function indentChain(
     } else if (t === "print_message") {
       const message = getInputValue(node.id, "message", allNodes, allEdges);
       lines.push(`${tabs}print(${message})`);
+    } else if (t === "heal_player") {
+      const amount = getInputValue(node.id, "amount", allNodes, allEdges);
+      lines.push(`${tabs}-- Heal Player`);
+      lines.push(`${tabs}local character = player and player.Character`);
+      lines.push(`${tabs}if character then`);
+      lines.push(`${tabs}\tlocal humanoid = character:FindFirstChild("Humanoid")`);
+      lines.push(`${tabs}\tif humanoid then`);
+      lines.push(`${tabs}\t\thumanoid.Health = math.min(humanoid.Health + ${amount}, humanoid.MaxHealth)`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+    } else if (t === "kill_player") {
+      lines.push(`${tabs}-- Kill Player`);
+      lines.push(`${tabs}local character = player and player.Character`);
+      lines.push(`${tabs}if character then`);
+      lines.push(`${tabs}\tlocal humanoid = character:FindFirstChild("Humanoid")`);
+      lines.push(`${tabs}\tif humanoid then humanoid.Health = 0 end`);
+      lines.push(`${tabs}end`);
+    } else if (t === "respawn_player") {
+      lines.push(`${tabs}-- Respawn Player`);
+      lines.push(`${tabs}if player then player:LoadCharacter() end`);
+    } else if (t === "teleport_player") {
+      const x = getInputValue(node.id, "x", allNodes, allEdges);
+      const y = getInputValue(node.id, "y", allNodes, allEdges);
+      const z = getInputValue(node.id, "z", allNodes, allEdges);
+      lines.push(`${tabs}-- Teleport Player`);
+      lines.push(`${tabs}local character = player and player.Character`);
+      lines.push(`${tabs}if character then`);
+      lines.push(`${tabs}\tcharacter:PivotTo(CFrame.new(${x}, ${y}, ${z}))`);
+      lines.push(`${tabs}end`);
+    } else if (t === "set_part_color") {
+      const tag = getInputValue(node.id, "tag", allNodes, allEdges);
+      const color = getInputValue(node.id, "color", allNodes, allEdges);
+      lines.push(`${tabs}-- Set Part Color`);
+      lines.push(`${tabs}for _, colorPart in CollectionService:GetTagged(${tag}) do`);
+      lines.push(`${tabs}\tcolorPart.BrickColor = BrickColor.new(${color})`);
+      lines.push(`${tabs}end`);
+    } else if (t === "show_hint") {
+      const message = getInputValue(node.id, "message", allNodes, allEdges);
+      const duration = getInputValue(node.id, "duration", allNodes, allEdges);
+      lines.push(`${tabs}-- Show Hint`);
+      lines.push(`${tabs}local hint = Instance.new("Hint")`);
+      lines.push(`${tabs}hint.Text = ${message}`);
+      lines.push(`${tabs}hint.Parent = workspace`);
+      lines.push(`${tabs}task.delay(${duration}, function() hint:Destroy() end)`);
+    } else if (t === "give_points") {
+      const amount = getInputValue(node.id, "amount", allNodes, allEdges);
+      const stat = getInputValue(node.id, "stat", allNodes, allEdges);
+      lines.push(`${tabs}-- Give Points`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal leaderstats = player:FindFirstChild("leaderstats")`);
+      lines.push(`${tabs}\tif leaderstats then`);
+      lines.push(`${tabs}\t\tlocal statValue = leaderstats:FindFirstChild(${stat})`);
+      lines.push(`${tabs}\t\tif statValue then statValue.Value += ${amount} end`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+    } else if (t === "wait_delay") {
+      const seconds = getInputValue(node.id, "seconds", allNodes, allEdges);
+      lines.push(`${tabs}task.wait(${seconds})`);
+    } else if (t === "random_number") {
+      const min = getInputValue(node.id, "min", allNodes, allEdges);
+      const max = getInputValue(node.id, "max", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_value`;
+      lines.push(`${tabs}-- Random Number`);
+      lines.push(`${tabs}local ${varName} = math.random(${min}, ${max})`);
+    } else if (t === "compare") {
+      const a = getInputValue(node.id, "a", allNodes, allEdges);
+      const op = getInputValue(node.id, "operator", allNodes, allEdges);
+      const b = getInputValue(node.id, "b", allNodes, allEdges);
+      // Find true/false branches
+      const trueBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "true",
+      );
+      const falseBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "false",
+      );
+      lines.push(`${tabs}-- Compare`);
+      lines.push(`${tabs}if ${a} ${op.replace(/^"|"$/g, "")} ${b} then`);
+      if (trueBranch) {
+        const trueNode = allNodes.find((n) => n.id === trueBranch.target);
+        if (trueNode) {
+          lines.push(...indentChain([trueNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      if (falseBranch) {
+        lines.push(`${tabs}else`);
+        const falseNode = allNodes.find((n) => n.id === falseBranch.target);
+        if (falseNode) {
+          lines.push(...indentChain([falseNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      lines.push(`${tabs}end`);
     } else if (t === "if_else") {
       const condition = getInputValue(node.id, "condition", allNodes, allEdges);
       // Find true/false branches
