@@ -22,42 +22,47 @@ export interface TemplatePreset {
 
 // ── Helpers ──
 
-let presetIdCounter = 0;
+let _seq = 0;
 
-function pid(): string {
-  return `preset_${++presetIdCounter}`;
+function makeIdFactory(): () => string {
+  // Each factory call gets its own independent counter sequence
+  const base = ++_seq * 10000;
+  let n = 0;
+  return () => `preset_${base + ++n}`;
 }
 
-function el(
-  type: string,
-  category: ElementCategory,
-  label: string,
-  icon: string,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color: string,
-  template: string,
-  extra: Partial<CanvasElement> = {},
-): CanvasElement {
-  return {
-    id: pid(),
-    type,
-    category,
-    label,
-    icon,
-    x,
-    y,
-    width,
-    height,
-    color,
-    rotation: 0,
-    locked: false,
-    visible: true,
-    properties: {},
-    logic: getDefaultLogic(type, template),
-    ...extra,
+function makeElementHelper(template: string) {
+  const pid = makeIdFactory();
+  return function el(
+    type: string,
+    category: ElementCategory,
+    label: string,
+    icon: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string,
+    extra: Partial<CanvasElement> = {},
+  ): CanvasElement {
+    return {
+      id: pid(),
+      type,
+      category,
+      label,
+      icon,
+      x,
+      y,
+      width,
+      height,
+      color,
+      rotation: 0,
+      locked: false,
+      visible: true,
+      properties: {},
+      logic: getDefaultLogic(type, template),
+      ...extra,
+    };
   };
 }
 
@@ -111,34 +116,35 @@ function wrapInDataModel(workspaceChildren: InstanceNode[], extraServices: Insta
 
 function obbyPreset(): TemplatePreset {
   const T = "obby";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Lobby / spawn
-    el("spawn",    "mechanic",  "Spawn",        "user-plus",       60,  580, 40,  40,  "#10b981", T),
-    el("ground",   "terrain",   "LobbyFloor",   "square",          50,  630, 200, 40,  "#4a5568", T),
-    el("tree",     "decoration","Tree",          "tree-pine",       30,  560, 30,  60,  "#166534", T),
-    el("rock",     "decoration","Rock",          "mountain",        200, 625, 36,  28,  "#6b7280", T),
+    el("spawn",    "mechanic",  "Spawn",        "user-plus",       60,  580, 40,  40,  "#10b981"),
+    el("ground",   "terrain",   "LobbyFloor",   "square",          50,  630, 200, 40,  "#4a5568"),
+    el("tree",     "decoration","Tree",          "tree-pine",       30,  560, 30,  60,  "#166534"),
+    el("rock",     "decoration","Rock",          "mountain",        200, 625, 36,  28,  "#6b7280"),
 
     // Stage 1 — blue platforms
-    el("platform",          "platform",  "Platform1A",    "minus",          310, 570, 100, 16, "#6366f1", T),
-    el("platform",          "platform",  "Platform1B",    "minus",          460, 540, 100, 16, "#6366f1", T),
-    el("killbrick",         "obstacle",  "LavaPit1",      "skull",          420, 620,  60, 16, "#ef4444", T),
-    el("moving-platform",   "platform",  "MovingPad1",    "move-horizontal",610, 510, 100, 16, "#06b6d4", T),
-    el("bouncy",            "platform",  "BouncePad",     "arrow-up",       760, 490,  80, 16, "#f472b6", T),
-    el("checkpoint",        "mechanic",  "Checkpoint1",   "flag",           870, 480,  40, 40, "#22c55e", T),
+    el("platform",          "platform",  "Platform1A",    "minus",          310, 570, 100, 16, "#6366f1"),
+    el("platform",          "platform",  "Platform1B",    "minus",          460, 540, 100, 16, "#6366f1"),
+    el("killbrick",         "obstacle",  "LavaPit1",      "skull",          420, 620,  60, 16, "#ef4444"),
+    el("moving-platform",   "platform",  "MovingPad1",    "move-horizontal",610, 510, 100, 16, "#06b6d4"),
+    el("bouncy",            "platform",  "BouncePad",     "arrow-up",       760, 490,  80, 16, "#f472b6"),
+    el("checkpoint",        "mechanic",  "Checkpoint1",   "flag",           870, 480,  40, 40, "#22c55e"),
 
     // Stage 2 — purple platforms
-    el("disappearing",      "platform",  "VanishPad1",    "eye-off",        980, 450,  80, 16, "#fbbf24", T),
-    el("disappearing",      "platform",  "VanishPad2",    "eye-off",       1090, 430,  80, 16, "#fbbf24", T),
-    el("spinner",           "obstacle",  "Spinner1",      "rotate-cw",     1040, 410,  80, 12, "#f97316", T),
-    el("platform",          "platform",  "Platform2C",    "minus",         1180, 400, 100, 16, "#7c3aed", T),
-    el("checkpoint",        "mechanic",  "Checkpoint2",   "flag",          1290, 390,  40, 40, "#22c55e", T),
+    el("disappearing",      "platform",  "VanishPad1",    "eye-off",        980, 450,  80, 16, "#fbbf24"),
+    el("disappearing",      "platform",  "VanishPad2",    "eye-off",       1090, 430,  80, 16, "#fbbf24"),
+    el("spinner",           "obstacle",  "Spinner1",      "rotate-cw",     1040, 410,  80, 12, "#f97316"),
+    el("platform",          "platform",  "Platform2C",    "minus",         1180, 400, 100, 16, "#7c3aed"),
+    el("checkpoint",        "mechanic",  "Checkpoint2",   "flag",          1290, 390,  40, 40, "#22c55e"),
 
     // Stage 3 — hard zone
-    el("platform",          "platform",  "Platform3A",    "minus",         1130, 300, 100, 16, "#4c1d95", T),
-    el("killbrick",         "obstacle",  "LaserTrap",     "skull",         1240, 290,  60, 16, "#ef4444", T),
-    el("platform",          "platform",  "Platform3B",    "minus",         1310, 260, 100, 16, "#4c1d95", T),
-    el("platform",          "platform",  "VictoryPlatform","minus",        1230, 160, 120, 16, "#ffd700", T),
-    el("tree",              "decoration","Tree2",         "tree-pine",     1360, 140,  30, 60, "#166534", T),
+    el("platform",          "platform",  "Platform3A",    "minus",         1130, 300, 100, 16, "#4c1d95"),
+    el("killbrick",         "obstacle",  "LaserTrap",     "skull",         1240, 290,  60, 16, "#ef4444"),
+    el("platform",          "platform",  "Platform3B",    "minus",         1310, 260, 100, 16, "#4c1d95"),
+    el("platform",          "platform",  "VictoryPlatform","minus",        1230, 160, 120, 16, "#ffd700"),
+    el("tree",              "decoration","Tree2",         "tree-pine",     1360, 140,  30, 60, "#166534"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -282,37 +288,38 @@ stageLabel.Parent = screenGui
 
 function tycoonPreset(): TemplatePreset {
   const T = "tycoon";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Spawn & lobby
-    el("spawn",          "mechanic",   "Spawn",          "user-plus",    60,  580,  40,  40,  "#10b981", T),
-    el("ground",         "terrain",    "LobbyGround",    "square",       50,  630, 200,  40,  "#4a5568", T),
+    el("spawn",          "mechanic",   "Spawn",          "user-plus",    60,  580,  40,  40,  "#10b981"),
+    el("ground",         "terrain",    "LobbyGround",    "square",       50,  630, 200,  40,  "#4a5568"),
 
     // Tycoon plot
-    el("tycoon-plot",    "structure",  "TycoonPlot",     "grid-2x2",    350,  430, 100, 100,  "#228b22", T),
-    el("checkpoint",     "mechanic",   "ClaimPad",       "flag",         350,  545,  40,  40,  "#22c55e", T),
+    el("tycoon-plot",    "structure",  "TycoonPlot",     "grid-2x2",    350,  430, 100, 100,  "#228b22"),
+    el("checkpoint",     "mechanic",   "ClaimPad",       "flag",         350,  545,  40,  40,  "#22c55e"),
 
     // Production chain
-    el("dropper",        "structure",  "OreDropper",     "arrow-down",  370,  380,  40,  60,  "#a0a0a0", T),
-    el("conveyor-belt",  "structure",  "ConveyorBelt",   "arrow-right", 420,  490, 120,  20,  "#444444", T),
-    el("collector",      "structure",  "CashCollector",  "coins",       550,  475,  40,  40,  "#00cc00", T),
+    el("dropper",        "structure",  "OreDropper",     "arrow-down",  370,  380,  40,  60,  "#a0a0a0"),
+    el("conveyor-belt",  "structure",  "ConveyorBelt",   "arrow-right", 420,  490, 120,  20,  "#444444"),
+    el("collector",      "structure",  "CashCollector",  "coins",       550,  475,  40,  40,  "#00cc00"),
 
     // Upgrades
-    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    270,  490,  40,  30,  "#ffcc00", T),
-    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    270,  535,  40,  30,  "#ffcc00", T),
+    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    270,  490,  40,  30,  "#ffcc00"),
+    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    270,  535,  40,  30,  "#ffcc00"),
 
     // Shop building and NPC
-    el("shop-building",  "structure",  "UpgradeShop",    "store",       660,  430,  80,  70,  "#daa520", T),
-    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",680,  510,  28,  40,  "#eab308", T),
+    el("shop-building",  "structure",  "UpgradeShop",    "store",       660,  430,  80,  70,  "#daa520"),
+    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",680,  510,  28,  40,  "#eab308"),
 
     // Fences around plot
-    el("fence",          "decoration", "FenceNorth",     "grip-horizontal", 350, 390, 120, 28, "#92400e", T),
-    el("fence",          "decoration", "FenceSouth",     "grip-horizontal", 350, 540, 120, 28, "#92400e", T),
-    el("fence",          "decoration", "FenceWest",      "grip-horizontal", 310, 430,  80, 28, "#92400e", T, { rotation: 90 }),
-    el("fence",          "decoration", "FenceEast",      "grip-horizontal", 490, 430,  80, 28, "#92400e", T, { rotation: 90 }),
+    el("fence",          "decoration", "FenceNorth",     "grip-horizontal", 350, 390, 120, 28, "#92400e"),
+    el("fence",          "decoration", "FenceSouth",     "grip-horizontal", 350, 540, 120, 28, "#92400e"),
+    el("fence",          "decoration", "FenceWest",      "grip-horizontal", 310, 430,  80, 28, "#92400e", { rotation: 90 }),
+    el("fence",          "decoration", "FenceEast",      "grip-horizontal", 490, 430,  80, 28, "#92400e", { rotation: 90 }),
 
     // Decoration
-    el("tree",           "decoration", "Tree1",          "tree-pine",   220,  590,  30,  60,  "#166534", T),
-    el("tree",           "decoration", "Tree2",          "tree-pine",   760,  400,  30,  60,  "#166534", T),
+    el("tree",           "decoration", "Tree1",          "tree-pine",   220,  590,  30,  60,  "#166534"),
+    el("tree",           "decoration", "Tree2",          "tree-pine",   760,  400,  30,  60,  "#166534"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -468,31 +475,32 @@ end
 
 function simulatorPreset(): TemplatePreset {
   const T = "simulator";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Spawn & starter zone
-    el("spawn",      "mechanic",   "Spawn",         "user-plus",    60,  580,  40,  40,  "#10b981", T),
-    el("ground",     "terrain",    "StarterZone",   "square",       50,  630, 300,  40,  "#2d6a4f", T),
+    el("spawn",      "mechanic",   "Spawn",         "user-plus",    60,  580,  40,  40,  "#10b981"),
+    el("ground",     "terrain",    "StarterZone",   "square",       50,  630, 300,  40,  "#2d6a4f"),
 
     // Click coins / gems
-    el("coin",       "mechanic",   "Coin1",         "coins",       200,  570,  20,  20,  "#eab308", T),
-    el("coin",       "mechanic",   "Coin2",         "coins",       230,  570,  20,  20,  "#eab308", T),
-    el("coin",       "mechanic",   "Coin3",         "coins",       260,  570,  20,  20,  "#eab308", T),
-    el("gem",        "mechanic",   "Gem1",          "diamond",     290,  560,  20,  20,  "#8b5cf6", T),
-    el("gem",        "mechanic",   "Gem2",          "diamond",     320,  560,  20,  20,  "#8b5cf6", T),
+    el("coin",       "mechanic",   "Coin1",         "coins",       200,  570,  20,  20,  "#eab308"),
+    el("coin",       "mechanic",   "Coin2",         "coins",       230,  570,  20,  20,  "#eab308"),
+    el("coin",       "mechanic",   "Coin3",         "coins",       260,  570,  20,  20,  "#eab308"),
+    el("gem",        "mechanic",   "Gem1",          "diamond",     290,  560,  20,  20,  "#8b5cf6"),
+    el("gem",        "mechanic",   "Gem2",          "diamond",     320,  560,  20,  20,  "#8b5cf6"),
 
     // Pet area
-    el("npc",        "character",  "PetNPC",        "user",        420,  570,  28,  40,  "#22c55e", T),
-    el("portal",     "structure",  "EggHatchPortal","door-open",   490,  540,  40,  60,  "#9400d3", T),
+    el("npc",        "character",  "PetNPC",        "user",        420,  570,  28,  40,  "#22c55e"),
+    el("portal",     "structure",  "EggHatchPortal","door-open",   490,  540,  40,  60,  "#9400d3"),
 
     // Advanced zone portal
-    el("portal",     "structure",  "ZonePortal",    "door-open",   640,  530,  40,  60,  "#4f46e5", T),
-    el("npc",        "character",  "RebirthNPC",    "user",        720,  570,  28,  40,  "#f472b6", T),
+    el("portal",     "structure",  "ZonePortal",    "door-open",   640,  530,  40,  60,  "#4f46e5"),
+    el("npc",        "character",  "RebirthNPC",    "user",        720,  570,  28,  40,  "#f472b6"),
 
     // Trees and decorations
-    el("tree",       "decoration", "Tree1",         "tree-pine",    30,  560,  30,  60,  "#166534", T),
-    el("tree",       "decoration", "Tree2",         "tree-pine",   150,  565,  30,  60,  "#166534", T),
-    el("bush",       "decoration", "Bush1",         "leaf",        370,  600,  32,  24,  "#15803d", T),
-    el("rock",       "decoration", "Rock1",         "mountain",    560,  610,  36,  28,  "#6b7280", T),
+    el("tree",       "decoration", "Tree1",         "tree-pine",    30,  560,  30,  60,  "#166534"),
+    el("tree",       "decoration", "Tree2",         "tree-pine",   150,  565,  30,  60,  "#166534"),
+    el("bush",       "decoration", "Bush1",         "leaf",        370,  600,  32,  24,  "#15803d"),
+    el("rock",       "decoration", "Rock1",         "mountain",    560,  610,  36,  28,  "#6b7280"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -638,37 +646,38 @@ re.OnServerEvent:Connect(tryRebirth)
 
 function battlegroundsPreset(): TemplatePreset {
   const T = "battlegrounds";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Central arena
-    el("arena",      "structure",  "MainArena",     "shield",       500,  390, 120, 120,  "#8b0000", T),
+    el("arena",      "structure",  "MainArena",     "shield",       500,  390, 120, 120,  "#8b0000"),
 
     // Four spawn points around the edges
-    el("spawn",      "mechanic",   "SpawnNorth",    "user-plus",    540,  290,  40,  40,  "#10b981", T),
-    el("spawn",      "mechanic",   "SpawnSouth",    "user-plus",    540,  560,  40,  40,  "#10b981", T),
-    el("spawn",      "mechanic",   "SpawnWest",     "user-plus",    390,  430,  40,  40,  "#10b981", T),
-    el("spawn",      "mechanic",   "SpawnEast",     "user-plus",    690,  430,  40,  40,  "#10b981", T),
+    el("spawn",      "mechanic",   "SpawnNorth",    "user-plus",    540,  290,  40,  40,  "#10b981"),
+    el("spawn",      "mechanic",   "SpawnSouth",    "user-plus",    540,  560,  40,  40,  "#10b981"),
+    el("spawn",      "mechanic",   "SpawnWest",     "user-plus",    390,  430,  40,  40,  "#10b981"),
+    el("spawn",      "mechanic",   "SpawnEast",     "user-plus",    690,  430,  40,  40,  "#10b981"),
 
     // Hazards
-    el("killbrick",  "obstacle",   "HazardZone1",   "skull",        500,  395,  60,  16,  "#ef4444", T),
-    el("killbrick",  "obstacle",   "HazardZone2",   "skull",        560,  470,  60,  16,  "#ef4444", T),
+    el("killbrick",  "obstacle",   "HazardZone1",   "skull",        500,  395,  60,  16,  "#ef4444"),
+    el("killbrick",  "obstacle",   "HazardZone2",   "skull",        560,  470,  60,  16,  "#ef4444"),
 
     // Boost pads
-    el("boost-pad",  "mechanic",   "BoostPad1",     "chevrons-right",490, 500,  60,  12,  "#06b6d4", T),
-    el("boost-pad",  "mechanic",   "BoostPad2",     "chevrons-right",570, 380,  60,  12,  "#06b6d4", T),
+    el("boost-pad",  "mechanic",   "BoostPad1",     "chevrons-right",490, 500,  60,  12,  "#06b6d4"),
+    el("boost-pad",  "mechanic",   "BoostPad2",     "chevrons-right",570, 380,  60,  12,  "#06b6d4"),
 
     // Cover walls
-    el("wall",       "structure",  "CoverWall1",    "square",       440,  430, 120,  60,  "#696969", T),
-    el("wall",       "structure",  "CoverWall2",    "square",       620,  460, 120,  60,  "#696969", T),
+    el("wall",       "structure",  "CoverWall1",    "square",       440,  430, 120,  60,  "#696969"),
+    el("wall",       "structure",  "CoverWall2",    "square",       620,  460, 120,  60,  "#696969"),
 
     // Sniper tower
-    el("tower",      "structure",  "SniperTower",   "building",     780,  300,  40, 120,  "#808080", T),
+    el("tower",      "structure",  "SniperTower",   "building",     780,  300,  40, 120,  "#808080"),
 
     // Bridge crossing
-    el("bridge",     "structure",  "CenterBridge",  "minus",        450,  455, 150,  20,  "#8b7355", T),
+    el("bridge",     "structure",  "CenterBridge",  "minus",        450,  455, 150,  20,  "#8b7355"),
 
     // Decorations
-    el("rock",       "decoration", "Rock1",         "mountain",     390,  560,  36,  28,  "#6b7280", T),
-    el("rock",       "decoration", "Rock2",         "mountain",     660,  300,  36,  28,  "#6b7280", T),
+    el("rock",       "decoration", "Rock1",         "mountain",     390,  560,  36,  28,  "#6b7280"),
+    el("rock",       "decoration", "Rock2",         "mountain",     660,  300,  36,  28,  "#6b7280"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -784,40 +793,41 @@ end
 
 function rpgPreset(): TemplatePreset {
   const T = "rpg";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Town spawn area
-    el("spawn",        "mechanic",   "TownSpawn",      "user-plus",    100,  570,  40,  40,  "#10b981", T),
-    el("ground",       "terrain",    "TownGround",     "square",        50,  620, 300,  40,  "#4a5568", T),
+    el("spawn",        "mechanic",   "TownSpawn",      "user-plus",    100,  570,  40,  40,  "#10b981"),
+    el("ground",       "terrain",    "TownGround",     "square",        50,  620, 300,  40,  "#4a5568"),
 
     // Quest NPC and shop
-    el("npc",          "character",  "QuestGiver",     "user",          200,  560,  28,  40,  "#22c55e", T),
-    el("shop-building","structure",  "ItemShop",       "store",         320,  490,  80,  70,  "#daa520", T),
-    el("shopkeeper",   "character",  "Merchant",       "shopping-bag",  340,  565,  28,  40,  "#eab308", T),
+    el("npc",          "character",  "QuestGiver",     "user",          200,  560,  28,  40,  "#22c55e"),
+    el("shop-building","structure",  "ItemShop",       "store",         320,  490,  80,  70,  "#daa520"),
+    el("shopkeeper",   "character",  "Merchant",       "shopping-bag",  340,  565,  28,  40,  "#eab308"),
 
     // Houses
-    el("house",        "structure",  "House1",         "home",          460,  500, 100,  80,  "#a0522d", T),
-    el("house",        "structure",  "House2",         "home",          580,  510, 100,  80,  "#8b4513", T),
+    el("house",        "structure",  "House1",         "home",          460,  500, 100,  80,  "#a0522d"),
+    el("house",        "structure",  "House2",         "home",          580,  510, 100,  80,  "#8b4513"),
 
     // Bridge to second area
-    el("bridge",       "structure",  "RiverBridge",    "minus",         700,  560, 150,  20,  "#8b7355", T),
+    el("bridge",       "structure",  "RiverBridge",    "minus",         700,  560, 150,  20,  "#8b7355"),
 
     // Dungeon cave entrance
-    el("cave",         "structure",  "DungeonEntrance","mountain",      860,  490, 120,  60,  "#4a4a4a", T),
-    el("enemy",        "character",  "DungeonGuard",   "ghost",         900,  555,  32,  40,  "#dc2626", T),
+    el("cave",         "structure",  "DungeonEntrance","mountain",      860,  490, 120,  60,  "#4a4a4a"),
+    el("enemy",        "character",  "DungeonGuard",   "ghost",         900,  555,  32,  40,  "#dc2626"),
 
     // Boss arena
-    el("arena",        "structure",  "BossArena",     "shield",        1050, 420, 120, 120,  "#8b0000", T),
-    el("boss",         "character",  "FinalBoss",     "crown",         1090, 470,  48,  56,  "#7c3aed", T),
+    el("arena",        "structure",  "BossArena",     "shield",        1050, 420, 120, 120,  "#8b0000"),
+    el("boss",         "character",  "FinalBoss",     "crown",         1090, 470,  48,  56,  "#7c3aed"),
 
     // Scattered coins
-    el("coin",         "mechanic",   "Coin1",         "coins",          150,  545,  20,  20,  "#eab308", T),
-    el("coin",         "mechanic",   "Coin2",         "coins",          250,  545,  20,  20,  "#eab308", T),
-    el("gem",          "mechanic",   "Gem1",          "diamond",        950,  470,  20,  20,  "#8b5cf6", T),
+    el("coin",         "mechanic",   "Coin1",         "coins",          150,  545,  20,  20,  "#eab308"),
+    el("coin",         "mechanic",   "Coin2",         "coins",          250,  545,  20,  20,  "#eab308"),
+    el("gem",          "mechanic",   "Gem1",          "diamond",        950,  470,  20,  20,  "#8b5cf6"),
 
     // Trees and rocks
-    el("tree",         "decoration", "Tree1",         "tree-pine",       40,  555,  30,  60,  "#166534", T),
-    el("tree",         "decoration", "Tree2",         "tree-pine",      760,  520,  30,  60,  "#166534", T),
-    el("rock",         "decoration", "Rock1",         "mountain",        90,  610,  36,  28,  "#6b7280", T),
+    el("tree",         "decoration", "Tree1",         "tree-pine",       40,  555,  30,  60,  "#166534"),
+    el("tree",         "decoration", "Tree2",         "tree-pine",      760,  520,  30,  60,  "#166534"),
+    el("rock",         "decoration", "Rock1",         "mountain",        90,  610,  36,  28,  "#6b7280"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -937,34 +947,35 @@ end)
 
 function horrorPreset(): TemplatePreset {
   const T = "horror";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Dark spawn room
-    el("spawn",      "mechanic",   "Spawn",         "user-plus",    100,  570,  40,  40,  "#10b981", T),
-    el("ground",     "terrain",    "DarkRoom",      "square",        50,  620, 200,  40,  "#1a1a1a", T),
-    el("lamp",       "decoration", "DimLamp1",      "lamp",         120,  530,  16,  48,  "#fbbf24", T),
+    el("spawn",      "mechanic",   "Spawn",         "user-plus",    100,  570,  40,  40,  "#10b981"),
+    el("ground",     "terrain",    "DarkRoom",      "square",        50,  620, 200,  40,  "#1a1a1a"),
+    el("lamp",       "decoration", "DimLamp1",      "lamp",         120,  530,  16,  48,  "#fbbf24"),
 
     // Tunnel corridors
-    el("tunnel",     "structure",  "Corridor1",     "circle",       310,  520,  60,  60,  "#555555", T),
-    el("tunnel",     "structure",  "Corridor2",     "circle",       430,  510,  60,  60,  "#555555", T),
-    el("lamp",       "decoration", "DimLamp2",      "lamp",         370,  500,  16,  48,  "#fbbf24", T),
+    el("tunnel",     "structure",  "Corridor1",     "circle",       310,  520,  60,  60,  "#555555"),
+    el("tunnel",     "structure",  "Corridor2",     "circle",       430,  510,  60,  60,  "#555555"),
+    el("lamp",       "decoration", "DimLamp2",      "lamp",         370,  500,  16,  48,  "#fbbf24"),
 
     // Locked door walls
-    el("wall",       "structure",  "LockedDoor",    "square",       560,  490, 120,  60,  "#696969", T),
+    el("wall",       "structure",  "LockedDoor",    "square",       560,  490, 120,  60,  "#696969"),
 
     // Teleporter (after key pickup)
-    el("teleporter", "mechanic",   "KeyTeleporter", "zap",          720,  500,  36,  44,  "#8b5cf6", T),
-    el("gem",        "mechanic",   "DoorKey",       "diamond",      640,  545,  20,  20,  "#8b5cf6", T),
+    el("teleporter", "mechanic",   "KeyTeleporter", "zap",          720,  500,  36,  44,  "#8b5cf6"),
+    el("gem",        "mechanic",   "DoorKey",       "diamond",      640,  545,  20,  20,  "#8b5cf6"),
 
     // Enemy (jumpscare trigger)
-    el("enemy",      "character",  "JumpscareEntity","ghost",       840,  530,  32,  40,  "#7c3aed", T),
+    el("enemy",      "character",  "JumpscareEntity","ghost",       840,  530,  32,  40,  "#7c3aed"),
 
     // Cave (final area)
-    el("cave",       "structure",  "FinalCave",     "mountain",     980,  470, 120,  60,  "#2a2a2a", T),
-    el("boss",       "character",  "CreatureBoss",  "crown",       1010,  525,  48,  56,  "#dc2626", T),
+    el("cave",       "structure",  "FinalCave",     "mountain",     980,  470, 120,  60,  "#2a2a2a"),
+    el("boss",       "character",  "CreatureBoss",  "crown",       1010,  525,  48,  56,  "#dc2626"),
 
     // Sparse lamps
-    el("lamp",       "decoration", "Lamp3",         "lamp",         500,  510,  16,  48,  "#fbbf24", T),
-    el("lamp",       "decoration", "Lamp4",         "lamp",         900,  510,  16,  48,  "#fbbf24", T),
+    el("lamp",       "decoration", "Lamp3",         "lamp",         500,  510,  16,  48,  "#fbbf24"),
+    el("lamp",       "decoration", "Lamp4",         "lamp",         900,  510,  16,  48,  "#fbbf24"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -1092,33 +1103,34 @@ end)
 
 function racingPreset(): TemplatePreset {
   const T = "racing";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Start / finish
-    el("spawn",       "mechanic",   "VehicleSpawn",  "user-plus",     80,  570,  40,  40,  "#10b981", T),
-    el("portal",      "structure",  "StartLine",     "door-open",    140,  530,  40,  60,  "#9400d3", T),
+    el("spawn",       "mechanic",   "VehicleSpawn",  "user-plus",     80,  570,  40,  40,  "#10b981"),
+    el("portal",      "structure",  "StartLine",     "door-open",    140,  530,  40,  60,  "#9400d3"),
 
     // Track segments (left to right, then curving)
-    el("race-track",  "structure",  "Track1",        "route",        230,  555, 200,  30,  "#333333", T),
-    el("boost-pad",   "mechanic",   "BoostPad1",     "chevrons-right",310, 545,  60,  12,  "#06b6d4", T),
-    el("race-track",  "structure",  "Track2",        "route",        440,  540, 200,  30,  "#333333", T),
-    el("checkpoint",  "mechanic",   "Checkpoint1",   "flag",         530,  530,  40,  40,  "#22c55e", T),
+    el("race-track",  "structure",  "Track1",        "route",        230,  555, 200,  30,  "#333333"),
+    el("boost-pad",   "mechanic",   "BoostPad1",     "chevrons-right",310, 545,  60,  12,  "#06b6d4"),
+    el("race-track",  "structure",  "Track2",        "route",        440,  540, 200,  30,  "#333333"),
+    el("checkpoint",  "mechanic",   "Checkpoint1",   "flag",         530,  530,  40,  40,  "#22c55e"),
 
     // Turn segment
-    el("race-track",  "structure",  "Track3",        "route",        650,  500, 200,  30,  "#333333", T),
-    el("boost-pad",   "mechanic",   "BoostPad2",     "chevrons-right",730, 490,  60,  12,  "#06b6d4", T),
+    el("race-track",  "structure",  "Track3",        "route",        650,  500, 200,  30,  "#333333"),
+    el("boost-pad",   "mechanic",   "BoostPad2",     "chevrons-right",730, 490,  60,  12,  "#06b6d4"),
 
     // Back straight
-    el("race-track",  "structure",  "Track4",        "route",        860,  480, 200,  30,  "#333333", T),
-    el("checkpoint",  "mechanic",   "Checkpoint2",   "flag",         950,  470,  40,  40,  "#22c55e", T),
+    el("race-track",  "structure",  "Track4",        "route",        860,  480, 200,  30,  "#333333"),
+    el("checkpoint",  "mechanic",   "Checkpoint2",   "flag",         950,  470,  40,  40,  "#22c55e"),
 
     // Final stretch back to start
-    el("race-track",  "structure",  "Track5",        "route",       1070,  460, 200,  30,  "#333333", T),
-    el("portal",      "structure",  "FinishLine",    "door-open",   1280,  440,  40,  60,  "#9400d3", T),
+    el("race-track",  "structure",  "Track5",        "route",       1070,  460, 200,  30,  "#333333"),
+    el("portal",      "structure",  "FinishLine",    "door-open",   1280,  440,  40,  60,  "#9400d3"),
 
     // Walls as barriers along the sides
-    el("wall",        "structure",  "BarrierNorth1", "square",       310,  520, 120,  60,  "#696969", T),
-    el("wall",        "structure",  "BarrierSouth1", "square",       310,  600, 120,  60,  "#696969", T),
-    el("wall",        "structure",  "BarrierNorth2", "square",       730,  460, 120,  60,  "#696969", T),
+    el("wall",        "structure",  "BarrierNorth1", "square",       310,  520, 120,  60,  "#696969"),
+    el("wall",        "structure",  "BarrierSouth1", "square",       310,  600, 120,  60,  "#696969"),
+    el("wall",        "structure",  "BarrierNorth2", "square",       730,  460, 120,  60,  "#696969"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -1267,40 +1279,41 @@ end
 
 function minigamesPreset(): TemplatePreset {
   const T = "minigames";
+  const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // Central hub
-    el("spawn",        "mechanic",   "HubSpawn",      "user-plus",    700,  450,  40,  40,  "#10b981", T),
-    el("ground",       "terrain",    "HubGround",     "square",       580,  500, 280,  40,  "#4a5568", T),
-    el("npc",          "character",  "VotingBoard",   "user",         700,  420,  28,  40,  "#22c55e", T),
+    el("spawn",        "mechanic",   "HubSpawn",      "user-plus",    700,  450,  40,  40,  "#10b981"),
+    el("ground",       "terrain",    "HubGround",     "square",       580,  500, 280,  40,  "#4a5568"),
+    el("npc",          "character",  "VotingBoard",   "user",         700,  420,  28,  40,  "#22c55e"),
 
     // Portals to minigame arenas
-    el("portal",       "structure",  "Portal1",       "door-open",    640,  440,  40,  60,  "#ef4444", T),
-    el("portal",       "structure",  "Portal2",       "door-open",    760,  440,  40,  60,  "#06b6d4", T),
-    el("portal",       "structure",  "Portal3",       "door-open",    880,  440,  40,  60,  "#22c55e", T),
+    el("portal",       "structure",  "Portal1",       "door-open",    640,  440,  40,  60,  "#ef4444"),
+    el("portal",       "structure",  "Portal2",       "door-open",    760,  440,  40,  60,  "#06b6d4"),
+    el("portal",       "structure",  "Portal3",       "door-open",    880,  440,  40,  60,  "#22c55e"),
 
     // Arena 1 — survival
-    el("arena",        "structure",  "SurvivalArena", "shield",       200,  280, 120, 120,  "#8b0000", T),
-    el("spawn",        "mechanic",   "Arena1Spawn",   "user-plus",    240,  310,  40,  40,  "#10b981", T),
-    el("killbrick",    "obstacle",   "HazardBrick1",  "skull",        230,  320,  60,  16,  "#ef4444", T),
+    el("arena",        "structure",  "SurvivalArena", "shield",       200,  280, 120, 120,  "#8b0000"),
+    el("spawn",        "mechanic",   "Arena1Spawn",   "user-plus",    240,  310,  40,  40,  "#10b981"),
+    el("killbrick",    "obstacle",   "HazardBrick1",  "skull",        230,  320,  60,  16,  "#ef4444"),
 
     // Arena 2 — race / collect
-    el("arena",        "structure",  "CollectArena",  "shield",       700,  200, 120, 120,  "#1d4ed8", T),
-    el("spawn",        "mechanic",   "Arena2Spawn",   "user-plus",    740,  230,  40,  40,  "#10b981", T),
-    el("coin",         "mechanic",   "ArenaCoin1",    "coins",        780,  260,  20,  20,  "#eab308", T),
-    el("coin",         "mechanic",   "ArenaCoin2",    "coins",        810,  240,  20,  20,  "#eab308", T),
+    el("arena",        "structure",  "CollectArena",  "shield",       700,  200, 120, 120,  "#1d4ed8"),
+    el("spawn",        "mechanic",   "Arena2Spawn",   "user-plus",    740,  230,  40,  40,  "#10b981"),
+    el("coin",         "mechanic",   "ArenaCoin1",    "coins",        780,  260,  20,  20,  "#eab308"),
+    el("coin",         "mechanic",   "ArenaCoin2",    "coins",        810,  240,  20,  20,  "#eab308"),
 
     // Arena 3 — obby
-    el("arena",        "structure",  "ObbyArena",     "shield",      1200,  280, 120, 120,  "#065f46", T),
-    el("spawn",        "mechanic",   "Arena3Spawn",   "user-plus",   1240,  310,  40,  40,  "#10b981", T),
-    el("platform",     "platform",   "ObbyPlatform1", "minus",       1260,  300, 100,  16,  "#6366f1", T),
+    el("arena",        "structure",  "ObbyArena",     "shield",      1200,  280, 120, 120,  "#065f46"),
+    el("spawn",        "mechanic",   "Arena3Spawn",   "user-plus",   1240,  310,  40,  40,  "#10b981"),
+    el("platform",     "platform",   "ObbyPlatform1", "minus",       1260,  300, 100,  16,  "#6366f1"),
 
     // Fences separating hub areas
-    el("fence",        "decoration", "Fence1",        "grip-horizontal", 590, 490, 80, 28, "#92400e", T),
-    el("fence",        "decoration", "Fence2",        "grip-horizontal", 810, 490, 80, 28, "#92400e", T),
+    el("fence",        "decoration", "Fence1",        "grip-horizontal", 590, 490, 80, 28, "#92400e"),
+    el("fence",        "decoration", "Fence2",        "grip-horizontal", 810, 490, 80, 28, "#92400e"),
 
     // Coins as rewards in hub
-    el("coin",         "mechanic",   "HubCoin1",      "coins",        610,  460,  20,  20,  "#eab308", T),
-    el("coin",         "mechanic",   "HubCoin2",      "coins",        810,  460,  20,  20,  "#eab308", T),
+    el("coin",         "mechanic",   "HubCoin1",      "coins",        610,  460,  20,  20,  "#eab308"),
+    el("coin",         "mechanic",   "HubCoin2",      "coins",        810,  460,  20,  20,  "#eab308"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -1463,8 +1476,6 @@ const PRESETS: Record<string, () => TemplatePreset> = {
 export function getTemplatePreset(templateId: string): TemplatePreset | null {
   const factory = PRESETS[templateId];
   if (!factory) return null;
-  // Reset id counter so each call produces deterministic ids
-  presetIdCounter = 0;
   return factory();
 }
 

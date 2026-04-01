@@ -40,8 +40,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       // Load template preset into canvas and instance stores
       const preset = getTemplatePreset(template);
       if (preset) {
-        useCanvasStore.getState().loadPreset(preset.canvasElements);
-        useCanvasStore.getState().setTemplate(template);
+        const canvasStore = useCanvasStore.getState();
+        canvasStore.loadPreset(preset.canvasElements);
+        canvasStore.setTemplate(template);
         useInstanceStore.getState().loadFromHierarchy(preset.hierarchy);
       }
 
