@@ -51,6 +51,24 @@ function countAll(instances: GameInstance[]): number {
     return instances.reduce((acc, inst) => acc + 1 + countAll(inst.children), 0);
 }
 
+function insertSibling(instances: GameInstance[], id: string, sibling: GameInstance): GameInstance[] | null {
+    const idx = instances.findIndex((inst) => inst.id === id);
+    if (idx !== -1) {
+        const result = [...instances];
+        result.splice(idx + 1, 0, sibling);
+        return result;
+    }
+    for (let i = 0; i < instances.length; i++) {
+        const updated = insertSibling(instances[i].children, id, sibling);
+        if (updated !== null) {
+            const result = [...instances];
+            result[i] = { ...instances[i], children: updated };
+            return result;
+        }
+    }
+    return null;
+}
+
 let idCounter = 0;
 function nextId() {
     return `inst_${++idCounter}_${Date.now()}`;
@@ -103,14 +121,17 @@ export const useInstanceStore = create<InstanceStore>((set, get) => ({
     duplicateInstance: (id) => {
         const original = findInstance(get().instances, id);
         if (!original) return;
-        const cloneDeep = (inst: GameInstance): GameInstance => ({
+        const cloneDeep = (inst: GameInstance, suffix: string): GameInstance => ({
             ...inst,
             id: nextId(),
-            name: `${inst.name} Copy`,
-            children: inst.children.map(cloneDeep),
+            name: `${inst.name}${suffix}`,
+            children: inst.children.map((c) => cloneDeep(c, suffix)),
         });
-        const duplicate = cloneDeep(original);
-        set((state) => ({ instances: [...state.instances, duplicate] }));
+        const duplicate = cloneDeep(original, " Copy");
+        set((state) => {
+            const updated = insertSibling(state.instances, id, duplicate);
+            return { instances: updated ?? [...state.instances, duplicate] };
+        });
     },
 
     countInstances: () => countAll(get().instances),
