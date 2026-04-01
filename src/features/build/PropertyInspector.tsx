@@ -1,4 +1,5 @@
 import { useCanvasStore } from "../../stores/canvasStore";
+import { useInstanceStore } from "../../stores/instanceStore";
 import { Trash2, Copy } from "lucide-react";
 
 function SectionLabel({ label }: { label: string }) {
@@ -79,6 +80,93 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 export function PropertyInspector() {
   const { getSelected, updateElement, removeElement, duplicateElement } = useCanvasStore();
   const selected = getSelected();
+
+  const { instances, selectedId: instanceSelectedId, selectInstance, removeInstance, duplicateInstance } = useInstanceStore();
+
+  // Find selected instance from the tree
+  function findInst(arr: ReturnType<typeof useInstanceStore.getState>["instances"], id: string): ReturnType<typeof useInstanceStore.getState>["instances"][number] | null {
+    for (const inst of arr) {
+      if (inst.id === id) return inst;
+      const found = findInst(inst.children, id);
+      if (found) return found;
+    }
+    return null;
+  }
+  const selectedInstance = instanceSelectedId ? findInst(instances, instanceSelectedId) : null;
+
+  // If an instance from the Explorer is selected, show instance properties
+  if (selectedInstance) {
+    const propEntries = Object.entries(selectedInstance.properties);
+    return (
+      <div className="flex flex-col h-full bg-gray-900 border-l border-gray-800 w-[300px] flex-shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[12px] font-semibold text-white truncate">{selectedInstance.name}</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="rounded bg-indigo-600/20 px-1.5 py-0.5 text-[9px] font-semibold text-indigo-400 uppercase">{selectedInstance.className}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => duplicateInstance(selectedInstance.id)}
+              className="rounded p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"
+              title="Duplicate"
+            >
+              <Copy size={13} />
+            </button>
+            <button
+              onClick={() => { removeInstance(selectedInstance.id); selectInstance(null); }}
+              className="rounded p-1.5 text-gray-400 hover:bg-red-600/20 hover:text-red-400"
+              title="Delete"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-4">
+          <SectionLabel label="Instance" />
+          <div className="flex items-center gap-2 px-3 py-0.5">
+            <span className="w-16 flex-shrink-0 text-[11px] text-gray-400">Class</span>
+            <span className="rounded bg-indigo-600/20 px-2 py-1 text-[10px] font-semibold text-indigo-400 uppercase">{selectedInstance.className}</span>
+          </div>
+          <TextField label="Name" value={selectedInstance.name} readOnly />
+
+          {propEntries.length > 0 && (
+            <>
+              <SectionLabel label="Properties" />
+              {propEntries.map(([key, val]) => (
+                <div key={key} className="flex items-start gap-2 px-3 py-0.5">
+                  <span className="w-24 flex-shrink-0 text-[11px] text-gray-400 pt-1">{key}</span>
+                  <span className="flex-1 rounded bg-gray-800/50 border border-gray-700/50 px-2 py-1 text-[10px] text-gray-300 font-mono break-all">{JSON.stringify(val)}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {selectedInstance.tags && selectedInstance.tags.length > 0 && (
+            <>
+              <SectionLabel label="Tags" />
+              <div className="flex flex-wrap gap-1 px-3 py-1">
+                {selectedInstance.tags.map((tag) => (
+                  <span key={tag} className="rounded bg-gray-700 px-2 py-0.5 text-[10px] text-gray-300">{tag}</span>
+                ))}
+              </div>
+            </>
+          )}
+
+          {selectedInstance.scriptSource && (
+            <>
+              <SectionLabel label="Script Source" />
+              <pre className="mx-3 rounded bg-gray-800 border border-gray-700 px-2 py-1.5 text-[10px] text-green-300 font-mono overflow-x-auto whitespace-pre-wrap break-all max-h-40">
+                {selectedInstance.scriptSource}
+              </pre>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (!selected) {
     return (

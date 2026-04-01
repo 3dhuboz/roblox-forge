@@ -1,11 +1,16 @@
 import { create } from "zustand";
+import type { InstanceNode } from "../types/project";
 
-// Type definition for GameInstance
+// Type definition for GameInstance — a superset of InstanceNode with UI-only fields (id, isExpanded)
 export type GameInstance = {
     id: string;
+    className: string;
     name: string;
     children: GameInstance[];
     isExpanded: boolean;
+    properties: Record<string, unknown>;
+    tags?: string[];
+    scriptSource?: string;
 };
 
 interface InstanceStore {
@@ -22,6 +27,8 @@ interface InstanceStore {
     duplicateInstance: (id: string) => void;
     countInstances: () => number;
     loadFromHierarchy: (instances: GameInstance[]) => void;
+    toInstanceNode: () => InstanceNode;
+    loadFromProjectState: (hierarchy: InstanceNode) => void;
 }
 
 function removeRecursively(instances: GameInstance[], id: string): GameInstance[] {
@@ -137,4 +144,34 @@ export const useInstanceStore = create<InstanceStore>((set, get) => ({
     countInstances: () => countAll(get().instances),
 
     loadFromHierarchy: (instances) => set({ instances, selectedId: null }),
+
+    toInstanceNode: () => {
+        const convert = (inst: GameInstance): InstanceNode => ({
+            className: inst.className,
+            name: inst.name,
+            properties: inst.properties,
+            children: inst.children.map(convert),
+            tags: inst.tags,
+            scriptSource: inst.scriptSource,
+        });
+        const root = get().instances[0];
+        return root
+            ? convert(root)
+            : { className: "DataModel", name: "Game", properties: {}, children: [] };
+    },
+
+    loadFromProjectState: (hierarchy) => {
+        let counter = 0;
+        const convert = (node: InstanceNode): GameInstance => ({
+            id: `proj_${++counter}`,
+            className: node.className,
+            name: node.name,
+            isExpanded: node.className === "DataModel" || node.className === "Workspace",
+            properties: node.properties,
+            children: node.children.map(convert),
+            tags: node.tags,
+            scriptSource: node.scriptSource,
+        });
+        set({ instances: [convert(hierarchy)], selectedId: null });
+    },
 }));
