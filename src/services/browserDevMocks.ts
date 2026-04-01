@@ -2,6 +2,7 @@ import type { AiResponse } from "../types/ai";
 import type { ProjectInfo, ProjectState, InstanceNode, ScriptFile } from "../types/project";
 import type { AuthState, PublishResult } from "../types/roblox";
 import type { ValidationIssue } from "../types/validation";
+import { getTemplatePreset, hierarchyToInstanceNode } from "../lib/templatePresets";
 
 const MOCK_PREFIX = "browser-dev://";
 
@@ -246,6 +247,18 @@ function sampleScripts(): ScriptFile[] {
 const mockProjects = new Map<string, ProjectState>();
 
 function projectState(template: string, projectName: string, path: string): ProjectState {
+  const preset = getTemplatePreset(template);
+  if (preset) {
+    return {
+      name: projectName,
+      path,
+      template,
+      hierarchy: hierarchyToInstanceNode(preset.hierarchy),
+      scripts: preset.scripts,
+      stageCount: preset.stageCount,
+    };
+  }
+  // Fallback to default obby hierarchy for unknown templates
   return {
     name: projectName,
     path,

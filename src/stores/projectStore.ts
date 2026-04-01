@@ -3,6 +3,9 @@ import type { ProjectInfo, ProjectState } from "../types/project";
 import type { ValidationIssue } from "../types/validation";
 import { projectCommands, validationCommands } from "../services/tauriCommands";
 import { useToastStore } from "./toastStore";
+import { getTemplatePreset } from "../lib/templatePresets";
+import { useCanvasStore } from "./canvasStore";
+import { useInstanceStore } from "./instanceStore";
 
 interface ProjectStore {
   project: ProjectInfo | null;
@@ -33,6 +36,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       const project = await projectCommands.createProject(template, name);
       set({ project });
       await get().refreshProjectState();
+
+      // Load template preset into canvas and instance stores
+      const preset = getTemplatePreset(template);
+      if (preset) {
+        useCanvasStore.getState().loadPreset(preset.canvasElements);
+        useCanvasStore.getState().setTemplate(template);
+        useInstanceStore.getState().loadFromHierarchy(preset.hierarchy);
+      }
+
       useToastStore.getState().addToast("success", `Project "${name}" created!`);
     } catch (e) {
       set({ error: String(e) });
