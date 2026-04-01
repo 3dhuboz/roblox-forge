@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from "zustand";
 
 // Type definition for GameInstance
 export type GameInstance = {
@@ -8,9 +8,40 @@ export type GameInstance = {
     isExpanded: boolean;
 };
 
+interface InstanceState {
+    instances: GameInstance[];
+    selectedInstance?: GameInstance;
+    addInstance: (instance: GameInstance, parentId?: string) => void;
+    removeInstance: (id: string) => void;
+    updateInstance: (id: string, updates: Partial<GameInstance>) => void;
+    selectInstance: (id: string) => void;
+    expandNode: (id: string) => void;
+    collapseNode: (id: string) => void;
+}
+
+const removeRecursively = (instances: GameInstance[], id: string): GameInstance[] =>
+    instances
+        .filter((inst) => inst.id !== id)
+        .map((inst) =>
+            inst.children.length > 0
+                ? { ...inst, children: removeRecursively(inst.children, id) }
+                : inst,
+        );
+
+const findRecursively = (instances: GameInstance[], id: string): GameInstance | undefined => {
+    for (const inst of instances) {
+        if (inst.id === id) return inst;
+        if (inst.children.length > 0) {
+            const found = findRecursively(inst.children, id);
+            if (found) return found;
+        }
+    }
+    return undefined;
+};
+
 // Zustand store for managing the game instance hierarchy
-const useInstanceStore = create((set) => ({
-    instances: [] as GameInstance[],
+const useInstanceStore = create<InstanceState>((set) => ({
+    instances: [],
 
     addInstance: (instance: GameInstance, parentId?: string) => set((state) => {
         if (parentId) {
@@ -31,7 +62,7 @@ const useInstanceStore = create((set) => ({
     }),
 
     removeInstance: (id: string) => set((state) => ({
-        instances: state.instances.filter((inst) => inst.id !== id)
+        instances: removeRecursively(state.instances, id),
     })),
 
     updateInstance: (id: string, updates: Partial<GameInstance>) => set((state) => {
@@ -50,7 +81,7 @@ const useInstanceStore = create((set) => ({
     }),
 
     selectInstance: (id: string) => set((state) => ({
-        selectedInstance: state.instances.find((inst) => inst.id === id)
+        selectedInstance: findRecursively(state.instances, id),
     })),
 
     expandNode: (id: string) => set((state) => {
