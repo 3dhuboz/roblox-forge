@@ -9,6 +9,8 @@ import { useCanvasStore } from "../../stores/canvasStore";
 import { buildCommands } from "../../services/tauriCommands";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
+import { InstanceExplorer } from "./InstanceExplorer";
+import { PropertyInspector } from "./PropertyInspector";
 
 export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
@@ -167,44 +169,53 @@ export function BuildPage() {
         )}
       </div>
 
-      {/* Main layout: 3D viewport + sidebar */}
+      {/* Main layout: Explorer + 3D viewport + Properties */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: 3D Viewport (primary) */}
-        <GameCanvas3D />
+        {/* Left: Instance Explorer */}
+        <InstanceExplorer />
 
-        {/* Right: Tabbed sidebar */}
-        <div className="flex flex-col">
-          {/* Tab buttons */}
-          <div className="flex border-l border-b border-gray-800/40">
-            <button
-              onClick={() => setSidebarTab("chat")}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
-                sidebarTab === "chat"
-                  ? "border-b-2 border-indigo-500 text-white"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <MessageSquare size={12} /> AI Chat
-            </button>
-            <button
-              onClick={() => setSidebarTab("script")}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
-                sidebarTab === "script"
-                  ? "border-b-2 border-indigo-500 text-white"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <Code size={12} /> Visual Script
-            </button>
+        {/* Center: 3D Viewport + sidebar */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left: 3D Viewport (primary) */}
+          <GameCanvas3D />
+
+          {/* Right: Tabbed sidebar */}
+          <div className="flex flex-col">
+            {/* Tab buttons */}
+            <div className="flex border-l border-b border-gray-800/40">
+              <button
+                onClick={() => setSidebarTab("chat")}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
+                  sidebarTab === "chat"
+                    ? "border-b-2 border-indigo-500 text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <MessageSquare size={12} /> AI Chat
+              </button>
+              <button
+                onClick={() => setSidebarTab("script")}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
+                  sidebarTab === "script"
+                    ? "border-b-2 border-indigo-500 text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <Code size={12} /> Visual Script
+              </button>
+            </div>
+
+            {/* Tab content */}
+            {sidebarTab === "chat" ? (
+              <AiSceneChat projectPath={project.path} />
+            ) : (
+              <VisualScriptEditor projectPath={project.path} />
+            )}
           </div>
-
-          {/* Tab content */}
-          {sidebarTab === "chat" ? (
-            <AiSceneChat projectPath={project.path} />
-          ) : (
-            <VisualScriptEditor projectPath={project.path} />
-          )}
         </div>
+
+        {/* Right: Property Inspector */}
+        <PropertyInspector />
       </div>
     </div>
   );
