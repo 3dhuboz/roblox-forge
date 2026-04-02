@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
 import { serializeCanvasToModelJson, generateTerrainScript } from "../lib/canvasSerializer";
+import { generateAllBehaviorScripts } from "../lib/behaviorScriptGen";
 import { projectCommands } from "../services/tauriCommands";
 import { projectStateToCanvasElements } from "../lib/projectToCanvas";
 import type { InstanceNode } from "../types/project";
@@ -322,6 +323,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           "src/server/TerrainFill.server.luau",
           terrainScript,
         );
+      }
+
+      // Generate behavior scripts from element properties
+      const template = get().template || "obby";
+      const behaviorScripts = generateAllBehaviorScripts(elements, template);
+      for (const script of behaviorScripts) {
+        await projectCommands.writeFile(projectPath, script.path, script.content);
       }
 
       set({ lastSavedAt: Date.now() });

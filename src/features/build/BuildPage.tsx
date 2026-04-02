@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play, MessageSquare, Code } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play, MessageSquare, Code, DollarSign } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
 import { AiSceneChat } from "../builder/AiSceneChat";
 import { VisualScriptEditor } from "../builder/VisualScriptEditor";
+import { MonetizationPanel } from "./MonetizationPanel";
+import { InstanceExplorer } from "./InstanceExplorer";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { buildCommands } from "../../services/tauriCommands";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -14,7 +16,7 @@ export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
   const navigate = useNavigate();
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
-  const [sidebarTab, setSidebarTab] = useState<"chat" | "script">("chat");
+  const [sidebarTab, setSidebarTab] = useState<"chat" | "script" | "monetize">("chat");
   const [isExporting, setIsExporting] = useState(false);
   const [exportResult, setExportResult] = useState<{ rbxlPath: string; warnings: string[] } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -167,9 +169,12 @@ export function BuildPage() {
         )}
       </div>
 
-      {/* Main layout: 3D viewport + sidebar */}
+      {/* Main layout: Explorer + 3D viewport + sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: 3D Viewport (primary) */}
+        {/* Left: Instance Explorer */}
+        <InstanceExplorer />
+
+        {/* Center: 3D Viewport (primary) */}
         <GameCanvas3D />
 
         {/* Right: Tabbed sidebar */}
@@ -196,13 +201,25 @@ export function BuildPage() {
             >
               <Code size={12} /> Visual Script
             </button>
+            <button
+              onClick={() => setSidebarTab("monetize")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold transition-colors ${
+                sidebarTab === "monetize"
+                  ? "border-b-2 border-green-500 text-white"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <DollarSign size={12} /> Monetize
+            </button>
           </div>
 
           {/* Tab content */}
           {sidebarTab === "chat" ? (
             <AiSceneChat projectPath={project.path} />
-          ) : (
+          ) : sidebarTab === "script" ? (
             <VisualScriptEditor projectPath={project.path} />
+          ) : (
+            <MonetizationPanel projectPath={project.path} />
           )}
         </div>
       </div>
