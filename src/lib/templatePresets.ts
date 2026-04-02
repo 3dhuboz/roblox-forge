@@ -204,36 +204,41 @@ function tycoonPreset(): TemplatePreset {
   const T = "tycoon";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Spawn & lobby
-    el("spawn",          "mechanic",   "Spawn",          "user-plus",    60,  580,  40,  40,  "#10b981"),
-    el("ground",         "terrain",    "LobbyGround",    "square",       50,  630, 200,  40,  "#4a5568"),
+    // ── Lobby (far left) ──
+    el("spawn",          "mechanic",   "Spawn",          "user-plus",    80,  400,  40,  40,  "#10b981"),
+    el("ground",         "terrain",    "LobbyGround",    "square",       40,  450, 160,  40,  "#4a5568"),
+    el("tree",           "decoration", "LobbyTree1",     "tree-pine",    40,  370,  30,  60,  "#166534"),
+    el("tree",           "decoration", "LobbyTree2",     "tree-pine",   170,  370,  30,  60,  "#166534"),
 
-    // Tycoon plot
-    el("tycoon-plot",    "structure",  "TycoonPlot",     "grid-2x2",    350,  430, 100, 100,  "#228b22"),
-    el("checkpoint",     "mechanic",   "ClaimPad",       "flag",         350,  545,  40,  40,  "#22c55e"),
+    // ── Plot 1 (center-left) — clear production flow: top→down ──
+    el("tycoon-plot",    "structure",  "Plot1",          "grid-2x2",   300,  250, 200, 300,  "#228b22"),
+    el("checkpoint",     "mechanic",   "ClaimPad1",      "flag",        370,  560,  60,  30,  "#22c55e"),
+    // Dropper at top of plot
+    el("dropper",        "structure",  "Dropper1",       "arrow-down",  370,  260,  60,  50,  "#b0b0b0"),
+    // Conveyor runs down the middle
+    el("conveyor-belt",  "structure",  "Conveyor1",      "arrow-right", 350,  330, 140,  20,  "#555555"),
+    // Collector at bottom of conveyor
+    el("collector",      "structure",  "Collector1",     "coins",       350,  370,  60,  40,  "#00cc00"),
+    // Upgrades along the left side
+    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    310,  420,  50,  30,  "#ffcc00"),
+    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    310,  470,  50,  30,  "#ffcc00"),
+    el("upgrade-button", "structure",  "CapacityUpgrade","arrow-up",    310,  520,  50,  30,  "#ffcc00"),
 
-    // Production chain
-    el("dropper",        "structure",  "OreDropper",     "arrow-down",  370,  380,  40,  60,  "#a0a0a0"),
-    el("conveyor-belt",  "structure",  "ConveyorBelt",   "arrow-right", 420,  490, 120,  20,  "#444444"),
-    el("collector",      "structure",  "CashCollector",  "coins",       550,  475,  40,  40,  "#00cc00"),
+    // ── Plot 2 (center-right) — second player plot ──
+    el("tycoon-plot",    "structure",  "Plot2",          "grid-2x2",   600,  250, 200, 300,  "#1a7a1a"),
+    el("checkpoint",     "mechanic",   "ClaimPad2",      "flag",        670,  560,  60,  30,  "#22c55e"),
+    el("dropper",        "structure",  "Dropper2",       "arrow-down",  670,  260,  60,  50,  "#a0a0a0"),
+    el("conveyor-belt",  "structure",  "Conveyor2",      "arrow-right", 650,  330, 140,  20,  "#555555"),
+    el("collector",      "structure",  "Collector2",     "coins",       650,  370,  60,  40,  "#00cc00"),
 
-    // Upgrades
-    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    270,  490,  40,  30,  "#ffcc00"),
-    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    270,  535,  40,  30,  "#ffcc00"),
+    // ── Shop Area (far right) ──
+    el("shop-building",  "structure",  "UpgradeShop",    "store",       900,  300, 100,  80,  "#daa520"),
+    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",920,  400,  28,  40,  "#eab308"),
+    el("tree",           "decoration", "ShopTree",       "tree-pine",   880,  260,  30,  60,  "#166534"),
 
-    // Shop building and NPC
-    el("shop-building",  "structure",  "UpgradeShop",    "store",       660,  430,  80,  70,  "#daa520"),
-    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",680,  510,  28,  40,  "#eab308"),
-
-    // Fences around plot
-    el("fence",          "decoration", "FenceNorth",     "grip-horizontal", 350, 390, 120, 28, "#92400e"),
-    el("fence",          "decoration", "FenceSouth",     "grip-horizontal", 350, 540, 120, 28, "#92400e"),
-    el("fence",          "decoration", "FenceWest",      "grip-horizontal", 310, 430,  80, 28, "#92400e", { rotation: 90 }),
-    el("fence",          "decoration", "FenceEast",      "grip-horizontal", 490, 430,  80, 28, "#92400e", { rotation: 90 }),
-
-    // Decoration
-    el("tree",           "decoration", "Tree1",          "tree-pine",   220,  590,  30,  60,  "#166534"),
-    el("tree",           "decoration", "Tree2",          "tree-pine",   760,  400,  30,  60,  "#166534"),
+    // ── Decorations ──
+    el("rock",           "decoration", "Rock1",          "mountain",    530,  580,  36,  28,  "#6b7280"),
+    el("fence",          "decoration", "PathFence",      "grip-horizontal", 200, 440, 80, 28, "#92400e"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -284,30 +289,31 @@ function simulatorPreset(): TemplatePreset {
   const T = "simulator";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Spawn & starter zone
-    el("spawn",      "mechanic",   "Spawn",         "user-plus",    60,  580,  40,  40,  "#10b981"),
-    el("ground",     "terrain",    "StarterZone",   "square",       50,  630, 300,  40,  "#2d6a4f"),
+    // ── Starter Zone (left) — click area ──
+    el("spawn",      "mechanic",   "Spawn",         "user-plus",    80,  350,  40,  40,  "#10b981"),
+    el("ground",     "terrain",    "StarterZone",   "square",       40,  400, 250, 200,  "#2d6a4f"),
+    el("coin",       "mechanic",   "Coin1",         "coins",       100,  420,  24,  24,  "#eab308"),
+    el("coin",       "mechanic",   "Coin2",         "coins",       150,  420,  24,  24,  "#eab308"),
+    el("coin",       "mechanic",   "Coin3",         "coins",       200,  420,  24,  24,  "#eab308"),
+    el("gem",        "mechanic",   "Gem1",          "diamond",     120,  470,  24,  24,  "#8b5cf6"),
+    el("gem",        "mechanic",   "Gem2",          "diamond",     180,  470,  24,  24,  "#8b5cf6"),
+    el("tree",       "decoration", "Tree1",         "tree-pine",    50,  320,  30,  60,  "#166534"),
+    el("tree",       "decoration", "Tree2",         "tree-pine",   240,  320,  30,  60,  "#166534"),
 
-    // Click coins / gems
-    el("coin",       "mechanic",   "Coin1",         "coins",       200,  570,  20,  20,  "#eab308"),
-    el("coin",       "mechanic",   "Coin2",         "coins",       230,  570,  20,  20,  "#eab308"),
-    el("coin",       "mechanic",   "Coin3",         "coins",       260,  570,  20,  20,  "#eab308"),
-    el("gem",        "mechanic",   "Gem1",          "diamond",     290,  560,  20,  20,  "#8b5cf6"),
-    el("gem",        "mechanic",   "Gem2",          "diamond",     320,  560,  20,  20,  "#8b5cf6"),
+    // ── Pet Area (center) — hatching eggs ──
+    el("ground",     "terrain",    "PetZone",       "square",      360,  400, 200, 200,  "#1a5c3a"),
+    el("npc",        "character",  "PetNPC",        "user",        400,  420,  28,  40,  "#22c55e"),
+    el("portal",     "structure",  "EggHatchPortal","door-open",   480,  410,  40,  60,  "#9400d3"),
+    el("bush",       "decoration", "Bush1",         "leaf",        370,  530,  32,  24,  "#15803d"),
 
-    // Pet area
-    el("npc",        "character",  "PetNPC",        "user",        420,  570,  28,  40,  "#22c55e"),
-    el("portal",     "structure",  "EggHatchPortal","door-open",   490,  540,  40,  60,  "#9400d3"),
+    // ── Zone Portals (right) — progression ──
+    el("portal",     "structure",  "Zone2Portal",   "door-open",   650,  360,  50,  70,  "#4f46e5"),
+    el("portal",     "structure",  "Zone3Portal",   "door-open",   650,  470,  50,  70,  "#ef4444"),
 
-    // Advanced zone portal
-    el("portal",     "structure",  "ZonePortal",    "door-open",   640,  530,  40,  60,  "#4f46e5"),
-    el("npc",        "character",  "RebirthNPC",    "user",        720,  570,  28,  40,  "#f472b6"),
-
-    // Trees and decorations
-    el("tree",       "decoration", "Tree1",         "tree-pine",    30,  560,  30,  60,  "#166534"),
-    el("tree",       "decoration", "Tree2",         "tree-pine",   150,  565,  30,  60,  "#166534"),
-    el("bush",       "decoration", "Bush1",         "leaf",        370,  600,  32,  24,  "#15803d"),
-    el("rock",       "decoration", "Rock1",         "mountain",    560,  610,  36,  28,  "#6b7280"),
+    // ── Rebirth Area (far right) ──
+    el("npc",        "character",  "RebirthNPC",    "user",        800,  420,  28,  40,  "#f472b6"),
+    el("ground",     "terrain",    "RebirthPad",    "square",      780,  460, 100,  60,  "#3b0764"),
+    el("rock",       "decoration", "Crystal1",      "mountain",    830,  380,  36,  28,  "#a78bfa"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -759,28 +765,34 @@ function incrementalPreset(): TemplatePreset {
   const el = makeElementHelper("incremental");
 
   const canvas: CanvasElement[] = [
-    // Starter Zone
-    el("spawn", "mechanic", "Spawn", "flag", 400, 500, 30, 30, "#00ff00"),
-    el("ground", "terrain", "StarterGround", "square", 200, 400, 400, 300, "#2d5a27"),
-    // Click Orbs
-    el("click-orb", "mechanic", "ClickOrb1", "circle-dot", 350, 350, 30, 30, "#00ffff"),
-    el("click-orb", "mechanic", "ClickOrb2", "circle-dot", 420, 320, 30, 30, "#00e5ff"),
-    el("click-orb", "mechanic", "ClickOrb3", "circle-dot", 280, 330, 30, 30, "#00ccff"),
-    el("click-orb", "mechanic", "ClickOrb4", "circle-dot", 370, 280, 30, 30, "#00b3ff"),
-    el("click-orb", "mechanic", "ClickOrb5", "circle-dot", 310, 400, 30, 30, "#0099ff"),
-    // Upgrade Area
-    el("upgrade-board", "structure", "UpgradeBoard", "list", 550, 300, 60, 80, "#4ade80"),
-    el("npc", "character", "UpgradeNPC", "user", 530, 350, 20, 40, "#fbbf24"),
-    // Prestige Area
-    el("prestige-pad", "mechanic", "PrestigePad", "refresh-cw", 650, 500, 50, 16, "#ffd700"),
-    // Zone Portals
-    el("zone-portal", "mechanic", "CrystalMinePortal", "door-open", 150, 300, 40, 60, "#8b5cf6"),
-    el("zone-portal", "mechanic", "LavaForgePortal", "door-open", 150, 180, 40, 60, "#ef4444"),
-    // Decorations
-    el("tree", "decoration", "Tree1", "tree-pine", 100, 450, 30, 50, "#22c55e"),
-    el("tree", "decoration", "Tree2", "tree-pine", 600, 450, 30, 50, "#22c55e"),
-    el("rock", "decoration", "Crystal1", "gem", 480, 250, 20, 20, "#a78bfa"),
-    el("rock", "decoration", "Crystal2", "gem", 250, 250, 20, 20, "#c084fc"),
+    // ── Central Click Area (hub) ──
+    el("spawn",        "mechanic",   "Spawn",              "flag",        400, 450,  40,  40,  "#10b981"),
+    el("ground",       "terrain",    "ClickZone",          "square",      300, 350, 200, 200,  "#1a3a2a"),
+    el("click-orb",    "mechanic",   "ClickOrb1",          "circle-dot",  350, 380,  35,  35,  "#00ffff"),
+    el("click-orb",    "mechanic",   "ClickOrb2",          "circle-dot",  420, 360,  35,  35,  "#00e5ff"),
+    el("click-orb",    "mechanic",   "ClickOrb3",          "circle-dot",  380, 420,  35,  35,  "#00ccff"),
+    el("click-orb",    "mechanic",   "ClickOrb4",          "circle-dot",  450, 420,  35,  35,  "#00b3ff"),
+    el("click-orb",    "mechanic",   "ClickOrb5",          "circle-dot",  340, 460,  35,  35,  "#0099ff"),
+
+    // ── Upgrade Shop (left of hub) ──
+    el("upgrade-board","structure",  "UpgradeBoard",       "list",        100, 330,  80, 100,  "#4ade80"),
+    el("npc",          "character",  "UpgradeNPC",         "user",        120, 440,  28,  40,  "#fbbf24"),
+    el("tree",         "decoration", "Tree1",              "tree-pine",    60, 300,  30,  50,  "#22c55e"),
+
+    // ── Prestige Altar (right of hub) ──
+    el("prestige-pad", "mechanic",   "PrestigePad",        "refresh-cw",  620, 400,  70,  30,  "#ffd700"),
+    el("ground",       "terrain",    "PrestigeGround",     "square",      590, 350, 130, 130,  "#2a1a0a"),
+    el("rock",         "decoration", "PrestigeCrystal",    "gem",         650, 360,  30,  30,  "#fbbf24"),
+
+    // ── Zone Portals (top, radiating from hub) ──
+    el("zone-portal",  "mechanic",   "CrystalMinePortal",  "door-open",   300, 200,  50,  70,  "#8b5cf6"),
+    el("zone-portal",  "mechanic",   "LavaForgePortal",    "door-open",   450, 200,  50,  70,  "#ef4444"),
+    el("zone-portal",  "mechanic",   "SkyIslandPortal",    "door-open",   600, 200,  50,  70,  "#3b82f6"),
+
+    // ── Decorations ──
+    el("tree",         "decoration", "Tree2",              "tree-pine",   530, 510,  30,  50,  "#22c55e"),
+    el("rock",         "decoration", "Crystal1",           "gem",         200, 480,  24,  24,  "#a78bfa"),
+    el("rock",         "decoration", "Crystal2",           "gem",         250, 510,  24,  24,  "#c084fc"),
   ];
 
   const hierarchy: GameInstance[] = [
