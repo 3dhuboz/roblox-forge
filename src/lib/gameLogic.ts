@@ -100,6 +100,15 @@ export interface GameLogicProperties {
 
   // Water/Lava
   swimSpeedModifier?: number;
+
+  // Incremental/Idle
+  clickValue?: number;
+  autoClickRate?: number;
+  autoFarmRate?: number;
+  offlineEarningRate?: number;
+  prestigeLayer?: number;
+  upgradeCostBase?: number;
+  upgradeCostMultiplier?: number;
 }
 
 // ── Default logic per element type ──
@@ -364,6 +373,40 @@ export function getDefaultLogic(type: string, template: string): GameLogicProper
           { name: "Apple", price: 5, currency: "Coins", icon: "🍎", description: "Restores 10 HP" },
           { name: "Sword", price: 50, currency: "Coins", icon: "⚔️", description: "+5 damage" },
         ],
+      };
+
+    // ── INCREMENTAL/IDLE ──
+    case "click-orb":
+      return {
+        anchored: true, canCollide: false, material: "Neon",
+        transparency: 0.1,
+        clickValue: 1,
+        upgradeCostBase: 10,
+        upgradeCostMultiplier: 1.15,
+      };
+    case "prestige-pad":
+      return {
+        anchored: true, canCollide: true, material: "Neon",
+        transparency: 0.2,
+        prestigeLayer: 1,
+      };
+    case "upgrade-board":
+      return {
+        anchored: true, canCollide: true, material: "SmoothPlastic",
+        interactionRange: 8,
+      };
+    case "zone-portal":
+      return {
+        destination: "Crystal Mine",
+        cooldown: 1,
+        anchored: true, canCollide: true, material: "Neon",
+        transparency: 0.3,
+      };
+    case "auto-collector":
+      return {
+        anchored: true, canCollide: true, material: "SmoothPlastic",
+        autoClickRate: 1,
+        autoFarmRate: 0.5,
       };
 
     // ── DECORATIONS ──

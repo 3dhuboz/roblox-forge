@@ -7,6 +7,7 @@ import type { CanvasElement, ElementCategory } from "../stores/canvasStore";
 import type { ScriptFile, InstanceNode } from "../types/project";
 import type { GameInstance } from "../stores/instanceStore";
 import { getDefaultLogic } from "./gameLogic";
+import { getObbyScripts, getTycoonScripts, getSimulatorScripts, getBattlegroundsScripts, getRpgScripts, getHorrorScripts, getRacingScripts, getMinigamesScripts, getIncrementalScripts, getBlankScripts } from "./templateScripts";
 
 // ── Types ──
 
@@ -184,94 +185,7 @@ function obbyPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/StageManager.server.luau",
-      name: "StageManager",
-      scriptType: "server",
-      content: `-- StageManager: handles stage transitions and kill bricks
-local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-
-local function onKillBrickTouched(hit)
-\tlocal character = hit.Parent
-\tlocal humanoid = character and character:FindFirstChild("Humanoid")
-\tif humanoid and humanoid.Health > 0 then
-\t\thumanoid.Health = 0
-\tend
-end
-
-for _, brick in CollectionService:GetTagged("KillBrick") do
-\tbrick.Touched:Connect(onKillBrickTouched)
-end
-
-CollectionService:GetInstanceAddedSignal("KillBrick"):Connect(function(brick)
-\tbrick.Touched:Connect(onKillBrickTouched)
-end)
-
-print("StageManager loaded")
-`,
-    },
-    {
-      relativePath: "src/server/DataManager.server.luau",
-      name: "DataManager",
-      scriptType: "server",
-      content: `-- DataManager: handles saving player progress
-local DataStoreService = game:GetService("DataStoreService")
-local Players = game:GetService("Players")
-
-local playerStore = DataStoreService:GetDataStore("PlayerProgress")
-
-local function onPlayerAdded(player)
-\tlocal success, data = pcall(function()
-\t\treturn playerStore:GetAsync("user_" .. player.UserId)
-\tend)
-\tif success and data then
-\t\tlocal stage = Instance.new("IntValue")
-\t\tstage.Name = "CurrentStage"
-\t\tstage.Value = data.stage or 1
-\t\tstage.Parent = player
-\tend
-end
-
-local function onPlayerRemoving(player)
-\tlocal stage = player:FindFirstChild("CurrentStage")
-\tif stage then
-\t\tpcall(function()
-\t\t\tplayerStore:SetAsync("user_" .. player.UserId, { stage = stage.Value })
-\t\tend)
-\tend
-end
-
-Players.PlayerAdded:Connect(onPlayerAdded)
-Players.PlayerRemoving:Connect(onPlayerRemoving)
-`,
-    },
-    {
-      relativePath: "src/client/ObbyUI.client.luau",
-      name: "ObbyUI",
-      scriptType: "client",
-      content: `-- ObbyUI: client-side HUD
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ObbyHUD"
-screenGui.Parent = player.PlayerGui
-
-local stageLabel = Instance.new("TextLabel")
-stageLabel.Size = UDim2.new(0, 200, 0, 40)
-stageLabel.Position = UDim2.new(0.5, -100, 0, 10)
-stageLabel.BackgroundTransparency = 0.5
-stageLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
-stageLabel.TextColor3 = Color3.new(1, 1, 1)
-stageLabel.TextSize = 18
-stageLabel.Font = Enum.Font.GothamBold
-stageLabel.Text = "Stage 1"
-stageLabel.Parent = screenGui
-`,
-    },
-  ];
+  const scripts = getObbyScripts();
 
   return {
     id: "obby",
@@ -351,114 +265,7 @@ function tycoonPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/TycoonManager.server.luau",
-      name: "TycoonManager",
-      scriptType: "server",
-      content: `-- TycoonManager: claim plots and manage ownership
-local Players = game:GetService("Players")
-local plots = workspace:WaitForChild("Plots")
-
-local function onClaimTouched(claimPad, plot)
-\treturn function(hit)
-\t\tlocal character = hit.Parent
-\t\tlocal player = Players:GetPlayerFromCharacter(character)
-\t\tif player and not plot:GetAttribute("Owner") then
-\t\t\tplot:SetAttribute("Owner", player.Name)
-\t\t\tprint(player.Name .. " claimed " .. plot.Name)
-\t\tend
-\tend
-end
-
-for _, plot in plots:GetChildren() do
-\tlocal claim = plot:FindFirstChild("ClaimPad")
-\tif claim then
-\t\tclaim.Touched:Connect(onClaimTouched(claim, plot))
-\tend
-end
-`,
-    },
-    {
-      relativePath: "src/server/DropperLoop.server.luau",
-      name: "DropperLoop",
-      scriptType: "server",
-      content: `-- DropperLoop: spawns ore from droppers onto conveyor belts
-local RunService = game:GetService("RunService")
-local plots = workspace:WaitForChild("Plots")
-
-local DROP_INTERVAL = 2
-local ORE_VALUE = 5
-
-for _, plot in plots:GetChildren() do
-\tlocal dropper = plot:FindFirstChild("OreDropper")
-\tlocal collector = plot:FindFirstChild("CashCollector")
-\tif not (dropper and collector) then continue end
-
-\ttask.spawn(function()
-\t\twhile true do
-\t\t\ttask.wait(DROP_INTERVAL)
-\t\t\tlocal ore = Instance.new("Part")
-\t\t\tore.Name = "Ore"
-\t\t\tore.Size = Vector3.new(1, 1, 1)
-\t\t\tore.CFrame = dropper.CFrame + Vector3.new(0, -2, 0)
-\t\t\tore:SetAttribute("Value", ORE_VALUE)
-\t\t\tore.Parent = plot
-\t\tend
-\tend)
-end
-`,
-    },
-    {
-      relativePath: "src/server/LeaderboardSetup.server.luau",
-      name: "LeaderboardSetup",
-      scriptType: "server",
-      content: `-- LeaderboardSetup: creates Cash and Gems leaderstats
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal cash = Instance.new("IntValue")
-\tcash.Name = "Cash"
-\tcash.Value = 0
-\tcash.Parent = leaderstats
-
-\tlocal gems = Instance.new("IntValue")
-\tgems.Name = "Gems"
-\tgems.Value = 0
-\tgems.Parent = leaderstats
-end)
-`,
-    },
-    {
-      relativePath: "src/server/CollectorHandler.server.luau",
-      name: "CollectorHandler",
-      scriptType: "server",
-      content: `-- CollectorHandler: converts ore touching collector into player cash
-local Players = game:GetService("Players")
-local plots = workspace:WaitForChild("Plots")
-
-for _, plot in plots:GetChildren() do
-\tlocal collector = plot:FindFirstChild("CashCollector")
-\tif not collector then continue end
-
-\tcollector.Touched:Connect(function(hit)
-\t\tif hit.Name ~= "Ore" then return end
-\t\tlocal owner = plot:GetAttribute("Owner")
-\t\tlocal player = Players:FindFirstChild(owner or "")
-\t\tif player then
-\t\t\tlocal cash = player.leaderstats and player.leaderstats:FindFirstChild("Cash")
-\t\t\tif cash then cash.Value += hit:GetAttribute("Value") or 5 end
-\t\tend
-\t\thit:Destroy()
-\tend)
-end
-`,
-    },
-  ];
+  const scripts = getTycoonScripts();
 
   return {
     id: "tycoon",
@@ -533,103 +340,7 @@ function simulatorPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/SimulatorManager.server.luau",
-      name: "SimulatorManager",
-      scriptType: "server",
-      content: `-- SimulatorManager: handles coin/gem collection and rebirths
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal coins = Instance.new("IntValue")
-\tcoins.Name = "Coins"
-\tcoins.Value = 0
-\tcoins.Parent = leaderstats
-
-\tlocal gems = Instance.new("IntValue")
-\tgems.Name = "Gems"
-\tgems.Value = 0
-\tgems.Parent = leaderstats
-
-\tlocal rebirths = Instance.new("IntValue")
-\trebirths.Name = "Rebirths"
-\trebirths.Value = 0
-\trebirths.Parent = leaderstats
-end)
-`,
-    },
-    {
-      relativePath: "src/server/CollectibleHandler.server.luau",
-      name: "CollectibleHandler",
-      scriptType: "server",
-      content: `-- CollectibleHandler: awards coins/gems when player touches them
-local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-
-local RESPAWN_TIME = 2
-
-local function onCollectibleTouched(part, currency, value)
-\treturn function(hit)
-\t\tlocal character = hit.Parent
-\t\tlocal player = Players:GetPlayerFromCharacter(character)
-\t\tif not player then return end
-\t\tif not part:GetAttribute("Active") then return end
-\t\tpart:SetAttribute("Active", false)
-\t\tpart.Transparency = 1
-
-\t\tlocal stat = player.leaderstats and player.leaderstats:FindFirstChild(currency)
-\t\tif stat then stat.Value += value end
-
-\t\ttask.delay(RESPAWN_TIME, function()
-\t\t\tpart.Transparency = 0
-\t\t\tpart:SetAttribute("Active", true)
-\t\tend)
-\tend
-end
-
-for _, coin in CollectionService:GetTagged("Coin") do
-\tcoin:SetAttribute("Active", true)
-\tcoin.Touched:Connect(onCollectibleTouched(coin, "Coins", 1))
-end
-for _, gem in CollectionService:GetTagged("Gem") do
-\tgem:SetAttribute("Active", true)
-\tgem.Touched:Connect(onCollectibleTouched(gem, "Gems", 5))
-end
-`,
-    },
-    {
-      relativePath: "src/server/RebirthHandler.server.luau",
-      name: "RebirthHandler",
-      scriptType: "server",
-      content: `-- RebirthHandler: resets coins for a rebirth multiplier bonus
-local Players = game:GetService("Players")
-local REBIRTH_COST = 1000
-
-local function tryRebirth(player)
-\tlocal ls = player:FindFirstChild("leaderstats")
-\tif not ls then return end
-\tlocal coins = ls:FindFirstChild("Coins")
-\tlocal rebirths = ls:FindFirstChild("Rebirths")
-\tif coins and rebirths and coins.Value >= REBIRTH_COST then
-\t\tcoins.Value = 0
-\t\trebirths.Value += 1
-\t\tprint(player.Name .. " reborn! x" .. rebirths.Value)
-\tend
-end
-
--- Expose via RemoteEvent
-local re = Instance.new("RemoteEvent")
-re.Name = "RequestRebirth"
-re.Parent = game.ReplicatedStorage
-re.OnServerEvent:Connect(tryRebirth)
-`,
-    },
-  ];
+  const scripts = getSimulatorScripts();
 
   return {
     id: "simulator",
@@ -709,74 +420,7 @@ function battlegroundsPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/BattleManager.server.luau",
-      name: "BattleManager",
-      scriptType: "server",
-      content: `-- BattleManager: tracks kills and manages round state
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal kills = Instance.new("IntValue")
-\tkills.Name = "Kills"
-\tkills.Value = 0
-\tkills.Parent = leaderstats
-
-\tlocal deaths = Instance.new("IntValue")
-\tdeaths.Name = "Deaths"
-\tdeaths.Value = 0
-\tdeaths.Parent = leaderstats
-end)
-`,
-    },
-    {
-      relativePath: "src/server/RespawnManager.server.luau",
-      name: "RespawnManager",
-      scriptType: "server",
-      content: `-- RespawnManager: handles player deaths and respawns
-local Players = game:GetService("Players")
-local RESPAWN_TIME = 5
-
-Players.PlayerAdded:Connect(function(player)
-\tplayer.CharacterAdded:Connect(function(character)
-\t\tlocal humanoid = character:WaitForChild("Humanoid")
-\t\thumanoid.Died:Connect(function()
-\t\t\tlocal deaths = player.leaderstats and player.leaderstats:FindFirstChild("Deaths")
-\t\t\tif deaths then deaths.Value += 1 end
-\t\t\ttask.delay(RESPAWN_TIME, function()
-\t\t\t\tplayer:LoadCharacter()
-\t\t\tend)
-\t\tend)
-\tend)
-end)
-`,
-    },
-    {
-      relativePath: "src/server/KillBrickHandler.server.luau",
-      name: "KillBrickHandler",
-      scriptType: "server",
-      content: `-- KillBrickHandler: kills players that touch hazard zones
-local CollectionService = game:GetService("CollectionService")
-
-local function onKillBrickTouched(hit)
-\tlocal character = hit.Parent
-\tlocal humanoid = character and character:FindFirstChild("Humanoid")
-\tif humanoid and humanoid.Health > 0 then
-\t\thumanoid.Health = 0
-\tend
-end
-
-for _, brick in CollectionService:GetTagged("KillBrick") do
-\tbrick.Touched:Connect(onKillBrickTouched)
-end
-`,
-    },
-  ];
+  const scripts = getBattlegroundsScripts();
 
   return {
     id: "battlegrounds",
@@ -857,80 +501,7 @@ function rpgPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/RPGManager.server.luau",
-      name: "RPGManager",
-      scriptType: "server",
-      content: `-- RPGManager: handles player stats for RPG
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal gold = Instance.new("IntValue")
-\tgold.Name = "Gold"
-\tgold.Value = 0
-\tgold.Parent = leaderstats
-
-\tlocal level = Instance.new("IntValue")
-\tlevel.Name = "Level"
-\tlevel.Value = 1
-\tlevel.Parent = leaderstats
-
-\tlocal xp = Instance.new("IntValue")
-\txp.Name = "XP"
-\txp.Value = 0
-\txp.Parent = leaderstats
-end)
-`,
-    },
-    {
-      relativePath: "src/server/EnemyAI.server.luau",
-      name: "EnemyAI",
-      scriptType: "server",
-      content: `-- EnemyAI: simple enemy patrol and attack
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local ATTACK_RANGE = 15
-local CHASE_SPEED = 12
-
--- Stub: full AI would use PathfindingService
-print("EnemyAI loaded - enemies will chase players within " .. ATTACK_RANGE .. " studs")
-`,
-    },
-    {
-      relativePath: "src/server/QuestSystem.server.luau",
-      name: "QuestSystem",
-      scriptType: "server",
-      content: `-- QuestSystem: manages quest assignment and completion
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local QuestData = {
-\t["Defeat Dungeon Guard"] = { goal = 1, reward = 100, type = "kill" },
-\t["Collect 5 Gems"] = { goal = 5, reward = 50, type = "collect" },
-}
-
--- RemoteEvent for quest acceptance
-local acceptQuest = Instance.new("RemoteEvent")
-acceptQuest.Name = "AcceptQuest"
-acceptQuest.Parent = ReplicatedStorage
-
-acceptQuest.OnServerEvent:Connect(function(player, questName)
-\tlocal data = QuestData[questName]
-\tif data then
-\t\tplayer:SetAttribute("ActiveQuest", questName)
-\t\tplayer:SetAttribute("QuestProgress", 0)
-\t\tprint(player.Name .. " accepted quest: " .. questName)
-\tend
-end)
-`,
-    },
-  ];
+  const scripts = getRpgScripts();
 
   return {
     id: "rpg",
@@ -1008,85 +579,7 @@ function horrorPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/HorrorManager.server.luau",
-      name: "HorrorManager",
-      scriptType: "server",
-      content: `-- HorrorManager: manages jumpscare triggers and locked doors
-local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-
--- Key pickup unlocks the teleporter
-local function onKeyTouched(hit)
-\tlocal character = hit.Parent
-\tlocal player = Players:GetPlayerFromCharacter(character)
-\tif player and not player:GetAttribute("HasKey") then
-\t\tplayer:SetAttribute("HasKey", true)
-\t\tprint(player.Name .. " picked up the key!")
-\tend
-end
-
-local key = workspace:FindFirstChild("LockedSection") and workspace.LockedSection:FindFirstChild("DoorKey")
-if key then
-\tkey.Touched:Connect(onKeyTouched)
-end
-`,
-    },
-    {
-      relativePath: "src/server/JumpscareHandler.server.luau",
-      name: "JumpscareHandler",
-      scriptType: "server",
-      content: `-- JumpscareHandler: triggers jumpscare sound and screen effect
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local triggerJumpscare = Instance.new("RemoteEvent")
-triggerJumpscare.Name = "TriggerJumpscare"
-triggerJumpscare.Parent = ReplicatedStorage
-
-local enemy = workspace:FindFirstChild("EnemyArea") and workspace.EnemyArea:FindFirstChild("JumpscareEntity")
-if enemy then
-\tenemy.Touched:Connect(function(hit)
-\t\tlocal character = hit.Parent
-\t\tlocal player = Players:GetPlayerFromCharacter(character)
-\t\tif player then
-\t\t\ttriggerJumpscare:FireClient(player)
-\t\tend
-\tend)
-end
-`,
-    },
-    {
-      relativePath: "src/client/HorrorUI.client.luau",
-      name: "HorrorUI",
-      scriptType: "client",
-      content: `-- HorrorUI: darkness overlay and jumpscare effect
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-
-local triggerJumpscare = ReplicatedStorage:WaitForChild("TriggerJumpscare")
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HorrorHUD"
-screenGui.Parent = player.PlayerGui
-
-local flash = Instance.new("Frame")
-flash.Size = UDim2.new(1, 0, 1, 0)
-flash.BackgroundColor3 = Color3.new(1, 0, 0)
-flash.BackgroundTransparency = 1
-flash.Parent = screenGui
-
-triggerJumpscare.OnClientEvent:Connect(function()
-\tflash.BackgroundTransparency = 0
-\ttask.delay(0.3, function()
-\t\tflash.BackgroundTransparency = 1
-\tend)
-end)
-`,
-    },
-  ];
+  const scripts = getHorrorScripts();
 
   return {
     id: "horror",
@@ -1163,106 +656,7 @@ function racingPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/RaceManager.server.luau",
-      name: "RaceManager",
-      scriptType: "server",
-      content: `-- RaceManager: tracks lap times and positions
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal bestLap = Instance.new("NumberValue")
-\tbestLap.Name = "BestLap"
-\tbestLap.Value = 0
-\tbestLap.Parent = leaderstats
-
-\tlocal laps = Instance.new("IntValue")
-\tlaps.Name = "Laps"
-\tlaps.Value = 0
-\tlaps.Parent = leaderstats
-end)
-
--- Track lap times via finish line touch
-local finishLine = workspace:FindFirstChild("FinishLine")
-if finishLine then
-\tfinishLine.Touched:Connect(function(hit)
-\t\tlocal character = hit.Parent
-\t\tlocal player = Players:GetPlayerFromCharacter(character)
-\t\tif player then
-\t\t\tlocal laps = player.leaderstats and player.leaderstats:FindFirstChild("Laps")
-\t\t\tif laps then laps.Value += 1 end
-\t\tend
-\tend)
-end
-`,
-    },
-    {
-      relativePath: "src/server/BoostPadHandler.server.luau",
-      name: "BoostPadHandler",
-      scriptType: "server",
-      content: `-- BoostPadHandler: applies speed boost when player steps on pad
-local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-
-local BOOST_SPEED = 32
-local BOOST_DURATION = 3
-
-local function onBoostTouched(hit)
-\tlocal character = hit.Parent
-\tlocal humanoid = character and character:FindFirstChildOfClass("Humanoid")
-\tlocal player = Players:GetPlayerFromCharacter(character)
-\tif not (humanoid and player) then return end
-\tlocal normal = humanoid.WalkSpeed
-\thumanoid.WalkSpeed = BOOST_SPEED
-\ttask.delay(BOOST_DURATION, function()
-\t\tif humanoid and humanoid.Parent then
-\t\t\thumanoid.WalkSpeed = normal
-\t\tend
-\tend)
-end
-
-for _, pad in CollectionService:GetTagged("BoostPad") do
-\tpad.Touched:Connect(onBoostTouched)
-end
-`,
-    },
-    {
-      relativePath: "src/client/RaceUI.client.luau",
-      name: "RaceUI",
-      scriptType: "client",
-      content: `-- RaceUI: displays lap count and best time HUD
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RaceHUD"
-screenGui.Parent = player.PlayerGui
-
-local lapLabel = Instance.new("TextLabel")
-lapLabel.Size = UDim2.new(0, 200, 0, 40)
-lapLabel.Position = UDim2.new(0.5, -100, 0, 10)
-lapLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-lapLabel.BackgroundTransparency = 0.4
-lapLabel.TextColor3 = Color3.new(1, 1, 1)
-lapLabel.TextSize = 20
-lapLabel.Font = Enum.Font.GothamBold
-lapLabel.Text = "Lap 0"
-lapLabel.Parent = screenGui
-
-local laps = player.leaderstats and player.leaderstats:FindFirstChild("Laps")
-if laps then
-\tlaps.Changed:Connect(function(v)
-\t\tlapLabel.Text = "Lap " .. v
-\tend)
-end
-`,
-    },
-  ];
+  const scripts = getRacingScripts();
 
   return {
     id: "racing",
@@ -1346,113 +740,122 @@ function minigamesPreset(): TemplatePreset {
     ]),
   ];
 
-  const scripts: ScriptFile[] = [
-    {
-      relativePath: "src/server/MinigameManager.server.luau",
-      name: "MinigameManager",
-      scriptType: "server",
-      content: `-- MinigameManager: controls voting and round rotation
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local MINIGAMES = { "SurvivalArena", "CollectArena", "ObbyArena" }
-local VOTE_TIME = 30
-local ROUND_TIME = 120
-
-local voteEvent = Instance.new("RemoteEvent")
-voteEvent.Name = "CastVote"
-voteEvent.Parent = ReplicatedStorage
-
-local votes = {}
-
-voteEvent.OnServerEvent:Connect(function(player, minigame)
-\tif table.find(MINIGAMES, minigame) then
-\t\tvotes[player.Name] = minigame
-\t\tprint(player.Name .. " voted for " .. minigame)
-\tend
-end)
-
--- Tally votes to pick next minigame
-local function tallyVotes()
-\tlocal counts = {}
-\tfor _, mg in MINIGAMES do counts[mg] = 0 end
-\tfor _, vote in votes do counts[vote] = (counts[vote] or 0) + 1 end
-\tlocal winner, max = MINIGAMES[1], 0
-\tfor mg, count in counts do
-\t\tif count > max then winner, max = mg, count end
-\tend
-\tvotes = {}
-\treturn winner
-end
-
-print("MinigameManager loaded - " .. #MINIGAMES .. " minigames available")
-`,
-    },
-    {
-      relativePath: "src/server/RewardSystem.server.luau",
-      name: "RewardSystem",
-      scriptType: "server",
-      content: `-- RewardSystem: awards coins to round winners
-local Players = game:GetService("Players")
-
-Players.PlayerAdded:Connect(function(player)
-\tlocal leaderstats = Instance.new("Folder")
-\tleaderstats.Name = "leaderstats"
-\tleaderstats.Parent = player
-
-\tlocal coins = Instance.new("IntValue")
-\tcoins.Name = "Coins"
-\tcoins.Value = 0
-\tcoins.Parent = leaderstats
-
-\tlocal wins = Instance.new("IntValue")
-\twins.Name = "Wins"
-\twins.Value = 0
-\twins.Parent = leaderstats
-end)
-
--- Function called by MinigameManager to reward winner
-local function rewardWinner(player, amount)
-\tlocal coins = player.leaderstats and player.leaderstats:FindFirstChild("Coins")
-\tif coins then coins.Value += amount end
-end
-
-return rewardWinner
-`,
-    },
-    {
-      relativePath: "src/client/MinigameUI.client.luau",
-      name: "MinigameUI",
-      scriptType: "client",
-      content: `-- MinigameUI: voting screen and round countdown HUD
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-
-local castVote = ReplicatedStorage:WaitForChild("CastVote")
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MinigameHUD"
-screenGui.Parent = player.PlayerGui
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0, 300, 0, 50)
-statusLabel.Position = UDim2.new(0.5, -150, 0, 10)
-statusLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 60)
-statusLabel.BackgroundTransparency = 0.3
-statusLabel.TextColor3 = Color3.new(1, 1, 1)
-statusLabel.TextSize = 20
-statusLabel.Font = Enum.Font.GothamBold
-statusLabel.Text = "Waiting for votes..."
-statusLabel.Parent = screenGui
-`,
-    },
-  ];
+  const scripts = getMinigamesScripts();
 
   return {
     id: "minigames",
     label: "Minigames",
     description: "Central hub with voting NPC, portals to 3 distinct arenas (survival, collect, obby).",
+    hierarchy,
+    canvasElements: canvas,
+    scripts,
+    stageCount: 0,
+  };
+}
+
+// ── Incremental Preset ──
+
+function incrementalPreset(): TemplatePreset {
+  const el = makeElementHelper("incremental");
+
+  const canvas: CanvasElement[] = [
+    // Starter Zone
+    el("spawn", "mechanic", "Spawn", "flag", 400, 500, 30, 30, "#00ff00"),
+    el("ground", "terrain", "StarterGround", "square", 200, 400, 400, 300, "#2d5a27"),
+    // Click Orbs
+    el("click-orb", "mechanic", "ClickOrb1", "circle-dot", 350, 350, 30, 30, "#00ffff"),
+    el("click-orb", "mechanic", "ClickOrb2", "circle-dot", 420, 320, 30, 30, "#00e5ff"),
+    el("click-orb", "mechanic", "ClickOrb3", "circle-dot", 280, 330, 30, 30, "#00ccff"),
+    el("click-orb", "mechanic", "ClickOrb4", "circle-dot", 370, 280, 30, 30, "#00b3ff"),
+    el("click-orb", "mechanic", "ClickOrb5", "circle-dot", 310, 400, 30, 30, "#0099ff"),
+    // Upgrade Area
+    el("upgrade-board", "structure", "UpgradeBoard", "list", 550, 300, 60, 80, "#4ade80"),
+    el("npc", "character", "UpgradeNPC", "user", 530, 350, 20, 40, "#fbbf24"),
+    // Prestige Area
+    el("prestige-pad", "mechanic", "PrestigePad", "refresh-cw", 650, 500, 50, 16, "#ffd700"),
+    // Zone Portals
+    el("zone-portal", "mechanic", "CrystalMinePortal", "door-open", 150, 300, 40, 60, "#8b5cf6"),
+    el("zone-portal", "mechanic", "LavaForgePortal", "door-open", 150, 180, 40, 60, "#ef4444"),
+    // Decorations
+    el("tree", "decoration", "Tree1", "tree-pine", 100, 450, 30, 50, "#22c55e"),
+    el("tree", "decoration", "Tree2", "tree-pine", 600, 450, 30, 50, "#22c55e"),
+    el("rock", "decoration", "Crystal1", "gem", 480, 250, 20, 20, "#a78bfa"),
+    el("rock", "decoration", "Crystal2", "gem", 250, 250, 20, 20, "#c084fc"),
+  ];
+
+  const hierarchy: GameInstance[] = [
+    inst("dm", "DataModel", [
+      inst("ws", "Workspace", [
+        inst("starter", "StarterZone", [
+          inst("spawn", "Spawn"),
+          inst("ground", "StarterGround"),
+          inst("orbs", "ClickOrbs", [
+            inst("o1", "Orb1"), inst("o2", "Orb2"), inst("o3", "Orb3"),
+            inst("o4", "Orb4"), inst("o5", "Orb5"),
+          ]),
+        ]),
+        inst("upgrade", "UpgradeArea", [
+          inst("board", "UpgradeBoard"),
+          inst("npc", "UpgradeNPC"),
+        ]),
+        inst("prestige", "PrestigeArea", [
+          inst("pad", "PrestigePad"),
+        ]),
+        inst("zones", "Zones", [
+          inst("cm", "CrystalMine_Portal"),
+          inst("lf", "LavaForge_Portal"),
+        ]),
+      ]),
+      inst("sss", "ServerScriptService"),
+      inst("rs", "ReplicatedStorage"),
+      inst("sp", "StarterPlayer"),
+    ]),
+  ];
+
+  const scripts = getIncrementalScripts();
+
+  return {
+    id: "incremental",
+    label: "Incremental",
+    description: "Idle clicker with offline earnings, prestige layers, and automation unlocks.",
+    hierarchy,
+    canvasElements: canvas,
+    scripts,
+    stageCount: 0,
+  };
+}
+
+// ── Blank/Custom Preset ──
+
+function blankPreset(): TemplatePreset {
+  const el = makeElementHelper("blank");
+
+  const canvas: CanvasElement[] = [
+    el("spawn", "mechanic", "Spawn", "flag", 400, 400, 30, 30, "#00ff00"),
+    el("ground", "terrain", "Baseplate", "square", 200, 300, 600, 400, "#4a5568"),
+  ];
+
+  const hierarchy: GameInstance[] = [
+    inst("dm", "DataModel", [
+      inst("ws", "Workspace", [
+        inst("spawn", "SpawnLocation"),
+        inst("base", "Baseplate"),
+      ]),
+      inst("sss", "ServerScriptService"),
+      inst("rs", "ReplicatedStorage"),
+      inst("sp", "StarterPlayer"),
+      inst("sg", "StarterGui"),
+      inst("lt", "Lighting"),
+      inst("ss", "SoundService"),
+    ]),
+  ];
+
+  const scripts = getBlankScripts();
+
+  return {
+    id: "blank",
+    label: "Custom Game",
+    description: "Start with a blank canvas. Build any game type from scratch with AI assistance.",
     hierarchy,
     canvasElements: canvas,
     scripts,
@@ -1471,6 +874,8 @@ const PRESETS: Record<string, () => TemplatePreset> = {
   horror:       horrorPreset,
   racing:       racingPreset,
   minigames:    minigamesPreset,
+  incremental:  incrementalPreset,
+  blank:        blankPreset,
 };
 
 export function getTemplatePreset(templateId: string): TemplatePreset | null {

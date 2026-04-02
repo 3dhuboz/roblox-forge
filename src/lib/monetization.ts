@@ -93,6 +93,29 @@ export function getDefaultMonetizationConfig(template: string): MonetizationConf
         { id: 0, name: "100 Gold", price: 49, description: "Quick gold", action: "give_coins", actionValue: 100 },
       ];
       break;
+    case "incremental":
+      base.currencies = [
+        { name: "Coins", startingAmount: 0, icon: "coin" },
+        { name: "PrestigePoints", startingAmount: 0, icon: "star" },
+        { name: "AscensionTokens", startingAmount: 0, icon: "gem" },
+      ];
+      base.gamePasses = [
+        { id: 0, name: "Offline Extension", price: 199, description: "Earn offline for 24 hours instead of 8", benefits: ["24h offline cap"] },
+        { id: 0, name: "Prestige Boost", price: 249, description: "2x prestige point earnings", benefits: ["Double prestige rewards"] },
+        { id: 0, name: "Auto Farm Pro", price: 349, description: "3x auto-farm speed", benefits: ["Triple passive earnings"] },
+        { id: 0, name: "VIP", price: 499, description: "Exclusive zone + 1.5x all earnings", benefits: ["Void Realm access", "1.5x multiplier"] },
+      ];
+      base.devProducts = [
+        { id: 0, name: "10,000 Coins", price: 49, description: "Instant coin boost", action: "give_coins", actionValue: 10000 },
+        { id: 0, name: "Skip Prestige Layer", price: 149, description: "Skip to next prestige layer", action: "custom", actionValue: 1 },
+      ];
+      break;
+    case "blank":
+      base.gamePasses = [
+        { id: 0, name: "VIP", price: 199, description: "VIP benefits", benefits: ["VIP badge", "Special perks"] },
+      ];
+      base.devProducts = [];
+      break;
     default:
       base.gamePasses = [
         { id: 0, name: "VIP", price: 199, description: "VIP benefits", benefits: ["VIP badge", "Special perks"] },

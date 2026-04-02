@@ -104,6 +104,12 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { type: "race-track", category: "structure", label: "Track", icon: "route", defaultWidth: 200, defaultHeight: 30, color: "#333333", description: "Race track segment" },
   { type: "portal", category: "structure", label: "Portal", icon: "door-open", defaultWidth: 40, defaultHeight: 60, color: "#9400d3", description: "Zone teleporter" },
   { type: "market-stall", category: "structure", label: "Stall", icon: "tent", defaultWidth: 60, defaultHeight: 50, color: "#cd853f", description: "Market vendor stall" },
+  // Incremental/Idle
+  { type: "click-orb", category: "mechanic", label: "Click Orb", icon: "circle-dot", defaultWidth: 30, defaultHeight: 30, color: "#00ffff", description: "Click to earn coins" },
+  { type: "prestige-pad", category: "mechanic", label: "Prestige Pad", icon: "refresh-cw", defaultWidth: 50, defaultHeight: 16, color: "#ffd700", description: "Step on to prestige/ascend" },
+  { type: "upgrade-board", category: "structure", label: "Upgrade Board", icon: "list", defaultWidth: 60, defaultHeight: 80, color: "#4ade80", description: "View and buy upgrades" },
+  { type: "zone-portal", category: "mechanic", label: "Zone Portal", icon: "door-open", defaultWidth: 40, defaultHeight: 60, color: "#8b5cf6", description: "Unlock new earning zones" },
+  { type: "auto-collector", category: "mechanic", label: "Auto Collector", icon: "zap", defaultWidth: 40, defaultHeight: 40, color: "#f59e0b", description: "Auto-earns currency over time" },
 ];
 
 // ── Store ──

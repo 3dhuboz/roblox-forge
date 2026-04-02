@@ -87,6 +87,22 @@ const templates: Template[] = [
     available: true,
     color: "bg-pink-600",
   },
+  {
+    id: "incremental",
+    name: "Incremental",
+    description: "Idle clicker with offline earnings, prestige layers, and automation unlocks.",
+    icon: Clock,
+    available: true,
+    color: "bg-cyan-600",
+  },
+  {
+    id: "blank",
+    name: "Custom Game",
+    description: "Blank canvas — build any game from scratch with AI assistance.",
+    icon: Gamepad2,
+    available: true,
+    color: "bg-slate-600",
+  },
 ];
 
 const TEMPLATE_ICON_MAP: Record<string, React.ElementType> = {
@@ -98,6 +114,8 @@ const TEMPLATE_ICON_MAP: Record<string, React.ElementType> = {
   horror: Ghost,
   racing: Car,
   minigames: Dice1,
+  incremental: Clock,
+  blank: Gamepad2,
 };
 
 const TEMPLATE_COLOR_MAP: Record<string, string> = {
@@ -109,6 +127,8 @@ const TEMPLATE_COLOR_MAP: Record<string, string> = {
   horror: "bg-gray-600",
   racing: "bg-orange-600",
   minigames: "bg-pink-600",
+  incremental: "bg-cyan-600",
+  blank: "bg-slate-600",
 };
 
 function getRecentProjects(): RecentProject[] {
