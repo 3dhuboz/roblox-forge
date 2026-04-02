@@ -138,6 +138,7 @@ interface CanvasStore {
   getSelected: () => CanvasElement | null;
   saveToProject: (projectPath: string) => Promise<void>;
   loadFromProject: (hierarchy: InstanceNode, template: string) => void;
+  loadPreset: (elements: CanvasElement[]) => void;
   isSaving: boolean;
   lastSavedAt: number | null;
 }
@@ -295,6 +296,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   loadFromProject: (hierarchy: InstanceNode, template: string) => {
     const elements = projectStateToCanvasElements(hierarchy, template);
+    set({
+      elements,
+      selectedId: null,
+      undoStack: [],
+      redoStack: [],
+    });
+  },
+
+  loadPreset: (elements: CanvasElement[]) => {
     set({
       elements,
       selectedId: null,

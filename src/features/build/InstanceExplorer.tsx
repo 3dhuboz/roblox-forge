@@ -1,8 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Box, Folder, FileCode, Flag, ChevronRight, ChevronDown, Plus, Copy, Clipboard, Trash2, Edit3, X } from "lucide-react";
-import { useInstanceStore } from "../../stores/instanceStore";
-import { useProjectStore } from "../../stores/projectStore";
-import type { InstanceNode } from "../../types/project";
+import { useInstanceStore, type GameInstance } from "../../stores/instanceStore";
+
+const DEFAULT_HIERARCHY: GameInstance[] = [
+  {
+    id: "datamodel",
+    name: "DataModel",
+    isExpanded: true,
+    children: [
+      { id: "workspace", name: "Workspace", isExpanded: false, children: [] },
+      { id: "lighting", name: "Lighting", isExpanded: false, children: [] },
+      { id: "replicated-storage", name: "ReplicatedStorage", isExpanded: false, children: [] },
+      { id: "starter-player", name: "StarterPlayer", isExpanded: false, children: [] },
+      { id: "starter-gui", name: "StarterGui", isExpanded: false, children: [] },
+      { id: "server-script-service", name: "ServerScriptService", isExpanded: false, children: [] },
+      { id: "server-storage", name: "ServerStorage", isExpanded: false, children: [] },
+    ],
+  },
+];
 
 const CLASS_ICONS: Record<string, typeof Box> = {
   Part: Box,
@@ -20,46 +35,54 @@ const CLASS_COLORS: Record<string, string> = {
   Script: "text-red-400",
   LocalScript: "text-purple-400",
   ModuleScript: "text-orange-400",
-  Terrain: "text-emerald-400",
 };
 
+function getIconForName(name: string) {
+  if (name.includes("Script") || name.includes("Handler") || name.includes("Manager")) return { Icon: FileCode, color: "text-red-400" };
+  if (name.includes("Spawn")) return { Icon: Flag, color: "text-green-400" };
+  if (name === "Workspace" || name === "Lighting" || name === "SoundService") return { Icon: Folder, color: "text-yellow-400" };
+  if (name.includes("Storage") || name.includes("Starter") || name.includes("Service")) return { Icon: Folder, color: "text-yellow-400" };
+  return { Icon: Box, color: "text-blue-400" };
+}
+
+function instanceMatchesSearch(inst: GameInstance, query: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  if (inst.name.toLowerCase().includes(q)) return true;
+  return inst.children.some((c) => instanceMatchesSearch(c, q));
+}
+
 interface TreeNodeProps {
-  node: InstanceNode;
-  path: string;
+  instance: GameInstance;
   depth: number;
   searchQuery: string;
 }
 
-function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
-  const { selectedPath, expandedPaths, selectInstance, toggleExpand, renameInstance, deleteInstance, duplicateInstance, addChildInstance, copyInstance, pasteInstance, clipboard, reparentInstance } = useInstanceStore();
+function TreeNode({ instance, depth, searchQuery }: TreeNodeProps) {
+  const { selectedId, selectInstance, toggleNode, removeInstance, duplicateInstance, renameInstance, copyInstance, pasteInstance, reparentInstance, clipboard } = useInstanceStore();
   const [isRenaming, setIsRenaming] = useState(false);
-  const [renameValue, setRenameValue] = useState(node.name);
+  const [renameValue, setRenameValue] = useState(instance.name);
   const [showContext, setShowContext] = useState(false);
   const [contextPos, setContextPos] = useState({ x: 0, y: 0 });
   const [dragOver, setDragOver] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
 
-  const isExpanded = expandedPaths.has(path);
-  const isSelected = selectedPath === path;
-  const hasChildren = node.children.length > 0;
-  const Icon = CLASS_ICONS[node.className] || Box;
-  const colorClass = CLASS_COLORS[node.className] || "text-gray-400";
+  const isSelected = selectedId === instance.id;
+  const hasChildren = instance.children.length > 0;
+  const { Icon, color } = getIconForName(instance.name);
 
-  // Filter by search
-  const matchesSearch = !searchQuery || node.name.toLowerCase().includes(searchQuery.toLowerCase()) || node.className.toLowerCase().includes(searchQuery.toLowerCase());
-  const childrenMatchSearch = !searchQuery || node.children.some((c) => nodeOrDescendantMatches(c, searchQuery));
-
-  if (searchQuery && !matchesSearch && !childrenMatchSearch) return null;
+  if (searchQuery && !instanceMatchesSearch(instance, searchQuery)) return null;
 
   const handleDoubleClick = () => {
     setIsRenaming(true);
-    setRenameValue(node.name);
+    setRenameValue(instance.name);
     setTimeout(() => renameRef.current?.select(), 0);
   };
 
   const handleRenameSubmit = () => {
-    if (renameValue.trim() && renameValue !== node.name) {
-      renameInstance(path, renameValue.trim());
+    if (renameValue.trim() && renameValue !== instance.name) {
+      renameInstance(instance.id, renameValue.trim());
     }
     setIsRenaming(false);
   };
@@ -71,7 +94,7 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/plain", path);
+    e.dataTransfer.setData("text/plain", instance.id);
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -86,13 +109,12 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const sourcePath = e.dataTransfer.getData("text/plain");
-    if (sourcePath && sourcePath !== path) {
-      reparentInstance(sourcePath, path);
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId && sourceId !== instance.id) {
+      reparentInstance(sourceId, instance.id);
     }
   };
 
-  // Close context menu on click outside
   useEffect(() => {
     if (!showContext) return;
     const handler = () => setShowContext(false);
@@ -107,9 +129,11 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
           isSelected ? "bg-indigo-600/20 text-white" : "text-gray-300 hover:bg-gray-800/40"
         } ${dragOver ? "ring-1 ring-indigo-500 bg-indigo-900/20" : ""}`}
         style={{ paddingLeft: depth * 16 + 4 }}
-        onClick={() => { selectInstance(path); if (hasChildren) toggleExpand(path); }}
+        onClick={() => { selectInstance(isSelected ? null : instance.id); }}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         draggable
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -117,14 +141,17 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
         onDrop={handleDrop}
       >
         {/* Expand arrow */}
-        <span className="w-3 flex-shrink-0">
+        <span
+          className="w-3 flex-shrink-0"
+          onClick={(e) => { e.stopPropagation(); if (hasChildren) toggleNode(instance.id); }}
+        >
           {hasChildren ? (
-            isExpanded ? <ChevronDown size={10} className="text-gray-500" /> : <ChevronRight size={10} className="text-gray-500" />
+            instance.isExpanded ? <ChevronDown size={10} className="text-gray-500" /> : <ChevronRight size={10} className="text-gray-500" />
           ) : null}
         </span>
 
         {/* Class icon */}
-        <Icon size={12} className={colorClass} />
+        <Icon size={12} className={color} />
 
         {/* Name */}
         {isRenaming ? (
@@ -139,13 +166,28 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
             autoFocus
           />
         ) : (
-          <span className="text-[11px] truncate">{node.name}</span>
+          <span className="text-[11px] truncate flex-1">{instance.name}</span>
         )}
 
-        {/* Class badge */}
-        <span className="text-[8px] text-gray-600 ml-auto mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {node.className}
-        </span>
+        {/* Hover actions */}
+        {hovered && !isRenaming && (
+          <span className="flex items-center gap-0.5 ml-1">
+            <button
+              className="rounded p-0.5 hover:bg-indigo-500/40 hover:text-white text-gray-400"
+              onClick={(e) => { e.stopPropagation(); duplicateInstance(instance.id); }}
+              title="Duplicate"
+            >
+              <Copy size={11} />
+            </button>
+            <button
+              className="rounded p-0.5 hover:bg-red-600/40 hover:text-red-300 text-gray-400"
+              onClick={(e) => { e.stopPropagation(); removeInstance(instance.id); }}
+              title="Delete"
+            >
+              <Trash2 size={11} />
+            </button>
+          </span>
+        )}
       </div>
 
       {/* Context Menu */}
@@ -153,61 +195,49 @@ function TreeNode({ node, path, depth, searchQuery }: TreeNodeProps) {
         <ContextMenu
           x={contextPos.x}
           y={contextPos.y}
-          path={path}
-          node={node}
+          instanceId={instance.id}
           hasClipboard={!!clipboard}
           onRename={() => { setShowContext(false); handleDoubleClick(); }}
-          onDuplicate={() => { setShowContext(false); duplicateInstance(path); }}
-          onDelete={() => { setShowContext(false); deleteInstance(path); }}
-          onCopy={() => { setShowContext(false); copyInstance(path); }}
-          onPaste={() => { setShowContext(false); pasteInstance(path); }}
-          onAddChild={(className, name) => { setShowContext(false); addChildInstance(path, className, name); }}
-          onClose={() => setShowContext(false)}
+          onDuplicate={() => { setShowContext(false); duplicateInstance(instance.id); }}
+          onDelete={() => { setShowContext(false); removeInstance(instance.id); }}
+          onCopy={() => { setShowContext(false); copyInstance(instance.id); }}
+          onPaste={() => { setShowContext(false); pasteInstance(instance.id); }}
+          onAddChild={(name) => {
+            setShowContext(false);
+            const { addInstance } = useInstanceStore.getState();
+            addInstance({ id: `inst_${Date.now()}`, name, isExpanded: false, children: [] }, instance.id);
+          }}
         />
       )}
 
       {/* Children */}
-      {isExpanded && hasChildren && node.children.map((child, i) => (
-        <TreeNode
-          key={`${path}.${child.name}-${i}`}
-          node={child}
-          path={`${path}.${child.name}`}
-          depth={depth + 1}
-          searchQuery={searchQuery}
-        />
+      {instance.isExpanded && instance.children.map((child) => (
+        <TreeNode key={child.id} instance={child} depth={depth + 1} searchQuery={searchQuery} />
       ))}
     </>
   );
 }
 
-function nodeOrDescendantMatches(node: InstanceNode, query: string): boolean {
-  if (node.name.toLowerCase().includes(query.toLowerCase())) return true;
-  if (node.className.toLowerCase().includes(query.toLowerCase())) return true;
-  return node.children.some((c) => nodeOrDescendantMatches(c, query));
-}
-
 interface ContextMenuProps {
   x: number;
   y: number;
-  path: string;
-  node: InstanceNode;
+  instanceId: string;
   hasClipboard: boolean;
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onCopy: () => void;
   onPaste: () => void;
-  onAddChild: (className: string, name: string) => void;
-  onClose: () => void;
+  onAddChild: (name: string) => void;
 }
 
 function ContextMenu({ x, y, hasClipboard, onRename, onDuplicate, onDelete, onCopy, onPaste, onAddChild }: ContextMenuProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
   const addOptions = [
-    { className: "Folder", name: "NewFolder", icon: Folder, color: "text-yellow-400" },
-    { className: "Part", name: "Part", icon: Box, color: "text-blue-400" },
-    { className: "SpawnLocation", name: "SpawnLocation", icon: Flag, color: "text-green-400" },
+    { name: "NewFolder", icon: Folder, color: "text-yellow-400", label: "Folder" },
+    { name: "Part", icon: Box, color: "text-blue-400", label: "Part" },
+    { name: "SpawnLocation", icon: Flag, color: "text-green-400", label: "SpawnLocation" },
   ];
 
   return (
@@ -245,11 +275,11 @@ function ContextMenu({ x, y, hasClipboard, onRename, onDuplicate, onDelete, onCo
           <div className="absolute left-full top-0 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[140px]">
             {addOptions.map((opt) => (
               <button
-                key={opt.className}
-                onClick={() => onAddChild(opt.className, opt.name)}
+                key={opt.name}
+                onClick={() => onAddChild(opt.name)}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-gray-300 hover:bg-gray-800"
               >
-                <opt.icon size={11} className={opt.color} /> {opt.className}
+                <opt.icon size={11} className={opt.color} /> {opt.label}
               </button>
             ))}
           </div>
@@ -266,18 +296,27 @@ function ContextMenu({ x, y, hasClipboard, onRename, onDuplicate, onDelete, onCo
 }
 
 export function InstanceExplorer() {
-  const { hierarchy, setHierarchy, searchQuery, setSearchQuery, expandPath } = useInstanceStore();
-  const { projectState } = useProjectStore();
+  const { instances, searchQuery, setSearchQuery, addInstance, countInstances, loadFromHierarchy } = useInstanceStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [newName, setNewName] = useState("");
 
-  // Sync hierarchy from project state
   useEffect(() => {
-    if (projectState?.hierarchy) {
-      setHierarchy(projectState.hierarchy);
-      // Auto-expand root + Workspace
-      expandPath("root.Workspace");
+    if (instances.length === 0) {
+      loadFromHierarchy(DEFAULT_HIERARCHY);
     }
-  }, [projectState?.hierarchy, setHierarchy, expandPath]);
+  }, []);
+
+  const handleAdd = () => {
+    const name = newName.trim();
+    if (!name) return;
+    addInstance({
+      id: `inst_${Date.now()}`,
+      name,
+      isExpanded: false,
+      children: [],
+    });
+    setNewName("");
+  };
 
   if (collapsed) {
     return (
@@ -290,9 +329,9 @@ export function InstanceExplorer() {
   }
 
   return (
-    <div className="w-[220px] flex flex-col border-r border-gray-800/40 bg-gray-950 overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-900 border-r border-gray-800 w-[220px] flex-shrink-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-800/40">
+      <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-800">
         <div className="flex items-center gap-1.5">
           <Folder size={12} className="text-yellow-400" />
           <span className="text-[11px] font-bold text-white">Explorer</span>
@@ -303,8 +342,8 @@ export function InstanceExplorer() {
       </div>
 
       {/* Search */}
-      <div className="px-2 py-1.5 border-b border-gray-800/40">
-        <div className="flex items-center gap-1.5 bg-gray-900 rounded px-2 py-1">
+      <div className="px-2 py-1.5 border-b border-gray-800/60">
+        <div className="flex items-center gap-1.5 bg-gray-800 rounded px-2 py-1">
           <Search size={10} className="text-gray-500" />
           <input
             value={searchQuery}
@@ -320,20 +359,43 @@ export function InstanceExplorer() {
         </div>
       </div>
 
+      {/* Add instance bar */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-800/60">
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          placeholder="New instance..."
+          className="flex-1 min-w-0 rounded bg-gray-800 px-2 py-1 text-[11px] text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:border-indigo-500"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={!newName.trim()}
+          className="rounded bg-indigo-600 px-2 py-1 text-white hover:bg-indigo-500 disabled:opacity-40"
+          title="Add instance"
+        >
+          <Plus size={12} />
+        </button>
+      </div>
+
       {/* Tree */}
       <div className="flex-1 overflow-y-auto py-1">
-        {hierarchy ? (
-          <TreeNode
-            node={hierarchy}
-            path="root"
-            depth={0}
-            searchQuery={searchQuery}
-          />
-        ) : (
-          <div className="px-3 py-4 text-center text-[10px] text-gray-600">
-            No project loaded
+        {instances.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-600 text-[12px] gap-2 py-8">
+            <Box size={24} />
+            <span>No instances yet</span>
           </div>
+        ) : (
+          instances.map((inst) => (
+            <TreeNode key={inst.id} instance={inst} depth={0} searchQuery={searchQuery} />
+          ))
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-3 py-1.5 border-t border-gray-800 text-[10px] text-gray-500">
+        {countInstances()} instance{countInstances() !== 1 ? "s" : ""}
       </div>
     </div>
   );
