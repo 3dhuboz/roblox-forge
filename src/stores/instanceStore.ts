@@ -11,6 +11,8 @@ export type GameInstance = {
 interface InstanceStore {
     instances: GameInstance[];
     selectedId: string | null;
+    searchQuery: string;
+    clipboard: GameInstance | null;
 
     addInstance: (instance: GameInstance, parentId?: string) => void;
     removeInstance: (id: string) => void;
@@ -20,8 +22,13 @@ interface InstanceStore {
     collapseNode: (id: string) => void;
     toggleNode: (id: string) => void;
     duplicateInstance: (id: string) => void;
+    renameInstance: (id: string, newName: string) => void;
+    copyInstance: (id: string) => void;
+    pasteInstance: (parentId: string) => void;
+    reparentInstance: (sourceId: string, targetId: string) => void;
     countInstances: () => number;
     loadFromHierarchy: (instances: GameInstance[]) => void;
+    setSearchQuery: (q: string) => void;
 }
 
 function removeRecursively(instances: GameInstance[], id: string): GameInstance[] {
@@ -69,6 +76,29 @@ function insertSibling(instances: GameInstance[], id: string, sibling: GameInsta
     return null;
 }
 
+function cloneDeep(inst: GameInstance, suffix: string): GameInstance {
+    return {
+        ...inst,
+        id: nextId(),
+        name: `${inst.name}${suffix}`,
+        children: inst.children.map((c) => cloneDeep(c, suffix)),
+    };
+}
+
+function addToParent(instances: GameInstance[], parentId: string, child: GameInstance): GameInstance[] {
+    return instances.map((inst) => {
+        if (inst.id === parentId) return { ...inst, children: [...inst.children, child], isExpanded: true };
+        if (inst.children.length > 0) return { ...inst, children: addToParent(inst.children, parentId, child) };
+        return inst;
+    });
+}
+
+function isDescendant(instances: GameInstance[], ancestorId: string, targetId: string): boolean {
+    const ancestor = findInstance(instances, ancestorId);
+    if (!ancestor) return false;
+    return findInstance(ancestor.children, targetId) !== null;
+}
+
 let idCounter = 0;
 function nextId() {
     return `inst_${++idCounter}_${Date.now()}`;
@@ -77,16 +107,12 @@ function nextId() {
 export const useInstanceStore = create<InstanceStore>((set, get) => ({
     instances: [],
     selectedId: null,
+    searchQuery: "",
+    clipboard: null,
 
     addInstance: (instance, parentId) => set((state) => {
         if (parentId) {
-            const addToParent = (instances: GameInstance[]): GameInstance[] =>
-                instances.map((inst) => {
-                    if (inst.id === parentId) return { ...inst, children: [...inst.children, instance] };
-                    if (inst.children.length > 0) return { ...inst, children: addToParent(inst.children) };
-                    return inst;
-                });
-            return { instances: addToParent(state.instances) };
+            return { instances: addToParent(state.instances, parentId, instance) };
         }
         return { instances: [...state.instances, instance] };
     }),
@@ -121,12 +147,6 @@ export const useInstanceStore = create<InstanceStore>((set, get) => ({
     duplicateInstance: (id) => {
         const original = findInstance(get().instances, id);
         if (!original) return;
-        const cloneDeep = (inst: GameInstance, suffix: string): GameInstance => ({
-            ...inst,
-            id: nextId(),
-            name: `${inst.name}${suffix}`,
-            children: inst.children.map((c) => cloneDeep(c, suffix)),
-        });
         const duplicate = cloneDeep(original, " Copy");
         set((state) => {
             const updated = insertSibling(state.instances, id, duplicate);
@@ -134,7 +154,35 @@ export const useInstanceStore = create<InstanceStore>((set, get) => ({
         });
     },
 
+    renameInstance: (id, newName) => set((state) => ({
+        instances: updateRecursively(state.instances, id, { name: newName }),
+    })),
+
+    copyInstance: (id) => {
+        const inst = findInstance(get().instances, id);
+        if (inst) set({ clipboard: JSON.parse(JSON.stringify(inst)) });
+    },
+
+    pasteInstance: (parentId) => set((state) => {
+        if (!state.clipboard) return {};
+        const pasted = cloneDeep(state.clipboard, " Paste");
+        return { instances: addToParent(state.instances, parentId, pasted) };
+    }),
+
+    reparentInstance: (sourceId, targetId) => set((state) => {
+        if (sourceId === targetId) return {};
+        if (isDescendant(state.instances, sourceId, targetId)) return {};
+        const source = findInstance(state.instances, sourceId);
+        if (!source) return {};
+        const without = removeRecursively(state.instances, sourceId);
+        const target = findInstance(without, targetId);
+        if (!target) return {};
+        return { instances: addToParent(without, targetId, source) };
+    }),
+
     countInstances: () => countAll(get().instances),
 
     loadFromHierarchy: (instances) => set({ instances, selectedId: null }),
+
+    setSearchQuery: (q) => set({ searchQuery: q }),
 }));

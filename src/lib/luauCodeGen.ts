@@ -34,7 +34,7 @@ export function compileGraphToLuau(
 
   for (const node of triggerNodes) {
     const t = node.data.nodeType;
-    if (t === "on_touched") {
+    if (t === "on_touched" || t === "on_proximity" || t === "on_click") {
       services.add("CollectionService");
       services.add("Players");
     }
@@ -44,23 +44,56 @@ export function compileGraphToLuau(
     if (t === "on_chat") {
       services.add("Players");
     }
+    if (t === "on_gamepass_purchased" || t === "on_developer_product") {
+      services.add("MarketplaceService");
+      services.add("Players");
+    }
   }
 
   // Check which services are needed by action nodes
-  const hasMove = nodes.some((n) => n.data.nodeType === "move_object");
-  if (hasMove) services.add("TweenService");
+  const allTypes = new Set(nodes.map((n) => n.data.nodeType));
 
-  const hasHint = nodes.some((n) => n.data.nodeType === "show_hint");
-  if (hasHint) services.add("Players");
-
-  const hasSetColor = nodes.some((n) => n.data.nodeType === "set_part_color");
-  if (hasSetColor) services.add("CollectionService");
+  if (allTypes.has("move_object") || allTypes.has("tween_property")) services.add("TweenService");
+  if (allTypes.has("show_hint") || allTypes.has("show_notification") || allTypes.has("for_each_player")) services.add("Players");
+  if (allTypes.has("set_part_color") || allTypes.has("create_particle")) services.add("CollectionService");
+  if (allTypes.has("save_data") || allTypes.has("load_data")) services.add("DataStoreService");
+  if (allTypes.has("prompt_purchase") || allTypes.has("prompt_gamepass") || allTypes.has("check_gamepass")) services.add("MarketplaceService");
+  if (allTypes.has("change_lighting")) services.add("Lighting");
+  if (allTypes.has("screen_shake") || allTypes.has("fire_remote") || allTypes.has("fire_server")) services.add("ReplicatedStorage");
 
   // Emit service requires
   for (const svc of services) {
-    lines.push(`local ${svc} = game:GetService("${svc}")`);
+    if (svc === "Lighting") {
+      lines.push(`local ${svc} = game:GetService("${svc}")`);
+    } else {
+      lines.push(`local ${svc} = game:GetService("${svc}")`);
+    }
   }
   if (services.size > 0) lines.push("");
+
+  // DataStore variable
+  if (services.has("DataStoreService")) {
+    lines.push(`local dataStore = DataStoreService:GetDataStore("PlayerData")`);
+    lines.push("");
+  }
+
+  // RemoteEvent declarations
+  const remoteNames = new Set<string>();
+  for (const n of nodes) {
+    if (n.data.nodeType === "fire_remote" || n.data.nodeType === "fire_server" || n.data.nodeType === "screen_shake") {
+      const name = n.data.values?.eventName as string || "MyEvent";
+      remoteNames.add(name);
+    }
+  }
+  if (allTypes.has("screen_shake")) remoteNames.add("ScreenShake");
+  if (remoteNames.size > 0) {
+    for (const name of remoteNames) {
+      lines.push(`local ${name}Event = ReplicatedStorage:FindFirstChild("${name}") or Instance.new("RemoteEvent")`);
+      lines.push(`${name}Event.Name = "${name}"`);
+      lines.push(`${name}Event.Parent = ReplicatedStorage`);
+    }
+    lines.push("");
+  }
 
   // Build adjacency: for each node, find what signal edges connect to it
   const signalEdges = edges.filter((e) => {
@@ -215,6 +248,65 @@ function generateTriggerBlock(
     lines.push(...indentChain(chain, allNodes, allEdges, 2));
     lines.push(`\tend)`);
     lines.push(`end)`);
+  } else if (t === "on_value_changed") {
+    const valueName = getInputValue(trigger.id, "valueName", allNodes, allEdges);
+    lines.push(`-- On Value Changed: ${valueName}`);
+    lines.push(`local _valueObj = workspace:FindFirstChild(${valueName}, true)`);
+    lines.push(`if _valueObj then`);
+    lines.push(`\t_valueObj:GetPropertyChangedSignal("Value"):Connect(function()`);
+    lines.push(`\t\tlocal _${trigger.id.replace(/[^a-z0-9]/gi, "_")}_newValue = _valueObj.Value`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\tend)`);
+    lines.push(`end`);
+  } else if (t === "on_proximity") {
+    const tag = getInputValue(trigger.id, "tag", allNodes, allEdges);
+    const radius = getInputValue(trigger.id, "radius", allNodes, allEdges);
+    lines.push(`-- On Proximity: parts tagged ${tag} within ${radius} studs`);
+    lines.push(`for _, part in CollectionService:GetTagged(${tag}) do`);
+    lines.push(`\tlocal prompt = Instance.new("ProximityPrompt")`);
+    lines.push(`\tprompt.MaxActivationDistance = ${radius}`);
+    lines.push(`\tprompt.HoldDuration = 0`);
+    lines.push(`\tprompt.ActionText = "Interact"`);
+    lines.push(`\tprompt.Parent = part`);
+    lines.push(`\tprompt.Triggered:Connect(function(player)`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\tend)`);
+    lines.push(`end`);
+  } else if (t === "on_click") {
+    const tag = getInputValue(trigger.id, "tag", allNodes, allEdges);
+    lines.push(`-- On Click: parts tagged ${tag}`);
+    lines.push(`for _, part in CollectionService:GetTagged(${tag}) do`);
+    lines.push(`\tlocal detector = part:FindFirstChildOfClass("ClickDetector") or Instance.new("ClickDetector")`);
+    lines.push(`\tdetector.Parent = part`);
+    lines.push(`\tdetector.MouseClick:Connect(function(player)`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\tend)`);
+    lines.push(`end`);
+  } else if (t === "on_gamepass_purchased") {
+    const gamepassId = getInputValue(trigger.id, "gamepassId", allNodes, allEdges);
+    lines.push(`-- On GamePass Purchased: ${gamepassId}`);
+    lines.push(`MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, wasPurchased)`);
+    lines.push(`\tif passId == ${gamepassId} and wasPurchased then`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\tend`);
+    lines.push(`end)`);
+  } else if (t === "on_developer_product") {
+    const productId = getInputValue(trigger.id, "productId", allNodes, allEdges);
+    lines.push(`-- On Developer Product Purchased: ${productId}`);
+    lines.push(`local _existingCallback = MarketplaceService.ProcessReceipt`);
+    lines.push(`MarketplaceService.ProcessReceipt = function(receiptInfo)`);
+    lines.push(`\tif _existingCallback then`);
+    lines.push(`\t\tlocal result = _existingCallback(receiptInfo)`);
+    lines.push(`\t\tif result == Enum.ProductPurchaseDecision.PurchaseGranted then return result end`);
+    lines.push(`\tend`);
+    lines.push(`\tlocal player = Players:GetPlayerByUserId(receiptInfo.PlayerId)`);
+    lines.push(`\tif not player then return Enum.ProductPurchaseDecision.NotProcessedYet end`);
+    lines.push(`\tif receiptInfo.ProductId == ${productId} then`);
+    lines.push(...indentChain(chain, allNodes, allEdges, 2));
+    lines.push(`\t\treturn Enum.ProductPurchaseDecision.PurchaseGranted`);
+    lines.push(`\tend`);
+    lines.push(`\treturn Enum.ProductPurchaseDecision.NotProcessedYet`);
+    lines.push(`end`);
   }
 
   return lines;
@@ -355,7 +447,6 @@ function indentChain(
       lines.push(`${tabs}end`);
     } else if (t === "if_else") {
       const condition = getInputValue(node.id, "condition", allNodes, allEdges);
-      // Find true/false branches
       const trueBranch = allEdges.find(
         (e) => e.source === node.id && e.sourceHandle === "true",
       );
@@ -366,19 +457,315 @@ function indentChain(
       if (trueBranch) {
         const trueNode = allNodes.find((n) => n.id === trueBranch.target);
         if (trueNode) {
-          const trueChain = [trueNode];
-          lines.push(...indentChain(trueChain, allNodes, allEdges, indent + 1));
+          lines.push(...indentChain([trueNode], allNodes, allEdges, indent + 1));
         }
       }
       if (falseBranch) {
         lines.push(`${tabs}else`);
         const falseNode = allNodes.find((n) => n.id === falseBranch.target);
         if (falseNode) {
-          const falseChain = [falseNode];
-          lines.push(...indentChain(falseChain, allNodes, allEdges, indent + 1));
+          lines.push(...indentChain([falseNode], allNodes, allEdges, indent + 1));
         }
       }
       lines.push(`${tabs}end`);
+
+    // ── Data & Persistence ──
+    } else if (t === "save_data") {
+      const key = getInputValue(node.id, "key", allNodes, allEdges);
+      const value = getInputValue(node.id, "value", allNodes, allEdges);
+      lines.push(`${tabs}-- Save Data`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal saveKey = player.UserId .. "_" .. ${key}`);
+      lines.push(`${tabs}\tlocal ok, err = pcall(function()`);
+      lines.push(`${tabs}\t\tdataStore:SetAsync(saveKey, ${value})`);
+      lines.push(`${tabs}\tend)`);
+      lines.push(`${tabs}\tif not ok then warn("Save failed:", err) end`);
+      lines.push(`${tabs}end`);
+    } else if (t === "load_data") {
+      const key = getInputValue(node.id, "key", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_value`;
+      lines.push(`${tabs}-- Load Data`);
+      lines.push(`${tabs}local ${varName} = 0`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal loadKey = player.UserId .. "_" .. ${key}`);
+      lines.push(`${tabs}\tlocal ok, result = pcall(function()`);
+      lines.push(`${tabs}\t\treturn dataStore:GetAsync(loadKey)`);
+      lines.push(`${tabs}\tend)`);
+      lines.push(`${tabs}\tif ok and result ~= nil then ${varName} = result end`);
+      lines.push(`${tabs}end`);
+    } else if (t === "set_leaderstat") {
+      const stat = getInputValue(node.id, "stat", allNodes, allEdges);
+      const value = getInputValue(node.id, "value", allNodes, allEdges);
+      lines.push(`${tabs}-- Set Leaderstat`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal leaderstats = player:FindFirstChild("leaderstats")`);
+      lines.push(`${tabs}\tif not leaderstats then`);
+      lines.push(`${tabs}\t\tleaderstats = Instance.new("Folder")`);
+      lines.push(`${tabs}\t\tleaderstats.Name = "leaderstats"`);
+      lines.push(`${tabs}\t\tleaderstats.Parent = player`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}\tlocal statObj = leaderstats:FindFirstChild(${stat})`);
+      lines.push(`${tabs}\tif not statObj then`);
+      lines.push(`${tabs}\t\tstatObj = Instance.new("IntValue")`);
+      lines.push(`${tabs}\t\tstatObj.Name = ${stat}`);
+      lines.push(`${tabs}\t\tstatObj.Parent = leaderstats`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}\tstatObj.Value = ${value}`);
+      lines.push(`${tabs}end`);
+    } else if (t === "get_leaderstat") {
+      const stat = getInputValue(node.id, "stat", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_value`;
+      lines.push(`${tabs}-- Get Leaderstat`);
+      lines.push(`${tabs}local ${varName} = 0`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal leaderstats = player:FindFirstChild("leaderstats")`);
+      lines.push(`${tabs}\tif leaderstats then`);
+      lines.push(`${tabs}\t\tlocal statObj = leaderstats:FindFirstChild(${stat})`);
+      lines.push(`${tabs}\t\tif statObj then ${varName} = statObj.Value end`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+
+    // ── UI & Feedback ──
+    } else if (t === "show_notification") {
+      const title = getInputValue(node.id, "title", allNodes, allEdges);
+      const text = getInputValue(node.id, "text", allNodes, allEdges);
+      const duration = getInputValue(node.id, "duration", allNodes, allEdges);
+      lines.push(`${tabs}-- Show Notification`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal starterGui = player:FindFirstChildOfClass("PlayerGui")`);
+      lines.push(`${tabs}\tif starterGui then`);
+      lines.push(`${tabs}\t\tgame:GetService("StarterGui"):SetCore("SendNotification", {`);
+      lines.push(`${tabs}\t\t\tTitle = ${title},`);
+      lines.push(`${tabs}\t\t\tText = ${text},`);
+      lines.push(`${tabs}\t\t\tDuration = ${duration},`);
+      lines.push(`${tabs}\t\t})`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+    } else if (t === "screen_shake") {
+      const intensity = getInputValue(node.id, "intensity", allNodes, allEdges);
+      const duration = getInputValue(node.id, "duration", allNodes, allEdges);
+      lines.push(`${tabs}-- Screen Shake`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tScreenShakeEvent:FireClient(player, ${intensity}, ${duration})`);
+      lines.push(`${tabs}end`);
+    } else if (t === "create_particle") {
+      const tag = getInputValue(node.id, "tag", allNodes, allEdges);
+      const color = getInputValue(node.id, "color", allNodes, allEdges);
+      const duration = getInputValue(node.id, "duration", allNodes, allEdges);
+      lines.push(`${tabs}-- Create Particle Effect`);
+      lines.push(`${tabs}for _, effectPart in CollectionService:GetTagged(${tag}) do`);
+      lines.push(`${tabs}\tlocal emitter = Instance.new("ParticleEmitter")`);
+      lines.push(`${tabs}\temitter.Color = ColorSequence.new(BrickColor.new(${color}).Color)`);
+      lines.push(`${tabs}\temitter.Lifetime = NumberRange.new(0.5, 1.5)`);
+      lines.push(`${tabs}\temitter.Rate = 50`);
+      lines.push(`${tabs}\temitter.Parent = effectPart`);
+      lines.push(`${tabs}\ttask.delay(${duration}, function() emitter:Destroy() end)`);
+      lines.push(`${tabs}end`);
+    } else if (t === "change_lighting") {
+      const brightness = getInputValue(node.id, "brightness", allNodes, allEdges);
+      const clockTime = getInputValue(node.id, "clockTime", allNodes, allEdges);
+      const fogEnd = getInputValue(node.id, "fogEnd", allNodes, allEdges);
+      lines.push(`${tabs}-- Change Lighting`);
+      lines.push(`${tabs}Lighting.Brightness = ${brightness}`);
+      lines.push(`${tabs}Lighting.ClockTime = ${clockTime}`);
+      lines.push(`${tabs}Lighting.FogEnd = ${fogEnd}`);
+
+    // ── Movement & Physics ──
+    } else if (t === "apply_force") {
+      const fx = getInputValue(node.id, "forceX", allNodes, allEdges);
+      const fy = getInputValue(node.id, "forceY", allNodes, allEdges);
+      const fz = getInputValue(node.id, "forceZ", allNodes, allEdges);
+      lines.push(`${tabs}-- Apply Force`);
+      lines.push(`${tabs}if part then`);
+      lines.push(`${tabs}\tpart.Anchored = false`);
+      lines.push(`${tabs}\tlocal force = Instance.new("VectorForce")`);
+      lines.push(`${tabs}\tlocal att = part:FindFirstChildOfClass("Attachment") or Instance.new("Attachment")`);
+      lines.push(`${tabs}\tatt.Parent = part`);
+      lines.push(`${tabs}\tforce.Attachment0 = att`);
+      lines.push(`${tabs}\tforce.Force = Vector3.new(${fx}, ${fy}, ${fz})`);
+      lines.push(`${tabs}\tforce.RelativeTo = Enum.ActuatorRelativeTo.World`);
+      lines.push(`${tabs}\tforce.Parent = part`);
+      lines.push(`${tabs}\ttask.delay(0.1, function() force:Destroy() end)`);
+      lines.push(`${tabs}end`);
+    } else if (t === "tween_property") {
+      const property = getInputValue(node.id, "property", allNodes, allEdges);
+      const targetValue = getInputValue(node.id, "targetValue", allNodes, allEdges);
+      const duration = getInputValue(node.id, "duration", allNodes, allEdges);
+      lines.push(`${tabs}-- Tween Property`);
+      lines.push(`${tabs}if part then`);
+      lines.push(`${tabs}\tlocal goal = { [${property}] = ${targetValue} }`);
+      lines.push(`${tabs}\tlocal tween = TweenService:Create(part, TweenInfo.new(${duration}), goal)`);
+      lines.push(`${tabs}\ttween:Play()`);
+      lines.push(`${tabs}end`);
+    } else if (t === "anchor_toggle") {
+      const anchored = getInputValue(node.id, "anchored", allNodes, allEdges);
+      lines.push(`${tabs}-- Set Anchored`);
+      lines.push(`${tabs}if part then part.Anchored = ${anchored} end`);
+    } else if (t === "destroy_part") {
+      lines.push(`${tabs}-- Destroy Part`);
+      lines.push(`${tabs}if part then part:Destroy() end`);
+    } else if (t === "clone_part") {
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_clone`;
+      lines.push(`${tabs}-- Clone Part`);
+      lines.push(`${tabs}local ${varName} = nil`);
+      lines.push(`${tabs}if part then`);
+      lines.push(`${tabs}\t${varName} = part:Clone()`);
+      lines.push(`${tabs}\t${varName}.Parent = workspace`);
+      lines.push(`${tabs}end`);
+
+    // ── Economy & Monetization ──
+    } else if (t === "give_currency") {
+      const currency = getInputValue(node.id, "currency", allNodes, allEdges);
+      const amount = getInputValue(node.id, "amount", allNodes, allEdges);
+      lines.push(`${tabs}-- Give Currency`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal leaderstats = player:FindFirstChild("leaderstats")`);
+      lines.push(`${tabs}\tif leaderstats then`);
+      lines.push(`${tabs}\t\tlocal curr = leaderstats:FindFirstChild(${currency})`);
+      lines.push(`${tabs}\t\tif curr then curr.Value += ${amount} end`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+    } else if (t === "spend_currency") {
+      const currency = getInputValue(node.id, "currency", allNodes, allEdges);
+      const amount = getInputValue(node.id, "amount", allNodes, allEdges);
+      const successBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "success",
+      );
+      const failBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "fail",
+      );
+      lines.push(`${tabs}-- Spend Currency`);
+      lines.push(`${tabs}local _canAfford = false`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal leaderstats = player:FindFirstChild("leaderstats")`);
+      lines.push(`${tabs}\tif leaderstats then`);
+      lines.push(`${tabs}\t\tlocal curr = leaderstats:FindFirstChild(${currency})`);
+      lines.push(`${tabs}\t\tif curr and curr.Value >= ${amount} then`);
+      lines.push(`${tabs}\t\t\tcurr.Value -= ${amount}`);
+      lines.push(`${tabs}\t\t\t_canAfford = true`);
+      lines.push(`${tabs}\t\tend`);
+      lines.push(`${tabs}\tend`);
+      lines.push(`${tabs}end`);
+      lines.push(`${tabs}if _canAfford then`);
+      if (successBranch) {
+        const successNode = allNodes.find((n) => n.id === successBranch.target);
+        if (successNode) {
+          lines.push(...indentChain([successNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      if (failBranch) {
+        lines.push(`${tabs}else`);
+        const failNode = allNodes.find((n) => n.id === failBranch.target);
+        if (failNode) {
+          lines.push(...indentChain([failNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      lines.push(`${tabs}end`);
+    } else if (t === "prompt_purchase") {
+      const assetId = getInputValue(node.id, "assetId", allNodes, allEdges);
+      lines.push(`${tabs}-- Prompt Purchase`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tMarketplaceService:PromptPurchase(player, ${assetId})`);
+      lines.push(`${tabs}end`);
+    } else if (t === "prompt_gamepass") {
+      const gamepassId = getInputValue(node.id, "gamepassId", allNodes, allEdges);
+      lines.push(`${tabs}-- Prompt GamePass Purchase`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tMarketplaceService:PromptGamePassPurchase(player, ${gamepassId})`);
+      lines.push(`${tabs}end`);
+    } else if (t === "check_gamepass") {
+      const gamepassId = getInputValue(node.id, "gamepassId", allNodes, allEdges);
+      const ownsBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "owns",
+      );
+      const doesNotOwnBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "doesNotOwn",
+      );
+      lines.push(`${tabs}-- Check GamePass`);
+      lines.push(`${tabs}local _ownsPass = false`);
+      lines.push(`${tabs}if player then`);
+      lines.push(`${tabs}\tlocal ok, result = pcall(function()`);
+      lines.push(`${tabs}\t\treturn MarketplaceService:UserOwnsGamePassAsync(player.UserId, ${gamepassId})`);
+      lines.push(`${tabs}\tend)`);
+      lines.push(`${tabs}\t_ownsPass = ok and result`);
+      lines.push(`${tabs}end`);
+      lines.push(`${tabs}if _ownsPass then`);
+      if (ownsBranch) {
+        const ownsNode = allNodes.find((n) => n.id === ownsBranch.target);
+        if (ownsNode) {
+          lines.push(...indentChain([ownsNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      if (doesNotOwnBranch) {
+        lines.push(`${tabs}else`);
+        const noNode = allNodes.find((n) => n.id === doesNotOwnBranch.target);
+        if (noNode) {
+          lines.push(...indentChain([noNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      lines.push(`${tabs}end`);
+
+    // ── Communication ──
+    } else if (t === "fire_remote") {
+      const eventName = getInputValue(node.id, "eventName", allNodes, allEdges);
+      const target = getInputValue(node.id, "target", allNodes, allEdges);
+      const evtVar = `${eventName.replace(/^"|"$/g, "")}Event`;
+      lines.push(`${tabs}-- Fire Remote Event`);
+      lines.push(`${tabs}if ${target} == "all" then`);
+      lines.push(`${tabs}\t${evtVar}:FireAllClients()`);
+      lines.push(`${tabs}elseif player then`);
+      lines.push(`${tabs}\t${evtVar}:FireClient(player)`);
+      lines.push(`${tabs}end`);
+    } else if (t === "fire_server") {
+      const eventName = getInputValue(node.id, "eventName", allNodes, allEdges);
+      const evtVar = `${eventName.replace(/^"|"$/g, "")}Event`;
+      lines.push(`${tabs}-- Fire Server Event`);
+      lines.push(`${tabs}${evtVar}:FireServer()`);
+
+    // ── New Logic ──
+    } else if (t === "for_each_player") {
+      const bodyBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "body",
+      );
+      const doneBranch = allEdges.find(
+        (e) => e.source === node.id && e.sourceHandle === "done",
+      );
+      lines.push(`${tabs}-- For Each Player`);
+      lines.push(`${tabs}for _, player in Players:GetPlayers() do`);
+      if (bodyBranch) {
+        const bodyNode = allNodes.find((n) => n.id === bodyBranch.target);
+        if (bodyNode) {
+          lines.push(...indentChain([bodyNode], allNodes, allEdges, indent + 1));
+        }
+      }
+      lines.push(`${tabs}end`);
+      if (doneBranch) {
+        const doneNode = allNodes.find((n) => n.id === doneBranch.target);
+        if (doneNode) {
+          lines.push(...indentChain([doneNode], allNodes, allEdges, indent));
+        }
+      }
+    } else if (t === "math_operation") {
+      const a = getInputValue(node.id, "a", allNodes, allEdges);
+      const op = getInputValue(node.id, "operator", allNodes, allEdges);
+      const b = getInputValue(node.id, "b", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_result`;
+      const cleanOp = op.replace(/^"|"$/g, "");
+      lines.push(`${tabs}-- Math Operation`);
+      lines.push(`${tabs}local ${varName} = ${a} ${cleanOp} ${b}`);
+    } else if (t === "string_format") {
+      const a = getInputValue(node.id, "a", allNodes, allEdges);
+      const b = getInputValue(node.id, "b", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_result`;
+      lines.push(`${tabs}-- Join Text`);
+      lines.push(`${tabs}local ${varName} = tostring(${a}) .. tostring(${b})`);
+    } else if (t === "and_gate" || t === "or_gate") {
+      // Pure data nodes — values resolved by getInputValue when referenced
+      const a = getInputValue(node.id, "a", allNodes, allEdges);
+      const b = getInputValue(node.id, "b", allNodes, allEdges);
+      const varName = `_${node.id.replace(/[^a-z0-9]/gi, "_")}_result`;
+      const op = t === "and_gate" ? "and" : "or";
+      lines.push(`${tabs}local ${varName} = ${a} ${op} ${b}`);
     }
   }
 
