@@ -445,39 +445,34 @@ function rpgPreset(): TemplatePreset {
   const T = "rpg";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Town spawn area
-    el("spawn",        "mechanic",   "TownSpawn",      "user-plus",    100,  570,  40,  40,  "#10b981"),
-    el("ground",       "terrain",    "TownGround",     "square",        50,  620, 300,  40,  "#4a5568"),
+    // ── Town (left) — safe zone ──
+    el("spawn",        "mechanic",   "TownSpawn",      "user-plus",     80,  450,  40,  40,  "#10b981"),
+    el("ground",       "terrain",    "TownGround",     "square",        40,  400, 240, 200,  "#4a5568"),
+    el("npc",          "character",  "QuestGiver",     "user",          140,  420,  28,  40,  "#22c55e"),
+    el("shop-building","structure",  "ItemShop",       "store",         180,  340,  80,  70,  "#daa520"),
+    el("shopkeeper",   "character",  "Merchant",       "shopping-bag",  200,  420,  28,  40,  "#eab308"),
+    el("house",        "structure",  "House1",         "home",           60,  320, 100,  80,  "#a0522d"),
+    el("coin",         "mechanic",   "Coin1",          "coins",         100,  510,  20,  20,  "#eab308"),
+    el("coin",         "mechanic",   "Coin2",          "coins",         160,  510,  20,  20,  "#eab308"),
+    el("tree",         "decoration", "Tree1",          "tree-pine",      50,  280,  30,  60,  "#166534"),
 
-    // Quest NPC and shop
-    el("npc",          "character",  "QuestGiver",     "user",          200,  560,  28,  40,  "#22c55e"),
-    el("shop-building","structure",  "ItemShop",       "store",         320,  490,  80,  70,  "#daa520"),
-    el("shopkeeper",   "character",  "Merchant",       "shopping-bag",  340,  565,  28,  40,  "#eab308"),
+    // ── Forest Path (center) — bridge + river ──
+    el("ground",       "terrain",    "ForestPath",     "square",       340,  420, 120, 120,  "#2d5a27"),
+    el("bridge",       "structure",  "RiverBridge",    "minus",         340,  470, 120,  24,  "#8b7355"),
+    el("water",        "terrain",    "River",          "square",        340,  500, 120,  40,  "#1e40af"),
+    el("tree",         "decoration", "Tree2",          "tree-pine",     360,  380,  30,  60,  "#166534"),
+    el("tree",         "decoration", "Tree3",          "tree-pine",     420,  390,  30,  60,  "#166534"),
 
-    // Houses
-    el("house",        "structure",  "House1",         "home",          460,  500, 100,  80,  "#a0522d"),
-    el("house",        "structure",  "House2",         "home",          580,  510, 100,  80,  "#8b4513"),
+    // ── Dungeon (center-right) — danger zone ──
+    el("cave",         "structure",  "DungeonEntrance","mountain",      540,  350, 120,  80,  "#4a4a4a"),
+    el("enemy",        "character",  "DungeonGuard",   "ghost",         570,  440,  32,  40,  "#dc2626"),
+    el("enemy",        "character",  "DungeonEnemy",   "ghost",         620,  390,  32,  40,  "#dc2626"),
+    el("rock",         "decoration", "DungeonRock",    "mountain",      540,  440,  36,  28,  "#6b7280"),
 
-    // Bridge to second area
-    el("bridge",       "structure",  "RiverBridge",    "minus",         700,  560, 150,  20,  "#8b7355"),
-
-    // Dungeon cave entrance
-    el("cave",         "structure",  "DungeonEntrance","mountain",      860,  490, 120,  60,  "#4a4a4a"),
-    el("enemy",        "character",  "DungeonGuard",   "ghost",         900,  555,  32,  40,  "#dc2626"),
-
-    // Boss arena
-    el("arena",        "structure",  "BossArena",     "shield",        1050, 420, 120, 120,  "#8b0000"),
-    el("boss",         "character",  "FinalBoss",     "crown",         1090, 470,  48,  56,  "#7c3aed"),
-
-    // Scattered coins
-    el("coin",         "mechanic",   "Coin1",         "coins",          150,  545,  20,  20,  "#eab308"),
-    el("coin",         "mechanic",   "Coin2",         "coins",          250,  545,  20,  20,  "#eab308"),
-    el("gem",          "mechanic",   "Gem1",          "diamond",        950,  470,  20,  20,  "#8b5cf6"),
-
-    // Trees and rocks
-    el("tree",         "decoration", "Tree1",         "tree-pine",       40,  555,  30,  60,  "#166534"),
-    el("tree",         "decoration", "Tree2",         "tree-pine",      760,  520,  30,  60,  "#166534"),
-    el("rock",         "decoration", "Rock1",         "mountain",        90,  610,  36,  28,  "#6b7280"),
+    // ── Boss Arena (far right) — final fight ──
+    el("arena",        "structure",  "BossArena",      "shield",        750,  320, 150, 150,  "#8b0000"),
+    el("boss",         "character",  "FinalBoss",      "crown",         800,  380,  48,  56,  "#7c3aed"),
+    el("gem",          "mechanic",   "BossGem",        "diamond",       780,  440,  24,  24,  "#8b5cf6"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -526,33 +521,32 @@ function horrorPreset(): TemplatePreset {
   const T = "horror";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Dark spawn room
-    el("spawn",      "mechanic",   "Spawn",         "user-plus",    100,  570,  40,  40,  "#10b981"),
-    el("ground",     "terrain",    "DarkRoom",      "square",        50,  620, 200,  40,  "#1a1a1a"),
-    el("lamp",       "decoration", "DimLamp1",      "lamp",         120,  530,  16,  48,  "#fbbf24"),
+    // ── Room 1: Dark Spawn (top-left) ──
+    el("ground",     "terrain",    "SpawnRoom",     "square",        60,  200, 160, 140,  "#1a1a1a"),
+    el("spawn",      "mechanic",   "Spawn",         "user-plus",    110,  250,  40,  40,  "#10b981"),
+    el("lamp",       "decoration", "DimLamp1",      "lamp",         160,  210,  16,  48,  "#fbbf24"),
 
-    // Tunnel corridors
-    el("tunnel",     "structure",  "Corridor1",     "circle",       310,  520,  60,  60,  "#555555"),
-    el("tunnel",     "structure",  "Corridor2",     "circle",       430,  510,  60,  60,  "#555555"),
-    el("lamp",       "decoration", "DimLamp2",      "lamp",         370,  500,  16,  48,  "#fbbf24"),
+    // ── Corridor 1 (connecting down) ──
+    el("tunnel",     "structure",  "Corridor1",     "circle",       110,  380,  60,  60,  "#333333"),
+    el("lamp",       "decoration", "DimLamp2",      "lamp",         100,  420,  16,  48,  "#fbbf24"),
 
-    // Locked door walls
-    el("wall",       "structure",  "LockedDoor",    "square",       560,  490, 120,  60,  "#696969"),
+    // ── Room 2: Puzzle Room (bottom-left) ──
+    el("ground",     "terrain",    "PuzzleRoom",    "square",        60,  460, 180, 140,  "#222222"),
+    el("gem",        "mechanic",   "DoorKey",       "diamond",      140,  500,  24,  24,  "#8b5cf6"),
+    el("wall",       "structure",  "LockedDoor",    "square",       190,  490,  40,  80,  "#696969"),
 
-    // Teleporter (after key pickup)
-    el("teleporter", "mechanic",   "KeyTeleporter", "zap",          720,  500,  36,  44,  "#8b5cf6"),
-    el("gem",        "mechanic",   "DoorKey",       "diamond",      640,  545,  20,  20,  "#8b5cf6"),
+    // ── Corridor 2 (connecting right) ──
+    el("tunnel",     "structure",  "Corridor2",     "circle",       300,  500,  60,  60,  "#333333"),
 
-    // Enemy (jumpscare trigger)
-    el("enemy",      "character",  "JumpscareEntity","ghost",       840,  530,  32,  40,  "#7c3aed"),
+    // ── Room 3: Jumpscare Hall (center) ──
+    el("ground",     "terrain",    "JumpscareHall", "square",       400,  420, 180, 180,  "#1a1a1a"),
+    el("enemy",      "character",  "JumpscareEntity","ghost",       470,  480,  32,  40,  "#7c3aed"),
+    el("lamp",       "decoration", "Lamp3",         "lamp",         430,  430,  16,  48,  "#fbbf24"),
 
-    // Cave (final area)
-    el("cave",       "structure",  "FinalCave",     "mountain",     980,  470, 120,  60,  "#2a2a2a"),
-    el("boss",       "character",  "CreatureBoss",  "crown",       1010,  525,  48,  56,  "#dc2626"),
-
-    // Sparse lamps
-    el("lamp",       "decoration", "Lamp3",         "lamp",         500,  510,  16,  48,  "#fbbf24"),
-    el("lamp",       "decoration", "Lamp4",         "lamp",         900,  510,  16,  48,  "#fbbf24"),
+    // ── Room 4: Final Cave (right) ──
+    el("cave",       "structure",  "FinalCave",     "mountain",     660,  350, 160, 120,  "#2a2a2a"),
+    el("boss",       "character",  "CreatureBoss",  "crown",        710,  400,  48,  56,  "#dc2626"),
+    el("lamp",       "decoration", "Lamp4",         "lamp",         680,  360,  16,  48,  "#fbbf24"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -604,32 +598,34 @@ function racingPreset(): TemplatePreset {
   const T = "racing";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Start / finish
-    el("spawn",       "mechanic",   "VehicleSpawn",  "user-plus",     80,  570,  40,  40,  "#10b981"),
-    el("portal",      "structure",  "StartLine",     "door-open",    140,  530,  40,  60,  "#9400d3"),
+    // ── Start/Finish Area (bottom-left) ──
+    el("spawn",       "mechanic",   "VehicleSpawn",  "user-plus",    120,  520,  40,  40,  "#10b981"),
+    el("portal",      "structure",  "StartLine",     "door-open",    180,  510,  30,  50,  "#ffd700"),
 
-    // Track segments (left to right, then curving)
-    el("race-track",  "structure",  "Track1",        "route",        230,  555, 200,  30,  "#333333"),
-    el("boost-pad",   "mechanic",   "BoostPad1",     "chevrons-right",310, 545,  60,  12,  "#06b6d4"),
-    el("race-track",  "structure",  "Track2",        "route",        440,  540, 200,  30,  "#333333"),
-    el("checkpoint",  "mechanic",   "Checkpoint1",   "flag",         530,  530,  40,  40,  "#22c55e"),
+    // ── Bottom Straight (left → right) ──
+    el("race-track",  "structure",  "Track1",        "route",        250,  520, 300,  40,  "#333333"),
+    el("boost-pad",   "mechanic",   "BoostPad1",     "chevrons-right",380, 530,  60,  14,  "#06b6d4"),
 
-    // Turn segment
-    el("race-track",  "structure",  "Track3",        "route",        650,  500, 200,  30,  "#333333"),
-    el("boost-pad",   "mechanic",   "BoostPad2",     "chevrons-right",730, 490,  60,  12,  "#06b6d4"),
+    // ── Right Straight (bottom → top) ──
+    el("race-track",  "structure",  "Track2",        "route",        570,  320,  40, 240,  "#333333"),
+    el("checkpoint",  "mechanic",   "Checkpoint1",   "flag",         575,  400,  30,  30,  "#22c55e"),
 
-    // Back straight
-    el("race-track",  "structure",  "Track4",        "route",        860,  480, 200,  30,  "#333333"),
-    el("checkpoint",  "mechanic",   "Checkpoint2",   "flag",         950,  470,  40,  40,  "#22c55e"),
+    // ── Top Straight (right → left) ──
+    el("race-track",  "structure",  "Track3",        "route",        250,  280, 300,  40,  "#333333"),
+    el("boost-pad",   "mechanic",   "BoostPad2",     "chevrons-right",350, 290,  60,  14,  "#06b6d4"),
 
-    // Final stretch back to start
-    el("race-track",  "structure",  "Track5",        "route",       1070,  460, 200,  30,  "#333333"),
-    el("portal",      "structure",  "FinishLine",    "door-open",   1280,  440,  40,  60,  "#9400d3"),
+    // ── Left Straight (top → bottom) ──
+    el("race-track",  "structure",  "Track4",        "route",        200,  320,  40, 240,  "#333333"),
+    el("checkpoint",  "mechanic",   "Checkpoint2",   "flag",         205,  420,  30,  30,  "#22c55e"),
 
-    // Walls as barriers along the sides
-    el("wall",        "structure",  "BarrierNorth1", "square",       310,  520, 120,  60,  "#696969"),
-    el("wall",        "structure",  "BarrierSouth1", "square",       310,  600, 120,  60,  "#696969"),
-    el("wall",        "structure",  "BarrierNorth2", "square",       730,  460, 120,  60,  "#696969"),
+    // ── Finish Line (back at start) ──
+    el("portal",      "structure",  "FinishLine",    "door-open",    180,  460,  30,  50,  "#9400d3"),
+
+    // ── Inner Track Decorations ──
+    el("ground",      "terrain",    "InfieldGrass",  "square",       280,  340, 240, 160,  "#2d6a27"),
+    el("tree",        "decoration", "InfieldTree1",  "tree-pine",    340,  380,  30,  60,  "#166534"),
+    el("tree",        "decoration", "InfieldTree2",  "tree-pine",    420,  400,  30,  60,  "#166534"),
+    el("rock",        "decoration", "InfieldRock",   "mountain",     380,  440,  36,  28,  "#6b7280"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -681,39 +677,36 @@ function minigamesPreset(): TemplatePreset {
   const T = "minigames";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Central hub
-    el("spawn",        "mechanic",   "HubSpawn",      "user-plus",    700,  450,  40,  40,  "#10b981"),
-    el("ground",       "terrain",    "HubGround",     "square",       580,  500, 280,  40,  "#4a5568"),
-    el("npc",          "character",  "VotingBoard",   "user",         700,  420,  28,  40,  "#22c55e"),
+    // ── Central Hub (middle) ──
+    el("ground",       "terrain",    "HubGround",     "square",       350,  380, 200, 180,  "#4a5568"),
+    el("spawn",        "mechanic",   "HubSpawn",      "user-plus",    420,  450,  40,  40,  "#10b981"),
+    el("npc",          "character",  "VotingBoard",   "user",         430,  400,  28,  40,  "#22c55e"),
+    el("coin",         "mechanic",   "HubCoin1",      "coins",        380,  420,  20,  20,  "#eab308"),
+    el("coin",         "mechanic",   "HubCoin2",      "coins",        490,  420,  20,  20,  "#eab308"),
 
-    // Portals to minigame arenas
-    el("portal",       "structure",  "Portal1",       "door-open",    640,  440,  40,  60,  "#ef4444"),
-    el("portal",       "structure",  "Portal2",       "door-open",    760,  440,  40,  60,  "#06b6d4"),
-    el("portal",       "structure",  "Portal3",       "door-open",    880,  440,  40,  60,  "#22c55e"),
+    // ── 3 Portals radiating from hub ──
+    el("portal",       "structure",  "SurvivalPortal","door-open",    310,  390,  40,  60,  "#ef4444"),
+    el("portal",       "structure",  "CollectPortal", "door-open",    430,  350,  40,  60,  "#06b6d4"),
+    el("portal",       "structure",  "ObbyPortal",    "door-open",    550,  390,  40,  60,  "#22c55e"),
 
-    // Arena 1 — survival
-    el("arena",        "structure",  "SurvivalArena", "shield",       200,  280, 120, 120,  "#8b0000"),
-    el("spawn",        "mechanic",   "Arena1Spawn",   "user-plus",    240,  310,  40,  40,  "#10b981"),
-    el("killbrick",    "obstacle",   "HazardBrick1",  "skull",        230,  320,  60,  16,  "#ef4444"),
+    // ── Arena 1: Survival (top-left) ──
+    el("arena",        "structure",  "SurvivalArena", "shield",       100,  200, 160, 140,  "#8b0000"),
+    el("spawn",        "mechanic",   "Arena1Spawn",   "user-plus",    150,  250,  40,  40,  "#10b981"),
+    el("killbrick",    "obstacle",   "HazardBrick1",  "skull",        170,  290,  60,  16,  "#ef4444"),
+    el("killbrick",    "obstacle",   "HazardBrick2",  "skull",        120,  310,  60,  16,  "#ef4444"),
 
-    // Arena 2 — race / collect
-    el("arena",        "structure",  "CollectArena",  "shield",       700,  200, 120, 120,  "#1d4ed8"),
-    el("spawn",        "mechanic",   "Arena2Spawn",   "user-plus",    740,  230,  40,  40,  "#10b981"),
-    el("coin",         "mechanic",   "ArenaCoin1",    "coins",        780,  260,  20,  20,  "#eab308"),
-    el("coin",         "mechanic",   "ArenaCoin2",    "coins",        810,  240,  20,  20,  "#eab308"),
+    // ── Arena 2: Coin Collect (top-center) ──
+    el("arena",        "structure",  "CollectArena",  "shield",       350,  120, 160, 140,  "#1d4ed8"),
+    el("spawn",        "mechanic",   "Arena2Spawn",   "user-plus",    400,  170,  40,  40,  "#10b981"),
+    el("coin",         "mechanic",   "ArenaCoin1",    "coins",        420,  200,  24,  24,  "#eab308"),
+    el("coin",         "mechanic",   "ArenaCoin2",    "coins",        460,  180,  24,  24,  "#eab308"),
+    el("coin",         "mechanic",   "ArenaCoin3",    "coins",        380,  220,  24,  24,  "#eab308"),
 
-    // Arena 3 — obby
-    el("arena",        "structure",  "ObbyArena",     "shield",      1200,  280, 120, 120,  "#065f46"),
-    el("spawn",        "mechanic",   "Arena3Spawn",   "user-plus",   1240,  310,  40,  40,  "#10b981"),
-    el("platform",     "platform",   "ObbyPlatform1", "minus",       1260,  300, 100,  16,  "#6366f1"),
-
-    // Fences separating hub areas
-    el("fence",        "decoration", "Fence1",        "grip-horizontal", 590, 490, 80, 28, "#92400e"),
-    el("fence",        "decoration", "Fence2",        "grip-horizontal", 810, 490, 80, 28, "#92400e"),
-
-    // Coins as rewards in hub
-    el("coin",         "mechanic",   "HubCoin1",      "coins",        610,  460,  20,  20,  "#eab308"),
-    el("coin",         "mechanic",   "HubCoin2",      "coins",        810,  460,  20,  20,  "#eab308"),
+    // ── Arena 3: Obby (top-right) ──
+    el("arena",        "structure",  "ObbyArena",     "shield",       610,  200, 160, 140,  "#065f46"),
+    el("spawn",        "mechanic",   "Arena3Spawn",   "user-plus",    650,  240,  40,  40,  "#10b981"),
+    el("platform",     "platform",   "ObbyPlat1",     "minus",        680,  260, 80,  16,  "#6366f1"),
+    el("platform",     "platform",   "ObbyPlat2",     "minus",        710,  290, 80,  16,  "#6366f1"),
   ];
 
   const hierarchy: GameInstance[] = [
