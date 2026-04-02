@@ -1,5 +1,6 @@
-import { useCanvasStore } from "../../stores/canvasStore";
+import { useCanvasStore, type CanvasElement } from "../../stores/canvasStore";
 import { Trash2, Copy } from "lucide-react";
+import type { GameLogicProperties } from "../../lib/gameLogic";
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -143,7 +144,134 @@ export function PropertyInspector() {
           <span className="w-16 flex-shrink-0 text-[11px] text-gray-400">Category</span>
           <span className="rounded bg-indigo-600/20 px-2 py-1 text-[10px] font-semibold text-indigo-400 uppercase">{selected.category}</span>
         </div>
+
+        <LogicFields selected={selected} update={update} />
       </div>
     </div>
+  );
+}
+
+// ── Game Logic Property Fields ──
+// Renders editable fields for the element's game logic properties
+
+const LOGIC_FIELD_LABELS: Record<string, { label: string; suffix?: string }> = {
+  // Economy
+  upgradeCost: { label: "Cost", suffix: "$" },
+  value: { label: "Value" },
+  plotPrice: { label: "Plot Price", suffix: "$" },
+  productionRate: { label: "Prod Rate", suffix: "s" },
+  valuePerItem: { label: "Item Value" },
+  clickValue: { label: "Click Value" },
+  // Combat
+  health: { label: "Health" },
+  maxHealth: { label: "Max HP" },
+  damage: { label: "Damage" },
+  attackRange: { label: "Atk Range" },
+  walkSpeed: { label: "Speed" },
+  respawnTime: { label: "Respawn", suffix: "s" },
+  // Platform
+  moveDistance: { label: "Distance" },
+  moveSpeed: { label: "Move Speed" },
+  disappearDelay: { label: "Disappear", suffix: "s" },
+  reappearDelay: { label: "Reappear", suffix: "s" },
+  bounceForce: { label: "Bounce" },
+  conveyorSpeed: { label: "Belt Speed" },
+  spinSpeed: { label: "Spin Speed" },
+  // Collectible
+  collectRespawnTime: { label: "Respawn", suffix: "s" },
+  // Checkpoint
+  stageNumber: { label: "Stage #" },
+  // Teleporter
+  cooldown: { label: "Cooldown", suffix: "s" },
+  // Lighting
+  lightRange: { label: "Range" },
+  lightBrightness: { label: "Brightness" },
+  // Transparency
+  transparency: { label: "Transparency" },
+  // Incremental
+  autoClickRate: { label: "Auto Rate" },
+  autoFarmRate: { label: "Farm Rate" },
+  offlineEarningRate: { label: "Offline Rate" },
+  prestigeLayer: { label: "Layer" },
+  upgradeCostBase: { label: "Base Cost" },
+  upgradeCostMultiplier: { label: "Cost Mult" },
+};
+
+const LOGIC_STRING_FIELDS: Record<string, { label: string; options?: string[] }> = {
+  material: { label: "Material", options: ["SmoothPlastic", "Neon", "Wood", "Metal", "Glass", "Concrete", "Grass", "Ice", "Sand", "Slate"] },
+  aiBehavior: { label: "AI", options: ["chase", "patrol", "stationary", "wander"] },
+  moveDirection: { label: "Direction", options: ["horizontal", "vertical"] },
+  conveyorDirection: { label: "Belt Dir", options: ["left", "right"] },
+  currency: { label: "Currency", options: ["Coins", "Gems"] },
+  destination: { label: "Dest" },
+  product: { label: "Product" },
+  shopName: { label: "Shop Name" },
+  lightColor: { label: "Light Color" },
+};
+
+const LOGIC_BOOL_FIELDS: Record<string, string> = {
+  anchored: "Anchored",
+  canCollide: "Collide",
+  killOnTouch: "Kill Touch",
+  autoSave: "Auto Save",
+};
+
+function LogicFields({ selected, update }: { selected: CanvasElement; update: (changes: Record<string, unknown>) => void }) {
+  const logic = selected.logic;
+  if (!logic) return null;
+
+  const updateLogic = (key: string, value: unknown) => {
+    update({ logic: { ...logic, [key]: value } });
+  };
+
+  // Collect which fields this element actually has
+  const numericFields: [string, number][] = [];
+  const stringFields: [string, string][] = [];
+  const boolFields: [string, boolean][] = [];
+
+  for (const [key, val] of Object.entries(logic)) {
+    if (val === undefined || val === null) continue;
+    if (typeof val === "number" && LOGIC_FIELD_LABELS[key]) {
+      numericFields.push([key, val]);
+    } else if (typeof val === "string" && LOGIC_STRING_FIELDS[key]) {
+      stringFields.push([key, val]);
+    } else if (typeof val === "boolean" && LOGIC_BOOL_FIELDS[key]) {
+      boolFields.push([key, val]);
+    }
+  }
+
+  if (numericFields.length === 0 && stringFields.length === 0 && boolFields.length === 0) return null;
+
+  return (
+    <>
+      <SectionLabel label="Game Logic" />
+      {boolFields.map(([key, val]) => (
+        <ToggleField key={key} label={LOGIC_BOOL_FIELDS[key]} value={val} onChange={(v) => updateLogic(key, v)} />
+      ))}
+      {stringFields.map(([key, val]) => {
+        const config = LOGIC_STRING_FIELDS[key];
+        if (config.options) {
+          return (
+            <div key={key} className="flex items-center gap-2 px-3 py-0.5">
+              <span className="w-16 flex-shrink-0 text-[11px] text-gray-400">{config.label}</span>
+              <select
+                value={val}
+                onChange={(e) => updateLogic(key, e.target.value)}
+                className="flex-1 rounded bg-gray-800 border border-gray-700 px-2 py-1 text-[11px] text-white focus:outline-none focus:border-indigo-500"
+              >
+                {config.options.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          );
+        }
+        return <TextField key={key} label={config.label} value={val} onChange={(v) => updateLogic(key, v)} />;
+      })}
+      {numericFields.map(([key, val]) => {
+        const config = LOGIC_FIELD_LABELS[key];
+        return <NumberField key={key} label={config.label} value={val} onChange={(v) => updateLogic(key, v)} suffix={config.suffix} />;
+      })}
+    </>
   );
 }
