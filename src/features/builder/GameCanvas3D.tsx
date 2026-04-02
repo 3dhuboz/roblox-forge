@@ -477,96 +477,85 @@ function Element3D({ el }: { el: CanvasElement }) {
     );
   }
 
-  // ── SHOP: Upgrade shop with counter, awning, sign, and display
+  // ── SHOP: Clean upgrade shop — open-front market stall style
   if (el.type === "shop-building") {
     return (
       <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
-        {/* Foundation/floor — slightly raised stone */}
-        <RobloxPart size={[3.6, 0.15, 3.2]} color="#707070" position={[0, 0.075, 0]} />
+        {/* Floor slab */}
+        <RobloxPart size={[3.2, 0.12, 2.8]} color="#808080" position={[0, 0.06, 0]} />
 
-        {/* Back wall */}
-        <RobloxPart size={[3.4, 3, 0.2]} color="#d4a030" position={[0, 1.6, -1.5]} />
-        {/* Left wall */}
-        <RobloxPart size={[0.2, 3, 3]} color="#c89428" position={[-1.6, 1.6, 0]} />
-        {/* Right wall */}
-        <RobloxPart size={[0.2, 3, 3]} color="#c89428" position={[1.6, 1.6, 0]} />
+        {/* Back wall (full) */}
+        <RobloxPart size={[3, 2.6, 0.2]} color="#daa520" position={[0, 1.36, -1.3]} />
+        {/* Left wall (full) */}
+        <RobloxPart size={[0.2, 2.6, 2.4]} color="#c89428" position={[-1.4, 1.36, 0]} />
+        {/* Right wall (full) */}
+        <RobloxPart size={[0.2, 2.6, 2.4]} color="#c89428" position={[1.4, 1.36, 0]} />
 
-        {/* Front wall — with large display window cutout */}
-        {/* Left front section */}
-        <RobloxPart size={[0.7, 3, 0.2]} color="#d4a030" position={[-1.25, 1.6, 1.5]} />
-        {/* Right front section */}
-        <RobloxPart size={[0.7, 3, 0.2]} color="#d4a030" position={[1.25, 1.6, 1.5]} />
-        {/* Above door/window */}
-        <RobloxPart size={[1.8, 0.6, 0.2]} color="#d4a030" position={[0, 2.8, 1.5]} />
-        {/* Window pane (glass — transparent blue) */}
-        <mesh position={[-0.45, 1.8, 1.5]}>
-          <boxGeometry args={[0.8, 1.4, 0.05]} />
-          <meshStandardMaterial color="#88ccff" transparent opacity={0.35} roughness={0.05} metalness={0.1} />
-        </mesh>
-        {/* Door (darker wood) */}
-        <RobloxPart size={[0.7, 2, 0.15]} color="#6b4226" position={[0.45, 1.05, 1.52]} />
-        {/* Door handle */}
-        <mesh position={[0.2, 1.1, 1.62]}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color="#ffd700" metalness={0.8} roughness={0.2} />
-        </mesh>
+        {/* Front — open counter (no front wall, just a counter) */}
+        <RobloxPart size={[3, 0.8, 0.3]} color="#8b6914" position={[0, 0.52, 1.15]} />
 
-        {/* Counter/shelf (front, below window) */}
-        <RobloxPart size={[2.2, 0.15, 0.6]} color="#8b6914" position={[0, 1, 1.2]} />
-        {/* Items on counter */}
-        <mesh position={[-0.4, 1.2, 1.2]}>
+        {/* Shelves on back wall */}
+        <RobloxPart size={[2.4, 0.1, 0.4]} color="#6b4226" position={[0, 1.8, -1.1]} />
+        <RobloxPart size={[2.4, 0.1, 0.4]} color="#6b4226" position={[0, 1.2, -1.1]} />
+        {/* Items on shelves */}
+        <mesh position={[-0.6, 1.95, -1.0]}>
           <boxGeometry args={[0.3, 0.25, 0.25]} />
-          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.3} {...SMOOTH_PLASTIC} />
+          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.2} {...SMOOTH_PLASTIC} />
         </mesh>
-        <mesh position={[0.2, 1.2, 1.2]}>
+        <mesh position={[0, 1.95, -1.0]}>
           <boxGeometry args={[0.25, 0.3, 0.25]} />
-          <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.3} {...SMOOTH_PLASTIC} />
+          <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.2} {...SMOOTH_PLASTIC} />
         </mesh>
-        <mesh position={[0.7, 1.15, 1.2]}>
+        <mesh position={[0.6, 1.95, -1.0]}>
+          <boxGeometry args={[0.3, 0.2, 0.25]} />
+          <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.2} {...SMOOTH_PLASTIC} />
+        </mesh>
+        <mesh position={[-0.4, 1.35, -1.0]}>
           <cylinderGeometry args={[0.12, 0.12, 0.2, 8]} />
           <meshStandardMaterial color="#ffd700" metalness={0.6} roughness={0.3} />
         </mesh>
-
-        {/* Awning (striped overhang) */}
-        <mesh position={[0, 3.15, 2.0]} rotation={[0.3, 0, 0]} castShadow>
-          <boxGeometry args={[3.6, 0.08, 1.2]} />
-          <meshStandardMaterial color="#cc3333" {...PLASTIC} />
+        <mesh position={[0.4, 1.35, -1.0]}>
+          <boxGeometry args={[0.35, 0.2, 0.2]} />
+          <meshStandardMaterial color="#06b6d4" {...SMOOTH_PLASTIC} />
         </mesh>
-        {/* Awning stripe */}
-        <mesh position={[0, 3.1, 2.05]} rotation={[0.3, 0, 0]}>
-          <boxGeometry args={[3.6, 0.04, 0.3]} />
+
+        {/* Awning (front overhang, angled down) */}
+        <mesh position={[0, 2.55, 0.8]} rotation={[0.25, 0, 0]} castShadow>
+          <boxGeometry args={[3.4, 0.06, 1.6]} />
+          <meshStandardMaterial color="#cc2222" {...PLASTIC} />
+        </mesh>
+        {/* Awning white stripe */}
+        <mesh position={[0, 2.52, 1.2]} rotation={[0.25, 0, 0]}>
+          <boxGeometry args={[3.4, 0.03, 0.25]} />
           <meshStandardMaterial color="#ffffff" {...PLASTIC} />
         </mesh>
-        {/* Awning support poles */}
-        <RobloxPart size={[0.08, 0.8, 0.08]} color="#808080" position={[-1.5, 2.8, 1.8]} />
-        <RobloxPart size={[0.08, 0.8, 0.08]} color="#808080" position={[1.5, 2.8, 1.8]} />
 
-        {/* Sign board above awning */}
-        <RobloxPart size={[2.4, 0.5, 0.12]} color="#2a1a0a" position={[0, 3.5, 1.5]} />
-        {/* Sign text glow */}
-        <mesh position={[0, 3.5, 1.58]}>
-          <boxGeometry args={[2, 0.35, 0.02]} />
-          <meshStandardMaterial color="#ffd700" emissive="#ffaa00" emissiveIntensity={0.8} {...NEON} />
+        {/* Sign on front of awning */}
+        <mesh position={[0, 2.78, 1.52]}>
+          <boxGeometry args={[2.2, 0.4, 0.08]} />
+          <meshStandardMaterial color="#1a0a00" {...PLASTIC} />
+        </mesh>
+        <mesh position={[0, 2.78, 1.58]}>
+          <boxGeometry args={[1.8, 0.28, 0.02]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffaa00" emissiveIntensity={0.6} {...NEON} />
         </mesh>
 
-        {/* Roof — flat with slight overhang */}
-        <mesh position={[0, 3.2, 0]} castShadow>
-          <boxGeometry args={[3.8, 0.12, 3.6]} />
+        {/* Roof */}
+        <mesh position={[0, 2.72, 0]} castShadow>
+          <boxGeometry args={[3.4, 0.1, 3]} />
           <meshStandardMaterial color="#5a3a1a" {...PLASTIC} />
         </mesh>
-        {/* Chimney */}
-        <RobloxPart size={[0.4, 0.8, 0.4]} color="#696969" position={[1, 3.6, -0.8]} />
 
-        {/* Interior light glow */}
-        <pointLight position={[0, 2, 0.5]} intensity={2} distance={4} color="#ffd700" />
+        {/* Interior light */}
+        <pointLight position={[0, 2, 0]} intensity={2} distance={3.5} color="#ffeedd" />
 
         {isSelected && (
-          <mesh position={[0, 1.8, 0]}>
-            <boxGeometry args={[4.2, 4, 4]} />
+          <mesh position={[0, 1.5, 0]}>
+            <boxGeometry args={[3.8, 3.4, 3.4]} />
             <meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe />
           </mesh>
         )}
-        <Html position={[0, 4.2, 0]} center>
+        <Html position={[0, 3.4, 0]} center>
           <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">{el.label}</div>
         </Html>
       </group>

@@ -229,7 +229,7 @@ function tycoonPreset(): TemplatePreset {
     // ── Shop Area (far right) ──
     el("shop-building",  "structure",  "UpgradeShop",    "store",      1050,  380,  80,  60,  "#daa520"),
     el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",1070, 460,  20,  30,  "#eab308"),
-    el("tree",           "decoration", "ShopTree",       "tree-pine",  1040,  340,  20,  40,  "#166534"),
+    el("tree",           "decoration", "ShopTree",       "tree-pine",  1120,  340,  20,  40,  "#166534"),
 
     // ── Decorations ──
     el("rock",           "decoration", "Rock1",          "mountain",    560,  560,  24,  20,  "#6b7280"),
