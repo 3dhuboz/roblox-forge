@@ -119,33 +119,32 @@ function obbyPreset(): TemplatePreset {
   const T = "obby";
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
-    // Lobby / spawn
-    el("spawn",    "mechanic",  "Spawn",        "user-plus",       60,  580, 40,  40,  "#10b981"),
-    el("ground",   "terrain",   "LobbyFloor",   "square",          50,  630, 200, 40,  "#4a5568"),
-    el("tree",     "decoration","Tree",          "tree-pine",       30,  560, 30,  60,  "#166534"),
-    el("rock",     "decoration","Rock",          "mountain",        200, 625, 36,  28,  "#6b7280"),
+    // ── Lobby (far left) ──
+    el("spawn",    "mechanic",  "Spawn",        "user-plus",      100, 500,  30, 30, "#10b981"),
+    el("ground",   "terrain",   "LobbyFloor",   "square",          50, 480, 150, 80, "#4a5568"),
+    el("tree",     "decoration","Tree",          "tree-pine",       50, 440,  20, 40, "#166534"),
 
-    // Stage 1 — blue platforms
-    el("platform",          "platform",  "Platform1A",    "minus",          310, 570, 100, 16, "#6366f1"),
-    el("platform",          "platform",  "Platform1B",    "minus",          460, 540, 100, 16, "#6366f1"),
-    el("killbrick",         "obstacle",  "LavaPit1",      "skull",          420, 620,  60, 16, "#ef4444"),
-    el("moving-platform",   "platform",  "MovingPad1",    "move-horizontal",610, 510, 100, 16, "#06b6d4"),
-    el("bouncy",            "platform",  "BouncePad",     "arrow-up",       760, 490,  80, 16, "#f472b6"),
-    el("checkpoint",        "mechanic",  "Checkpoint1",   "flag",           870, 480,  40, 40, "#22c55e"),
+    // ── Stage 1 — blue platforms (wide spacing, stagger Z) ──
+    el("platform",          "platform",  "Platform1A",    "minus",         300, 500, 60, 12, "#6366f1"),
+    el("killbrick",         "obstacle",  "LavaPit1",      "skull",         420, 540, 40, 12, "#ef4444"),
+    el("platform",          "platform",  "Platform1B",    "minus",         540, 460, 60, 12, "#6366f1"),
+    el("moving-platform",   "platform",  "MovingPad1",    "move-horizontal",700, 500, 60, 12, "#06b6d4"),
+    el("bouncy",            "platform",  "BouncePad",     "arrow-up",      860, 440, 50, 12, "#f472b6"),
+    el("checkpoint",        "mechanic",  "Checkpoint1",   "flag",         1000, 480, 30, 30, "#22c55e"),
 
-    // Stage 2 — purple platforms
-    el("disappearing",      "platform",  "VanishPad1",    "eye-off",        980, 450,  80, 16, "#fbbf24"),
-    el("disappearing",      "platform",  "VanishPad2",    "eye-off",       1090, 430,  80, 16, "#fbbf24"),
-    el("spinner",           "obstacle",  "Spinner1",      "rotate-cw",     1040, 410,  80, 12, "#f97316"),
-    el("platform",          "platform",  "Platform2C",    "minus",         1180, 400, 100, 16, "#7c3aed"),
-    el("checkpoint",        "mechanic",  "Checkpoint2",   "flag",          1290, 390,  40, 40, "#22c55e"),
+    // ── Stage 2 — yellow/purple platforms ──
+    el("disappearing",      "platform",  "VanishPad1",    "eye-off",      1180, 520, 50, 12, "#fbbf24"),
+    el("spinner",           "obstacle",  "Spinner1",      "rotate-cw",    1320, 460, 50, 10, "#f97316"),
+    el("disappearing",      "platform",  "VanishPad2",    "eye-off",      1460, 500, 50, 12, "#fbbf24"),
+    el("platform",          "platform",  "Platform2C",    "minus",        1600, 440, 60, 12, "#7c3aed"),
+    el("checkpoint",        "mechanic",  "Checkpoint2",   "flag",         1750, 480, 30, 30, "#22c55e"),
 
-    // Stage 3 — hard zone
-    el("platform",          "platform",  "Platform3A",    "minus",         1130, 300, 100, 16, "#4c1d95"),
-    el("killbrick",         "obstacle",  "LaserTrap",     "skull",         1240, 290,  60, 16, "#ef4444"),
-    el("platform",          "platform",  "Platform3B",    "minus",         1310, 260, 100, 16, "#4c1d95"),
-    el("platform",          "platform",  "VictoryPlatform","minus",        1230, 160, 120, 16, "#ffd700"),
-    el("tree",              "decoration","Tree2",         "tree-pine",     1360, 140,  30, 60, "#166534"),
+    // ── Stage 3 — hard zone ──
+    el("platform",          "platform",  "Platform3A",    "minus",        1940, 500, 60, 12, "#4c1d95"),
+    el("killbrick",         "obstacle",  "LaserTrap",     "skull",        2080, 460, 40, 12, "#ef4444"),
+    el("platform",          "platform",  "Platform3B",    "minus",        2220, 440, 60, 12, "#4c1d95"),
+    el("platform",          "platform",  "VictoryPlatform","minus",       2400, 480, 80, 16, "#ffd700"),
+    el("tree",              "decoration","Tree2",         "tree-pine",    2480, 440, 20, 40, "#166534"),
   ];
 
   const hierarchy: GameInstance[] = [
@@ -205,40 +204,36 @@ function tycoonPreset(): TemplatePreset {
   const el = makeElementHelper(T);
   const canvas: CanvasElement[] = [
     // ── Lobby (far left) ──
-    el("spawn",          "mechanic",   "Spawn",          "user-plus",    80,  400,  40,  40,  "#10b981"),
-    el("ground",         "terrain",    "LobbyGround",    "square",       40,  450, 160,  40,  "#4a5568"),
-    el("tree",           "decoration", "LobbyTree1",     "tree-pine",    40,  370,  30,  60,  "#166534"),
-    el("tree",           "decoration", "LobbyTree2",     "tree-pine",   170,  370,  30,  60,  "#166534"),
+    el("spawn",          "mechanic",   "Spawn",          "user-plus",    80,  480,  30,  30,  "#10b981"),
+    el("ground",         "terrain",    "LobbyGround",    "square",       40,  460, 120,  80,  "#4a5568"),
+    el("tree",           "decoration", "LobbyTree1",     "tree-pine",    50,  420,  20,  40,  "#166534"),
+    el("tree",           "decoration", "LobbyTree2",     "tree-pine",   140,  420,  20,  40,  "#166534"),
 
-    // ── Plot 1 (center-left) — clear production flow: top→down ──
-    el("tycoon-plot",    "structure",  "Plot1",          "grid-2x2",   300,  250, 200, 300,  "#228b22"),
-    el("checkpoint",     "mechanic",   "ClaimPad1",      "flag",        370,  560,  60,  30,  "#22c55e"),
-    // Dropper at top of plot
-    el("dropper",        "structure",  "Dropper1",       "arrow-down",  370,  260,  60,  50,  "#b0b0b0"),
-    // Conveyor runs down the middle
-    el("conveyor-belt",  "structure",  "Conveyor1",      "arrow-right", 350,  330, 140,  20,  "#555555"),
-    // Collector at bottom of conveyor
-    el("collector",      "structure",  "Collector1",     "coins",       350,  370,  60,  40,  "#00cc00"),
-    // Upgrades along the left side
-    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    310,  420,  50,  30,  "#ffcc00"),
-    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    310,  470,  50,  30,  "#ffcc00"),
-    el("upgrade-button", "structure",  "CapacityUpgrade","arrow-up",    310,  520,  50,  30,  "#ffcc00"),
+    // ── Plot 1 (left) — dropper → conveyor → collector, spread along Z ──
+    el("tycoon-plot",    "structure",  "Plot1",          "grid-2x2",   300,  300, 140, 260,  "#228b22"),
+    el("dropper",        "structure",  "Dropper1",       "arrow-down",  350,  310,  40,  40,  "#b0b0b0"),
+    el("conveyor-belt",  "structure",  "Conveyor1",      "arrow-right", 340,  400,  80,  14,  "#555555"),
+    el("collector",      "structure",  "Collector1",     "coins",       340,  460,  40,  30,  "#00cc00"),
+    el("checkpoint",     "mechanic",   "ClaimPad1",      "flag",        350,  540,  40,  20,  "#22c55e"),
+    el("upgrade-button", "structure",  "SpeedUpgrade",   "arrow-up",    470,  340,  40,  20,  "#ffcc00"),
+    el("upgrade-button", "structure",  "ValueUpgrade",   "arrow-up",    470,  400,  40,  20,  "#ffcc00"),
+    el("upgrade-button", "structure",  "CapacityUpgrade","arrow-up",    470,  460,  40,  20,  "#ffcc00"),
 
     // ── Plot 2 (center-right) — second player plot ──
-    el("tycoon-plot",    "structure",  "Plot2",          "grid-2x2",   600,  250, 200, 300,  "#1a7a1a"),
-    el("checkpoint",     "mechanic",   "ClaimPad2",      "flag",        670,  560,  60,  30,  "#22c55e"),
-    el("dropper",        "structure",  "Dropper2",       "arrow-down",  670,  260,  60,  50,  "#a0a0a0"),
-    el("conveyor-belt",  "structure",  "Conveyor2",      "arrow-right", 650,  330, 140,  20,  "#555555"),
-    el("collector",      "structure",  "Collector2",     "coins",       650,  370,  60,  40,  "#00cc00"),
+    el("tycoon-plot",    "structure",  "Plot2",          "grid-2x2",   700,  300, 140, 260,  "#1a7a1a"),
+    el("dropper",        "structure",  "Dropper2",       "arrow-down",  750,  310,  40,  40,  "#a0a0a0"),
+    el("conveyor-belt",  "structure",  "Conveyor2",      "arrow-right", 740,  400,  80,  14,  "#555555"),
+    el("collector",      "structure",  "Collector2",     "coins",       740,  460,  40,  30,  "#00cc00"),
+    el("checkpoint",     "mechanic",   "ClaimPad2",      "flag",        750,  540,  40,  20,  "#22c55e"),
 
     // ── Shop Area (far right) ──
-    el("shop-building",  "structure",  "UpgradeShop",    "store",       900,  300, 100,  80,  "#daa520"),
-    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",920,  400,  28,  40,  "#eab308"),
-    el("tree",           "decoration", "ShopTree",       "tree-pine",   880,  260,  30,  60,  "#166534"),
+    el("shop-building",  "structure",  "UpgradeShop",    "store",      1050,  380,  80,  60,  "#daa520"),
+    el("shopkeeper",     "character",  "Shopkeeper",     "shopping-bag",1070, 460,  20,  30,  "#eab308"),
+    el("tree",           "decoration", "ShopTree",       "tree-pine",  1040,  340,  20,  40,  "#166534"),
 
     // ── Decorations ──
-    el("rock",           "decoration", "Rock1",          "mountain",    530,  580,  36,  28,  "#6b7280"),
-    el("fence",          "decoration", "PathFence",      "grip-horizontal", 200, 440, 80, 28, "#92400e"),
+    el("rock",           "decoration", "Rock1",          "mountain",    560,  560,  24,  20,  "#6b7280"),
+    el("fence",          "decoration", "PathFence",      "grip-horizontal", 200, 470, 60, 20, "#92400e"),
   ];
 
   const hierarchy: GameInstance[] = [
