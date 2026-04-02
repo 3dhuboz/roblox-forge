@@ -32,7 +32,7 @@ function getMaterialProps(el: CanvasElement): {
   emissiveIntensity?: number;
   opacity?: number;
 } {
-  const material = (el.properties?.material as string)?.toLowerCase?.() ?? "";
+  const material = ((el.logic?.material as string) || (el.properties?.material as string) || "").toLowerCase();
   const color = getElementColor(el);
 
   // Neon: self-illuminating glow
@@ -788,6 +788,7 @@ function Element3D({ el }: { el: CanvasElement }) {
 
   // ── UPGRADE BUTTON: Step-on pad to buy upgrades (Roblox tycoon staple)
   if (el.type === "upgrade-button") {
+    const cost = el.logic?.upgradeCost ?? 500;
     return (
       <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Yellow pad */}
@@ -795,11 +796,11 @@ function Element3D({ el }: { el: CanvasElement }) {
           <boxGeometry args={[1.8, 0.15, 1.2]} />
           <meshStandardMaterial color="#ffcc00" emissive="#ffaa00" emissiveIntensity={0.3} {...SMOOTH_PLASTIC} />
         </mesh>
-        {/* Price display */}
+        {/* Price display — reads from logic.upgradeCost */}
         <Html position={[0, 0.6, 0]} center>
           <div className="whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-black pointer-events-none shadow-lg"
             style={{ background: "linear-gradient(180deg, #ffcc00, #ff9900)", color: "#000", border: "2px solid #cc8800" }}>
-            💰 $500
+            💰 ${cost}
           </div>
         </Html>
         {selectBox && <group position={[0, 0.08, 0]}><mesh><boxGeometry args={[2, 0.4, 1.4]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
