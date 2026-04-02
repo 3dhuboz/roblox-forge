@@ -53,12 +53,13 @@ export function BuildPage() {
     if (project?.template) setTemplate(project.template);
   }, [project?.template, setTemplate]);
 
-  // Load real project state into canvas preview
+  // Load real project state into canvas preview (only if canvas is empty —
+  // preset elements are already loaded by projectStore.createProject)
   useEffect(() => {
-    if (projectState?.hierarchy && project?.template) {
+    if (projectState?.hierarchy && project?.template && elements.length === 0) {
       loadFromProject(projectState.hierarchy, project.template);
     }
-  }, [projectState?.hierarchy, project?.template, loadFromProject]);
+  }, [projectState?.hierarchy, project?.template, loadFromProject, elements.length]);
 
   // Auto-save canvas to project files when elements change (debounced)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
