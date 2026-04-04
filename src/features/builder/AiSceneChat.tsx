@@ -244,7 +244,7 @@ function aiGenerateScene(prompt: string, template: string, addElement: (item: an
     addElement(find("checkpoint"), 1140, 400);
     return "Added an obby stage with platforms, moving platforms, and a checkpoint at the end!";
   }
-  if (template === "obby" && (lower.includes("obstacle") || lower.includes("trap") || lower.includes("kill"))) {
+  if (template === "obby" && (lower.includes("obstacle") || lower.includes("trap") || lower.includes("kill") || lower.includes("lava") || lower.includes("hazard") || lower.includes("danger"))) {
     for (let i = 0; i < 4; i++) addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
     addElement(find("spinner"), rand(400, 900), rand(350, 450));
     addElement(find("laser"), rand(500, 1000), rand(320, 460));
@@ -310,6 +310,61 @@ function aiGenerateScene(prompt: string, template: string, addElement: (item: an
     return "Added a creepy abandoned building with dim lighting!";
   }
 
+  // ── Incremental-specific commands
+  if (template === "incremental" && (lower.includes("orb") || lower.includes("click") || lower.includes("clicker"))) {
+    for (let i = 0; i < 5; i++) addElement(find("click-orb"), rand(300, 600), rand(350, 500));
+    return "Added click orbs! Players click them to earn coins.";
+  }
+  if (template === "incremental" && (lower.includes("prestige") || lower.includes("rebirth") || lower.includes("ascend"))) {
+    addElement(find("prestige-pad"), rand(500, 800), rand(400, 500));
+    return "Added a prestige pad! Players step on it to prestige for permanent multipliers.";
+  }
+  if (template === "incremental" && (lower.includes("upgrade") || lower.includes("shop"))) {
+    addElement(find("upgrade-board"), rand(100, 300), rand(350, 450));
+    addElement(find("npc"), rand(100, 300), rand(450, 520));
+    return "Added an upgrade board with an NPC! Players can buy auto-clickers, multipliers, and more.";
+  }
+  if (template === "incremental" && (lower.includes("zone") || lower.includes("area") || lower.includes("unlock"))) {
+    addElement(find("zone-portal"), rand(200, 400), rand(250, 350));
+    addElement(find("zone-portal"), rand(500, 700), rand(250, 350));
+    return "Added zone portals! Players unlock new earning areas as they progress.";
+  }
+
+  // ── Simulator-specific
+  if (template === "simulator" && (lower.includes("pet") || lower.includes("egg") || lower.includes("hatch"))) {
+    addElement(find("portal"), rand(400, 700), rand(350, 450));
+    for (let i = 0; i < 3; i++) addElement(find("pet"), rand(450, 750), rand(380, 480));
+    return "Added an egg hatch portal and pets! Players hatch eggs to get random pets that boost earnings.";
+  }
+  if (template === "simulator" && (lower.includes("rebirth") || lower.includes("prestige"))) {
+    addElement(find("npc"), rand(700, 900), rand(400, 480));
+    return "Added a rebirth NPC! Players reset their progress for permanent multipliers.";
+  }
+
+  // ── Horror-specific
+  if (template === "horror" && (lower.includes("monster") || lower.includes("enemy") || lower.includes("creature") || lower.includes("ghost"))) {
+    addElement(find("enemy"), rand(400, 800), rand(350, 480));
+    addElement(find("lamp"), rand(350, 750), rand(350, 450));
+    return "Added a monster lurking in the shadows with dim lighting nearby!";
+  }
+  if (template === "horror" && (lower.includes("puzzle") || lower.includes("key") || lower.includes("lock") || lower.includes("door"))) {
+    addElement(find("wall"), rand(400, 700), rand(350, 450));
+    addElement(find("gem"), rand(300, 600), rand(380, 480));
+    return "Added a locked door and a key to find! The key unlocks the next area.";
+  }
+  if (template === "horror" && (lower.includes("dark") || lower.includes("room") || lower.includes("corridor"))) {
+    addElement(find("tunnel"), rand(300, 800), rand(350, 480));
+    addElement(find("lamp"), rand(350, 750), rand(350, 450));
+    return "Added a dark corridor with a flickering lamp!";
+  }
+
+  // ── Minigames-specific
+  if (template === "minigames" && (lower.includes("arena") || lower.includes("game") || lower.includes("minigame"))) {
+    addElement(find("arena"), rand(200, 800), rand(200, 400));
+    addElement(find("spawn"), rand(250, 750), rand(250, 380));
+    return "Added a new minigame arena with a spawn point!";
+  }
+
   if (template === "racing" && (lower.includes("track") || lower.includes("road") || lower.includes("race"))) {
     for (let i = 0; i < 5; i++) addElement(find("race-track"), 200 + i * 220, 400);
     addElement(find("boost-pad"), rand(400, 900), 400);
@@ -351,10 +406,11 @@ function aiGenerateScene(prompt: string, template: string, addElement: (item: an
     for (let i = 0; i < 4; i++) addElement(find("lamp"), rand(200, 1200), rand(300, 500));
     return "Added lamps for lighting!";
   }
-  if (lower.includes("obstacle") || lower.includes("danger")) {
+  if (lower.includes("obstacle") || lower.includes("danger") || lower.includes("hazard") || lower.includes("lava") || lower.includes("trap")) {
+    addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
     addElement(find("killbrick"), rand(300, 1100), rand(300, 480));
     addElement(find("spikes"), rand(300, 1100), rand(300, 480));
-    return "Added obstacles!";
+    return "Added hazards — kill bricks and spikes!";
   }
   if (lower.includes("bridge")) {
     addElement(find("bridge"), rand(400, 900), rand(350, 450));

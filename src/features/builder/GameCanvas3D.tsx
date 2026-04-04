@@ -863,6 +863,115 @@ function Element3D({ el }: { el: CanvasElement }) {
     );
   }
 
+  // ── CLICK ORB: Glowing interactive sphere
+  if (el.type === "click-orb") {
+    return (
+      <group position={[worldX, 1.2, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh castShadow>
+          <sphereGeometry args={[0.6, 16, 16]} />
+          <meshStandardMaterial color="#00ffff" emissive="#00ccff" emissiveIntensity={0.8} transparent opacity={0.85} {...NEON} />
+        </mesh>
+        <pointLight position={[0, 0, 0]} intensity={3} distance={3} color="#00ffff" />
+        {selectBox}
+        <Html position={[0, 1.2, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-cyan-300 pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── PRESTIGE PAD: Golden glowing platform
+  if (el.type === "prestige-pad") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[1.2, 1.4, 0.2, 8]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffaa00" emissiveIntensity={0.6} {...NEON} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]}>
+          <cylinderGeometry args={[0.8, 0.8, 0.1, 8]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffd700" emissiveIntensity={1} transparent opacity={0.5} {...NEON} />
+        </mesh>
+        <pointLight position={[0, 0.8, 0]} intensity={4} distance={4} color="#ffd700" />
+        {selectBox && <group position={[0, 0.1, 0]}><mesh><cylinderGeometry args={[1.6, 1.6, 0.5, 8]} /><meshBasicMaterial color="#00aaff" transparent opacity={0.12} wireframe /></mesh></group>}
+        <Html position={[0, 1, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-yellow-300 pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── ZONE PORTAL: Colored archway
+  if (el.type === "zone-portal") {
+    const portalColor = el.color || "#8b5cf6";
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[0.25, 3.2, 0.25]} color="#444444" position={[-1, 1.6, 0]} />
+        <RobloxPart size={[0.25, 3.2, 0.25]} color="#444444" position={[1, 1.6, 0]} />
+        <RobloxPart size={[2.2, 0.25, 0.25]} color="#444444" position={[0, 3.2, 0]} />
+        <mesh position={[0, 1.6, 0]}>
+          <boxGeometry args={[1.6, 2.9, 0.12]} />
+          <meshStandardMaterial color={portalColor} emissive={portalColor} emissiveIntensity={0.8} transparent opacity={0.55} {...NEON} />
+        </mesh>
+        <pointLight position={[0, 1.6, 0.5]} intensity={3} distance={4} color={portalColor} />
+        <Html position={[0, 3.8, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── SPINNER: Rotating hazard bar
+  if (el.type === "spinner") {
+    const spinRef = useRef<THREE.Group>(null);
+    useFrame(({ clock }) => {
+      if (spinRef.current) spinRef.current.rotation.y = clock.elapsedTime * 2;
+    });
+    return (
+      <group position={[worldX, 0.5, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        {/* Center pole */}
+        <RobloxPart size={[0.3, 1, 0.3]} color="#666666" position={[0, 0, 0]} />
+        {/* Spinning arms */}
+        <group ref={spinRef} position={[0, 0.6, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[3, 0.2, 0.3]} />
+            <meshStandardMaterial color="#ff8c00" emissive="#ff6600" emissiveIntensity={0.4} {...SMOOTH_PLASTIC} />
+          </mesh>
+        </group>
+        <Html position={[0, 1.5, 0]} center>
+          <div className="whitespace-nowrap rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-orange-400 pointer-events-none shadow">{el.label}</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── BOOST PAD: Glowing cyan pad with arrows
+  if (el.type === "boost-pad") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <mesh position={[0, 0.06, 0]} castShadow>
+          <boxGeometry args={[2, 0.12, 1]} />
+          <meshStandardMaterial color="#06b6d4" emissive="#00e5ff" emissiveIntensity={0.5} {...NEON} />
+        </mesh>
+        <Html position={[0, 0.5, 0]} center>
+          <div className="text-[14px] font-bold pointer-events-none" style={{ color: "#00e5ff", textShadow: "0 0 8px #00e5ff88" }}>→→→</div>
+        </Html>
+      </group>
+    );
+  }
+
+  // ── FENCE: Wooden rail
+  if (el.type === "fence") {
+    return (
+      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+        <RobloxPart size={[0.15, 0.8, 0.15]} color="#6e3b12" position={[-0.8, 0.4, 0]} />
+        <RobloxPart size={[0.15, 0.8, 0.15]} color="#6e3b12" position={[0.8, 0.4, 0]} />
+        <RobloxPart size={[1.8, 0.1, 0.1]} color="#8b5a2b" position={[0, 0.65, 0]} />
+        <RobloxPart size={[1.8, 0.1, 0.1]} color="#8b5a2b" position={[0, 0.35, 0]} />
+      </group>
+    );
+  }
+
   // ── DEFAULT: Standard Roblox Part (material-aware)
   const yPos = scale[1] / 2;
   const matProps = getMaterialProps(el);
