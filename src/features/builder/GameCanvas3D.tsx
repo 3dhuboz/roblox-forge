@@ -76,20 +76,48 @@ function getMaterialProps(el: CanvasElement): {
 }
 
 function getElementScale(type: string): [number, number, number] {
-  // Sizes in Roblox studs (1 stud ≈ 0.3 in our world units)
   const map: Record<string, [number, number, number]> = {
-    ground: [4, 0.4, 4], grass: [4, 0.4, 4], water: [5, 0.2, 5], lava: [4, 0.3, 4],
-    sand: [4, 0.4, 4], ice: [4, 0.2, 4],
-    platform: [4, 0.4, 2], "moving-platform": [4, 0.4, 2], disappearing: [3, 0.4, 2],
-    bouncy: [3, 0.4, 2], conveyor: [4, 0.3, 2],
-    killbrick: [2, 0.4, 2], spinner: [0.4, 1.2, 3], laser: [0.2, 4, 0.2], spikes: [3, 0.8, 2],
-    enemy: [1, 1, 1], pet: [0.8, 0.8, 0.8], npc: [1, 1, 1],
-    boss: [1.5, 1.5, 1.5], shopkeeper: [1, 1, 1],
-    tree: [1, 1, 1], rock: [1.5, 1, 1.2], lamp: [0.4, 3, 0.4], bush: [1.2, 0.8, 1.2],
-    fence: [4, 1.2, 0.2], checkpoint: [0.3, 3, 0.3], teleporter: [1.5, 0.3, 1.5],
-    "boost-pad": [3, 0.15, 2], coin: [0.5, 0.5, 0.1], gem: [0.4, 0.6, 0.4], spawn: [2, 0.2, 2],
+    // Terrain — flat, wide
+    ground: [4, 0.3, 4], grass: [4, 0.3, 4], water: [5, 0.15, 5], lava: [4, 0.2, 4],
+    sand: [4, 0.3, 4], ice: [4, 0.15, 4],
+    // Platforms — thin, wide
+    platform: [2.5, 0.3, 1.2], "moving-platform": [2.5, 0.3, 1.2], disappearing: [2, 0.3, 1.2],
+    bouncy: [2, 0.3, 1.2], conveyor: [3, 0.2, 1.2],
+    // Obstacles — smaller
+    killbrick: [1.5, 0.3, 1.5], spinner: [0.3, 0.8, 2], laser: [0.15, 3, 0.15], spikes: [2, 0.5, 1.5],
+    // Characters
+    enemy: [1, 1, 1], pet: [0.6, 0.6, 0.6], npc: [1, 1, 1],
+    boss: [1.4, 1.4, 1.4], shopkeeper: [1, 1, 1],
+    // Decorations
+    tree: [1, 1, 1], rock: [1.2, 0.8, 1], lamp: [0.3, 2.5, 0.3], bush: [1, 0.6, 1],
+    fence: [3, 1, 0.15], checkpoint: [0.2, 2.5, 0.2], teleporter: [1.2, 0.2, 1.2],
+    "boost-pad": [2.5, 0.1, 1.5], coin: [0.4, 0.4, 0.08], gem: [0.35, 0.5, 0.35], spawn: [1.5, 0.15, 1.5],
   };
   return map[type] || [1, 1, 1];
+}
+
+/**
+ * Get the Y-height (elevation) for an element in 3D space.
+ * Elements higher on the canvas (lower Y value) appear elevated in 3D.
+ * Platforms, obstacles, and mechanics get elevation based on canvas position.
+ * Terrain and decorations stay at ground level.
+ */
+function getElementElevation(el: CanvasElement): number {
+  // Ground-level types always at Y=0
+  const groundTypes = new Set([
+    "ground", "grass", "water", "lava", "sand", "ice",
+    "tree", "rock", "bush", "lamp", "fence",
+    "tycoon-plot", "arena", "race-track",
+  ]);
+  if (groundTypes.has(el.type)) return 0;
+
+  // For platforms and mechanics: canvas Y maps to 3D height
+  // Canvas Y range is roughly 250-580. Lower Y = higher in 3D.
+  // Map Y 580 → height 0.5 (just above ground)
+  // Map Y 250 → height 6 (high up)
+  const canvasY = el.y;
+  const height = Math.max(0.3, ((580 - canvasY) / 580) * 6);
+  return height;
 }
 
 // ── Roblox-style Part (box with plastic material) ──
@@ -202,6 +230,7 @@ function Element3D({ el }: { el: CanvasElement }) {
 
   const worldX = (el.x - 700) / 50;
   const worldZ = (el.y - 350) / 50;
+  const elevation = getElementElevation(el);
 
   const handleClick = (e: any) => {
     e.stopPropagation();
@@ -224,7 +253,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── TREE: Cylinder trunk + sphere foliage (classic Roblox free-model tree)
   if (el.type === "tree") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 1.2, 0]} castShadow>
           <cylinderGeometry args={[0.12, 0.18, 2.4, 8]} />
           <meshStandardMaterial color="#6b3a1f" {...PLASTIC} />
@@ -252,7 +281,7 @@ function Element3D({ el }: { el: CanvasElement }) {
     };
     return (
       <group onClick={handleClick} {...hoverHandlers}>
-        <R6Character bodyColor={color} headColor={headColors[el.type]} pos={[worldX, 0, worldZ]} label={el.label} />
+        <R6Character bodyColor={color} headColor={headColors[el.type]} pos={[worldX, elevation, worldZ]} label={el.label} />
         {isSelected && (
           <mesh position={[worldX, 1, worldZ]}>
             <boxGeometry args={[1.2, 2.4, 0.8]} />
@@ -266,7 +295,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── WATER: Transparent animated block
   if (el.type === "water") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <WaterBlock pos={[0, 0.1, 0]} size={scale} />
         {selectBox && <group position={[0, 0.1, 0]}>{selectBox}</group>}
       </group>
@@ -276,7 +305,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── LAVA: Glowing red block
   if (el.type === "lava") {
     return (
-      <group position={[worldX, scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation + scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh castShadow>
           <boxGeometry args={scale} />
           <meshStandardMaterial color="#e8302a" emissive="#ff4400" emissiveIntensity={0.8} {...NEON} />
@@ -290,7 +319,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── SPAWN: Roblox SpawnLocation pad (gray base + green team color)
   if (el.type === "spawn") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Base pad */}
         <RobloxPart size={[2, 0.2, 2]} color="#898989" position={[0, 0.1, 0]} />
         {/* Team color diamond */}
@@ -311,7 +340,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── CHECKPOINT: Pole + flag
   if (el.type === "checkpoint") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 1.5, 0]} castShadow>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
           <meshStandardMaterial color="#c0c0c0" {...SMOOTH_PLASTIC} />
@@ -362,7 +391,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── ROCK: Irregular blocky shape
   if (el.type === "rock") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 0.4, 0]} castShadow rotation={[0, 0.4, 0]}>
           <dodecahedronGeometry args={[0.7, 0]} />
           <meshStandardMaterial color="#898989" {...PLASTIC} flatShading />
@@ -380,7 +409,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── BUSH: Green spheres cluster
   if (el.type === "bush") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 0.35, 0]} castShadow>
           <sphereGeometry args={[0.55, 10, 8]} />
           <meshStandardMaterial color="#1e7a1e" {...PLASTIC} />
@@ -396,7 +425,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── LAMP: Pole with light (Roblox style)
   if (el.type === "lamp") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 1.5, 0]} castShadow>
           <cylinderGeometry args={[0.06, 0.08, 3, 8]} />
           <meshStandardMaterial color="#4a4a4a" {...PLASTIC} />
@@ -413,7 +442,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── KILLBRICK: Bright red Roblox part
   if (el.type === "killbrick") {
     return (
-      <group position={[worldX, scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation + scale[1] / 2, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh castShadow>
           <boxGeometry args={scale} />
           <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.15} {...SMOOTH_PLASTIC} />
@@ -426,7 +455,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── TELEPORTER: Glowing purple pad
   if (el.type === "teleporter") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 0.15, 0]} castShadow>
           <cylinderGeometry args={[0.75, 0.75, 0.3, 16]} />
           <meshStandardMaterial color="#aa00ff" emissive="#7700cc" emissiveIntensity={0.6} {...NEON} />
@@ -439,7 +468,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── HOUSE: Basic residential building
   if (el.type === "house") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Floor */}
         <RobloxPart size={[3, 0.1, 3]} color="#808080" position={[0, 0.05, 0]} />
         {/* Back wall */}
@@ -480,7 +509,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── SHOP: Clean upgrade shop — open-front market stall style
   if (el.type === "shop-building") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Floor slab */}
         <RobloxPart size={[3.2, 0.12, 2.8]} color="#808080" position={[0, 0.06, 0]} />
 
@@ -565,7 +594,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── CAVE: Arch entrance with dark interior
   if (el.type === "cave") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Base rock */}
         <mesh position={[0, 1.2, -0.5]} castShadow>
           <boxGeometry args={[4, 2.4, 2.5]} />
@@ -596,7 +625,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── TOWER: Tall structure
   if (el.type === "tower") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[1.5, 5, 1.5]} color="#808080" position={[0, 2.5, 0]} />
         <RobloxPart size={[1.8, 0.3, 1.8]} color="#696969" position={[0, 5.15, 0]} />
         {/* Battlements */}
@@ -622,7 +651,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── WALL: Simple barrier
   if (el.type === "wall") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[4, 2.5, 0.4]} color="#696969" position={[0, 1.25, 0]} />
       </group>
     );
@@ -631,7 +660,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── ARENA: Flat area with walls around it
   if (el.type === "arena") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Floor */}
         <RobloxPart size={[6, 0.1, 6]} color="#8b0000" position={[0, 0.05, 0]} />
         {/* Walls */}
@@ -649,7 +678,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── TYCOON PLOT: Flat green pad with boundary
   if (el.type === "tycoon-plot") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[5, 0.1, 5]} color="#228b22" position={[0, 0.05, 0]} />
         {/* Boundary lines */}
         <RobloxPart size={[5, 0.3, 0.05]} color="#ffff00" position={[0, 0.2, -2.47]} />
@@ -666,7 +695,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── MACHINE: Tycoon dropper/conveyor machine
   if (el.type === "machine") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[1.2, 1.5, 1.2]} color="#b0b0b0" position={[0, 0.75, 0]} />
         <RobloxPart size={[0.8, 0.3, 0.8]} color="#ffd700" position={[0, 1.65, 0]} />
         <mesh position={[0, 2, 0]}>
@@ -680,7 +709,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── RACE TRACK: Dark road segment with lines
   if (el.type === "race-track") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[6, 0.1, 3]} color="#333333" position={[0, 0.05, 0]} />
         {/* Center dashed line */}
         {[-2, -1, 0, 1, 2].map((lx, i) => (
@@ -703,7 +732,7 @@ function Element3D({ el }: { el: CanvasElement }) {
       }
     });
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Base */}
         <RobloxPart size={[1.6, 0.4, 1.6]} color="#888888" position={[0, 0.2, 0]} />
         {/* Pillar */}
@@ -734,7 +763,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── CONVEYOR BELT: Moves items from dropper to collector
   if (el.type === "conveyor-belt") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Belt surface */}
         <RobloxPart size={[5, 0.15, 1.5]} color="#333333" position={[0, 0.35, 0]} />
         {/* Side rails */}
@@ -761,7 +790,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── COLLECTOR / SELL ZONE: Where items get sold for cash
   if (el.type === "collector") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Base pad (glowing green like Roblox sell pads) */}
         <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
           <boxGeometry args={[2, 0.2, 2]} />
@@ -790,7 +819,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   if (el.type === "upgrade-button") {
     const cost = el.logic?.upgradeCost ?? 500;
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Yellow pad */}
         <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.8, 0.15, 1.2]} />
@@ -811,7 +840,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── PORTAL: Glowing doorway
   if (el.type === "portal") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Frame */}
         <RobloxPart size={[0.3, 3, 0.3]} color="#555555" position={[-0.85, 1.5, 0]} />
         <RobloxPart size={[0.3, 3, 0.3]} color="#555555" position={[0.85, 1.5, 0]} />
@@ -829,7 +858,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── TUNNEL: Walk-through tube
   if (el.type === "tunnel") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Arch */}
         <mesh position={[0, 1, 0]} castShadow>
           <torusGeometry args={[1.2, 0.3, 8, 12, Math.PI]} />
@@ -845,7 +874,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── MARKET STALL: Small vendor booth
   if (el.type === "market-stall") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         {/* Counter */}
         <RobloxPart size={[2, 0.9, 0.8]} color="#cd853f" position={[0, 0.45, 0]} />
         {/* Poles */}
@@ -883,7 +912,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── PRESTIGE PAD: Golden glowing platform
   if (el.type === "prestige-pad") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[1.2, 1.4, 0.2, 8]} />
           <meshStandardMaterial color="#ffd700" emissive="#ffaa00" emissiveIntensity={0.6} {...NEON} />
@@ -905,7 +934,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   if (el.type === "zone-portal") {
     const portalColor = el.color || "#8b5cf6";
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[0.25, 3.2, 0.25]} color="#444444" position={[-1, 1.6, 0]} />
         <RobloxPart size={[0.25, 3.2, 0.25]} color="#444444" position={[1, 1.6, 0]} />
         <RobloxPart size={[2.2, 0.25, 0.25]} color="#444444" position={[0, 3.2, 0]} />
@@ -948,7 +977,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── BOOST PAD: Glowing cyan pad with arrows
   if (el.type === "boost-pad") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <mesh position={[0, 0.06, 0]} castShadow>
           <boxGeometry args={[2, 0.12, 1]} />
           <meshStandardMaterial color="#06b6d4" emissive="#00e5ff" emissiveIntensity={0.5} {...NEON} />
@@ -963,7 +992,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   // ── FENCE: Wooden rail
   if (el.type === "fence") {
     return (
-      <group position={[worldX, 0, worldZ]} onClick={handleClick} {...hoverHandlers}>
+      <group position={[worldX, elevation, worldZ]} onClick={handleClick} {...hoverHandlers}>
         <RobloxPart size={[0.15, 0.8, 0.15]} color="#6e3b12" position={[-0.8, 0.4, 0]} />
         <RobloxPart size={[0.15, 0.8, 0.15]} color="#6e3b12" position={[0.8, 0.4, 0]} />
         <RobloxPart size={[1.8, 0.1, 0.1]} color="#8b5a2b" position={[0, 0.65, 0]} />
@@ -976,7 +1005,7 @@ function Element3D({ el }: { el: CanvasElement }) {
   const yPos = scale[1] / 2;
   const matProps = getMaterialProps(el);
   return (
-    <group position={[worldX, yPos, worldZ]} onClick={handleClick} {...hoverHandlers}>
+    <group position={[worldX, elevation + yPos, worldZ]} onClick={handleClick} {...hoverHandlers}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={scale} />
         <meshStandardMaterial
