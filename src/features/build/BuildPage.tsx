@@ -12,6 +12,8 @@ import { useCanvasStore } from "../../stores/canvasStore";
 import { buildCommands } from "../../services/tauriCommands";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
+import { exportProjectZip, downloadBlob } from "../../lib/exportZip";
+import { useVisualScriptStore } from "../../stores/visualScriptStore";
 
 export function BuildPage() {
   const { project, projectState, refreshProjectState } = useProjectStore();
@@ -19,17 +21,35 @@ export function BuildPage() {
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
   const [sidebarTab, setSidebarTab] = useState<"chat" | "script" | "monetize">("chat");
   const [isExporting, setIsExporting] = useState(false);
-  const [exportResult, setExportResult] = useState<{ rbxlPath: string; warnings: string[] } | null>(null);
+  const [exportDone, setExportDone] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const isDesktop = isTauriRuntime();
 
   const handleExport = async () => {
     if (!project || isExporting) return;
     setIsExporting(true);
     setExportError(null);
-    setExportResult(null);
+    setExportDone(false);
     try {
-      const result = await buildCommands.buildProject(project.path);
-      setExportResult(result);
+      if (isDesktop) {
+        // Desktop: build real .rbxl via Tauri
+        const result = await buildCommands.buildProject(project.path);
+        if (result.rbxlPath) {
+          setExportDone(true);
+        }
+      } else {
+        // Browser: generate downloadable Rojo project ZIP
+        const graphs = useVisualScriptStore.getState().graphs;
+        const blob = await exportProjectZip({
+          gameName: project.name,
+          template: project.template,
+          elements,
+          visualScriptGraphs: graphs,
+        });
+        const safeName = project.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+        downloadBlob(blob, `${safeName}.zip`);
+        setExportDone(true);
+      }
     } catch (e) {
       setExportError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -38,13 +58,11 @@ export function BuildPage() {
   };
 
   const handleOpenInStudio = async () => {
-    if (!exportResult?.rbxlPath) return;
-    if (isTauriRuntime()) {
-      try {
-        await openPath(exportResult.rbxlPath);
-      } catch (e) {
-        console.error("Failed to open in Studio:", e);
-      }
+    if (!isDesktop) return;
+    try {
+      await openPath(project!.path + "/build/game.rbxl");
+    } catch (e) {
+      console.error("Failed to open in Studio:", e);
     }
   };
 
@@ -152,16 +170,16 @@ export function BuildPage() {
         >
           {isExporting ? (
             <Loader2 size={13} className="animate-spin" />
-          ) : exportResult ? (
+          ) : exportDone ? (
             <Check size={13} />
           ) : exportError ? (
             <AlertCircle size={13} />
           ) : (
             <Download size={13} />
           )}
-          {isExporting ? "Building..." : exportResult ? "Exported!" : "Export to Roblox"}
+          {isExporting ? (isDesktop ? "Building..." : "Generating...") : exportDone ? (isDesktop ? "Exported!" : "Downloaded!") : (isDesktop ? "Export to Roblox" : "Download Project")}
         </button>
-        {exportResult && (
+        {exportDone && isDesktop && (
           <button
             onClick={handleOpenInStudio}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600/20 px-3 py-1.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-600/30"

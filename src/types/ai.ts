@@ -10,6 +10,17 @@ export interface AiChange {
   type: string;
   description: string;
   path?: string;
+  elementData?: {
+    type: string;
+    category: string;
+    label: string;
+    icon: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+  };
 }
 
 export interface AiResponse {

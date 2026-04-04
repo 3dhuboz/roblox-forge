@@ -246,6 +246,21 @@ function sampleScripts(): ScriptFile[] {
 
 const mockProjects = new Map<string, ProjectState>();
 
+// ── IndexedDB persistence ──
+import { saveToStorage, loadFromStorage } from "../lib/storage";
+
+function persistProjects() {
+  const data: Record<string, ProjectState> = {};
+  for (const [k, v] of mockProjects) data[k] = v;
+  saveToStorage("mockProjects", data);
+}
+
+function persistFiles() {
+  const data: Record<string, string> = {};
+  for (const [k, v] of mockFileStore) data[k] = v;
+  saveToStorage("mockFileStore", data);
+}
+
 function projectState(template: string, projectName: string, path: string): ProjectState {
   const preset = getTemplatePreset(template);
   if (preset) {
@@ -273,6 +288,7 @@ export function mockCreateProject(templateName: string, projectName: string): Pr
   const path = `${MOCK_PREFIX}${sanitizeName(projectName)}`;
   const state = projectState(templateName, projectName, path);
   mockProjects.set(path, state);
+  persistProjects();
   return {
     name: projectName,
     path,
@@ -294,6 +310,22 @@ export function mockGetProjectState(projectPath: string): ProjectState {
 // In-memory store for files written during the session (keyed by "projectPath::relativePath")
 const mockFileStore = new Map<string, string>();
 
+// Restore from IndexedDB on module load (fire-and-forget)
+(async () => {
+  try {
+    const projects = await loadFromStorage<Record<string, ProjectState>>("mockProjects");
+    if (projects) {
+      for (const [k, v] of Object.entries(projects)) mockProjects.set(k, v);
+    }
+    const files = await loadFromStorage<Record<string, string>>("mockFileStore");
+    if (files) {
+      for (const [k, v] of Object.entries(files)) mockFileStore.set(k, v);
+    }
+  } catch (e) {
+    console.warn("Failed to restore from IndexedDB:", e);
+  }
+})();
+
 export function mockWriteFile(
   projectPath: string,
   relativePath: string,
@@ -302,6 +334,7 @@ export function mockWriteFile(
   const rel = relativePath.replace(/\\/g, "/");
   // Persist to in-memory file store so mockReadFile can retrieve it
   mockFileStore.set(`${projectPath}::${rel}`, content);
+  persistFiles();
   const state = mockProjects.get(projectPath);
   if (!state) return;
   const idx = state.scripts.findIndex((s) => s.relativePath === rel);
@@ -309,6 +342,7 @@ export function mockWriteFile(
     const next = [...state.scripts];
     next[idx] = { ...next[idx], content };
     mockProjects.set(projectPath, { ...state, scripts: next });
+    persistProjects();
   }
 }
 
@@ -334,11 +368,13 @@ function matches(lower: string, ...keywords: string[]): boolean {
 
 function obbyResponse(lower: string): AiResponse | null {
   if (matches(lower, "stage") && matches(lower, "add", "new", "more", "create")) {
+    const bx = 800 + Math.random() * 400;
     return {
       message: "Added a new stage with varied platforms and a checkpoint at the end. Each stage gets progressively harder — want me to add specific obstacles like spinning bars or disappearing blocks?",
       changes: [
-        { type: "add_stage", description: "Added Stage3 with 5 parts and a checkpoint" },
-        { type: "update_config", description: "Updated MaxStages to 3" },
+        { type: "add_part", description: "Added Platform to new stage", elementData: { type: "platform", category: "platform", label: "NewPlatform1", icon: "minus", x: bx, y: 480, width: 60, height: 12, color: "#7c3aed" } },
+        { type: "add_part", description: "Added Platform 2", elementData: { type: "platform", category: "platform", label: "NewPlatform2", icon: "minus", x: bx + 160, y: 440, width: 60, height: 12, color: "#7c3aed" } },
+        { type: "add_part", description: "Added Checkpoint", elementData: { type: "checkpoint", category: "mechanic", label: "Checkpoint", icon: "flag", x: bx + 320, y: 460, width: 30, height: 30, color: "#22c55e" } },
       ],
     };
   }
@@ -346,8 +382,8 @@ function obbyResponse(lower: string): AiResponse | null {
     return {
       message: "Added lava kill bricks with red Neon material. Players who touch them respawn at their last checkpoint. I placed them between platforms to make the jumps trickier.",
       changes: [
-        { type: "add_part", description: "Added LavaBrick1 to Stage2" },
-        { type: "add_part", description: "Added LavaBrick2 to Stage2" },
+        { type: "add_part", description: "Added LavaBrick1", elementData: { type: "killbrick", category: "obstacle", label: "LavaBrick1", icon: "skull", x: 500 + Math.random() * 300, y: 520, width: 40, height: 12, color: "#ef4444" } },
+        { type: "add_part", description: "Added LavaBrick2", elementData: { type: "killbrick", category: "obstacle", label: "LavaBrick2", icon: "skull", x: 700 + Math.random() * 300, y: 540, width: 40, height: 12, color: "#ef4444" } },
       ],
     };
   }
@@ -355,8 +391,7 @@ function obbyResponse(lower: string): AiResponse | null {
     return {
       message: "Added a moving platform using TweenService — it slides 20 studs back and forth over 2 seconds with a brief pause at each end. Great for timing-based jumps!",
       changes: [
-        { type: "add_part", description: "Added MovingPlatform to Stage1" },
-        { type: "modify_script", description: "Updated StageManager with TweenService animation" },
+        { type: "add_part", description: "Added MovingPlatform", elementData: { type: "moving-platform", category: "platform", label: "MovingPad", icon: "move-horizontal", x: 600 + Math.random() * 200, y: 460, width: 60, height: 12, color: "#06b6d4" } },
       ],
     };
   }
@@ -364,8 +399,7 @@ function obbyResponse(lower: string): AiResponse | null {
     return {
       message: "Added a spinning obstacle bar! It rotates on a Heartbeat loop at 90°/sec. Players need to time their jumps to avoid getting knocked off.",
       changes: [
-        { type: "add_part", description: "Added SpinBar to Stage2" },
-        { type: "modify_script", description: "Added rotation script using RunService.Heartbeat" },
+        { type: "add_part", description: "Added SpinBar", elementData: { type: "spinner", category: "obstacle", label: "SpinBar", icon: "rotate-cw", x: 700 + Math.random() * 200, y: 440, width: 50, height: 10, color: "#f97316" } },
       ],
     };
   }
@@ -373,15 +407,17 @@ function obbyResponse(lower: string): AiResponse | null {
     return {
       message: "Added disappearing blocks that cycle between visible and invisible every 2 seconds. The timing is staggered so players need to memorize the pattern!",
       changes: [
-        { type: "add_part", description: "Added DisappearBlock1-3 to Stage2" },
-        { type: "modify_script", description: "Added visibility toggle script" },
+        { type: "add_part", description: "Added DisappearBlock1", elementData: { type: "disappearing", category: "platform", label: "VanishBlock1", icon: "eye-off", x: 600, y: 480, width: 50, height: 12, color: "#fbbf24" } },
+        { type: "add_part", description: "Added DisappearBlock2", elementData: { type: "disappearing", category: "platform", label: "VanishBlock2", icon: "eye-off", x: 750, y: 460, width: 50, height: 12, color: "#fbbf24" } },
       ],
     };
   }
   if (matches(lower, "checkpoint", "spawn", "save")) {
     return {
       message: "Added checkpoints to every stage — green SpawnLocations that save progress. Players respawn here instead of the beginning!",
-      changes: [{ type: "add_part", description: "Added checkpoints to all stages" }],
+      changes: [
+        { type: "add_part", description: "Added Checkpoint", elementData: { type: "checkpoint", category: "mechanic", label: "Checkpoint", icon: "flag", x: 900 + Math.random() * 200, y: 470, width: 30, height: 30, color: "#22c55e" } },
+      ],
     };
   }
   if (matches(lower, "color", "colour", "neon", "glow", "theme")) {
@@ -394,8 +430,7 @@ function obbyResponse(lower: string): AiResponse | null {
     return {
       message: "Added a trampoline pad! When players land on it, their HumanoidRootPart gets a 120-stud upward velocity boost. Great for reaching high platforms.",
       changes: [
-        { type: "add_part", description: "Added Trampoline to Stage1" },
-        { type: "modify_script", description: "Added bounce handling via CollectionService tag" },
+        { type: "add_part", description: "Added Trampoline", elementData: { type: "bouncy", category: "platform", label: "Trampoline", icon: "arrow-up", x: 500 + Math.random() * 200, y: 470, width: 50, height: 12, color: "#f472b6" } },
       ],
     };
   }
@@ -409,8 +444,7 @@ function tycoonResponse(lower: string): AiResponse | null {
     return {
       message: "Added a new dropper machine! It produces glowing ore every 2 seconds that rolls onto the conveyor belt. Each ore is worth $1 base value (affected by your multipliers).",
       changes: [
-        { type: "add_part", description: "Added OreDropper to Plot1" },
-        { type: "modify_script", description: "Updated TycoonManager dropper loop" },
+        { type: "add_part", description: "Added OreDropper", elementData: { type: "dropper", category: "structure", label: "Dropper", icon: "arrow-down", x: 500 + Math.random() * 200, y: 310, width: 40, height: 40, color: "#a0a0a0" } },
       ],
     };
   }
@@ -418,8 +452,7 @@ function tycoonResponse(lower: string): AiResponse | null {
     return {
       message: "Extended the conveyor belt! It now runs 30 studs at speed 12. Items slide smoothly from dropper to collector using AssemblyLinearVelocity.",
       changes: [
-        { type: "add_part", description: "Added Conveyor2 to Plot1" },
-        { type: "set_property", description: "Set AssemblyLinearVelocity on conveyors" },
+        { type: "add_part", description: "Added Conveyor", elementData: { type: "conveyor-belt", category: "structure", label: "Conveyor", icon: "arrow-right", x: 500, y: 400, width: 80, height: 14, color: "#555555" } },
       ],
     };
   }
@@ -427,8 +460,7 @@ function tycoonResponse(lower: string): AiResponse | null {
     return {
       message: "Added a new upgrade button! It costs $500 and doubles your dropper speed. The button glows blue and disappears after purchase.",
       changes: [
-        { type: "add_part", description: "Added UpgradeButton2 to Plot1" },
-        { type: "update_config", description: "Added 'Double Speed' to TycoonConfig.Upgrades" },
+        { type: "add_part", description: "Added Upgrade Button", elementData: { type: "upgrade-button", category: "structure", label: "DoubleSpeed", icon: "arrow-up", x: 470, y: 500, width: 40, height: 20, color: "#ffcc00" } },
       ],
     };
   }

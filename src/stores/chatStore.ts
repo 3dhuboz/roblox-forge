@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import type { ChatMessage } from "../types/ai";
+import type { ChatMessage, AiChange } from "../types/ai";
 import { aiCommands } from "../services/tauriCommands";
 import { useProjectStore } from "./projectStore";
 import { useUserStore } from "./userStore";
+import { useCanvasStore } from "./canvasStore";
 
 interface ChatStore {
   messages: ChatMessage[];
@@ -57,8 +58,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         messages: [...state.messages, assistantMessage],
       }));
 
-      // Refresh project state after AI makes changes
+      // Execute AI changes against the canvas — actually modify the game
       if (response.changes.length > 0) {
+        executeAiChanges(response.changes);
         await useProjectStore.getState().refreshProjectState();
       }
     } catch (e) {
@@ -73,3 +75,25 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     messageCounter = 0;
   },
 }));
+
+/** Execute AI change objects by actually modifying the canvas store. */
+function executeAiChanges(changes: AiChange[]) {
+  const canvas = useCanvasStore.getState();
+  for (const change of changes) {
+    if (!change.elementData) continue;
+    const ed = change.elementData;
+    if (change.type === "add_part" || change.type === "add_stage") {
+      const item = {
+        type: ed.type,
+        category: ed.category as import("./canvasStore").ElementCategory,
+        label: ed.label,
+        icon: ed.icon,
+        defaultWidth: ed.width,
+        defaultHeight: ed.height,
+        color: ed.color,
+        description: "",
+      };
+      canvas.addElement(item, ed.x, ed.y);
+    }
+  }
+}
