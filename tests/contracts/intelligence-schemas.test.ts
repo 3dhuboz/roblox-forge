@@ -493,12 +493,16 @@ describe("game intelligence JSON contracts", () => {
       materialQuestionIds.has(String(operationByType("question.answer").targetQuestionId)),
       "question operation target must exist in the Brief",
     ).toBe(true);
-    for (const type of ["scene.update", "scene.remove"]) {
-      expect(
-        sceneIds.has(String(operationByType(type).targetSceneId)),
-        `${type} target must exist in the GOM`,
-      ).toBe(true);
-    }
+    expect(
+      sceneIds.has(String(operationByType("scene.update").targetSceneId)),
+      "scene.update target must exist in the GOM",
+    ).toBe(true);
+    expect(operationByType("scene.remove").targetSceneId).toBe(
+      asJsonObject(
+        operationByType("scene.add").addedScene,
+        "scene.add.addedScene",
+      ).id,
+    );
     expect(
       objectiveIds.has(String(operationByType("objective.update").targetObjectiveId)),
       "objective.update target must exist in the GOM",
@@ -731,7 +735,7 @@ describe("game intelligence JSON contracts", () => {
   });
 
   it.each([
-    ["scene.remove", 0],
+    ["scene.remove", 1],
     ["objective.remove", 1],
   ])("requires a bounded restoreIndex for %s", (type, restoreIndex) => {
     const proposal = clone(validFixture.directorProposal) as JsonObject;

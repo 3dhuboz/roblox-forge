@@ -1,3 +1,5 @@
+import { validateGameDocuments } from "./gameDocumentValidation";
+
 export type SemanticIssueCode =
   | "invalid_document"
   | "model_mismatch"
@@ -5,7 +7,9 @@ export type SemanticIssueCode =
   | "target_mismatch"
   | "payload_mismatch"
   | "inverse_mismatch"
-  | "precondition_mismatch";
+  | "precondition_mismatch"
+  | "schema_mismatch"
+  | "reference_mismatch";
 
 export interface SemanticIssue {
   readonly code: SemanticIssueCode;
@@ -1209,6 +1213,14 @@ export function validateIntelligenceSemantics(
       }
     });
   }
+
+  issues.push(
+    ...validateGameDocuments(
+      workingBrief,
+      workingGom,
+      Array.isArray(proposal.operations) ? proposal.operations : [],
+    ),
+  );
 
   proveExactReverseRestoration(
     appliedOperations,

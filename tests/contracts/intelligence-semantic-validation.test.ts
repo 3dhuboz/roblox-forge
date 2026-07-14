@@ -104,6 +104,12 @@ function operationOf(proposal: JsonRecord, type: string): JsonRecord {
   return operation;
 }
 
+function keepOnlyOperation(proposal: JsonRecord, type: string): JsonRecord {
+  const operation = structuredClone(operationOf(proposal, type));
+  proposal.operations = [operation];
+  return operation;
+}
+
 function chainedUpdatePair(
   proposal: JsonRecord,
   type: string,
@@ -150,8 +156,6 @@ const OPERATION_CHAIN_CASES: readonly OperationChainCase[] = [
       const operations = records(proposal.operations, "operations")
         .filter((operation) => types.has(String(operation.type)))
         .map((operation) => structuredClone(operation));
-      record(operationOf({ operations }, "scene.remove").inverse, "scene.remove.inverse")
-        .restoreIndex = 0;
       return operations;
     },
   },
@@ -428,14 +432,159 @@ describe("intelligence semantic validation", () => {
     );
   });
 
-  it("accepts the coherent Brief, GOM, and Director proposal", () => {
+  it("accepts the coherent Brief, GOM, and full 13-operation Director proposal", () => {
     const { brief, gom, proposal } = clonedDocuments();
 
+    expect(records(proposal.operations, "directorProposal.operations")).toHaveLength(13);
     expect(validateIntelligenceSemantics(brief, gom, proposal)).toEqual({
       valid: true,
       issues: [],
     });
   });
+
+  it("rejects a reversible scene update and removal whose forward result is invalid", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const update = structuredClone(operationOf(proposal, "scene.update"));
+    const remove = structuredClone(operationOf(proposal, "scene.remove"));
+    remove.targetSceneId = record(update.after, "scene.update.after").id;
+    remove.before = structuredClone(update.after);
+    record(remove.inverse, "scene.remove.inverse").restoreScene =
+      structuredClone(update.after);
+    record(remove.inverse, "scene.remove.inverse").restoreIndex = 0;
+    proposal.operations = [update, remove];
+
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "schema_mismatch",
+          path: "/gameOperatingModel/sceneNodes",
+        }),
+        expect.objectContaining({
+          code: "reference_mismatch",
+          path: "/gameOperatingModel/systems/0/sceneIds/0",
+        }),
+      ]),
+    );
+  });
+
+  const danglingReferenceCases: ReadonlyArray<{
+    readonly label: string;
+    readonly path: string;
+    readonly mutate: (documents: ReturnType<typeof clonedDocuments>) => void;
+  }> = [
+    {
+      label: "scene system",
+      path: "/gameOperatingModel/sceneNodes/0/systemIds/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "scene.update");
+        record(operation.after, "scene.update.after").systemIds = ["system:missing"];
+      },
+    },
+    {
+      label: "system dependency",
+      path: "/gameOperatingModel/systems/1/dependencyIds/0",
+      mutate: ({ gom, proposal }) => {
+        keepOnlyOperation(proposal, "feedback.update");
+        records(gom.systems, "systems")[1].dependencyIds = ["system:missing"];
+      },
+    },
+    {
+      label: "system scene",
+      path: "/gameOperatingModel/systems/0/sceneIds/0",
+      mutate: ({ gom, proposal }) => {
+        keepOnlyOperation(proposal, "feedback.update");
+        records(gom.systems, "systems")[0].sceneIds = ["element:missing"];
+      },
+    },
+    {
+      label: "objective dependency",
+      path: "/gameOperatingModel/objectives/0/dependencyIds/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "objective.update");
+        record(operation.after, "objective.update.after").dependencyIds = [
+          "objective:missing",
+        ];
+      },
+    },
+    {
+      label: "document trace",
+      path: "/gameOperatingModel/sceneNodes/0/traceIds/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "scene.update");
+        record(operation.after, "scene.update.after").traceIds = ["trace:missing"];
+      },
+    },
+    {
+      label: "first-session analytics",
+      path: "/gameOperatingModel/firstSessionPromise/successSignal",
+      mutate: ({ gom, proposal }) => {
+        keepOnlyOperation(proposal, "feedback.update");
+        record(gom.firstSessionPromise, "firstSessionPromise").successSignal =
+          "analytics:missing";
+      },
+    },
+    {
+      label: "objective analytics",
+      path: "/gameOperatingModel/objectives/0/success/observableSignal",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "objective.update");
+        record(
+          record(operation.after, "objective.update.after").success,
+          "objective.update.after.success",
+        ).observableSignal = "analytics:missing";
+      },
+    },
+    {
+      label: "acceptance-test analytics",
+      path: "/gameOperatingModel/acceptanceTests/0/observableSignals/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "acceptance_test.update");
+        record(operation.after, "acceptance_test.update.after").observableSignals = [
+          "analytics:missing",
+        ];
+      },
+    },
+    {
+      label: "affected acceptance test",
+      path: "/directorProposal/operations/0/affectedAcceptanceTestIds/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "feedback.update");
+        operation.affectedAcceptanceTestIds = ["acceptance:missing"];
+      },
+    },
+    {
+      label: "operation trace",
+      path: "/directorProposal/operations/0/traceIds/0",
+      mutate: ({ proposal }) => {
+        const operation = keepOnlyOperation(proposal, "feedback.update");
+        operation.traceIds = ["trace:missing"];
+      },
+    },
+  ];
+
+  it.each(danglingReferenceCases)(
+    "rejects a dangling $label reference in the fully evolved proposal",
+    ({ path, mutate }) => {
+      const documents = clonedDocuments();
+      mutate(documents);
+
+      const result = validateIntelligenceSemantics(
+        documents.brief,
+        documents.gom,
+        documents.proposal,
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "reference_mismatch", path }),
+        ]),
+      );
+    },
+  );
 
   it("returns structured issues for non-record inputs", () => {
     const result = validateIntelligenceSemantics(null, [], undefined);
@@ -638,6 +787,9 @@ describe("intelligence semantic validation", () => {
     const followingScene = structuredClone(originalScene);
     followingScene.id = "element:following-scene";
     gom.sceneNodes = [precedingScene, originalScene, followingScene];
+    records(gom.systems, "systems").forEach((system) => {
+      system.sceneIds = [precedingScene.id, followingScene.id];
+    });
     operation.targetSceneId = originalScene.id;
     operation.before = structuredClone(originalScene);
     const inverse = record(operation.inverse, "inverse");

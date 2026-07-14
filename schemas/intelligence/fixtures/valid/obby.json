@@ -682,15 +682,15 @@
         }
       },
       {
-        "id": "operation:remove-checkpoint-two-scene",
+        "id": "operation:remove-signal-bloom-practice-island",
         "type": "scene.remove",
-        "targetSceneId": "element:signal-bloom-checkpoint-two",
+        "targetSceneId": "element:signal-bloom-practice-island",
         "before": {
-          "id": "element:signal-bloom-checkpoint-two",
-          "name": "Signal Bloom Checkpoint Two",
-          "purpose": "Test the original pulse-reading route with one clearly optional, non-purchasable shard beside the safe path.",
-          "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
-          "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+          "id": "element:signal-bloom-practice-island",
+          "name": "Signal Bloom Practice Island",
+          "purpose": "Teach the pulse-to-route cue on a short original garden crossing before checkpoint two.",
+          "entryCondition": "The server confirms the player completed the opening movement check.",
+          "exitCondition": "The server validates one legal practice crossing without requiring a shard.",
           "systemIds": [
             "system:signal-bloom-course",
             "system:signal-bloom-presentation"
@@ -703,12 +703,12 @@
         "precondition": {
           "baseRevision": 1,
           "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-          "assertion": "Checkpoint two remains present with the immediately preceding scene update applied."
+          "assertion": "The practice island added earlier remains present at its appended collection index."
         },
         "after": {
           "absent": true
         },
-        "rationale": "Provide a reversible typed removal example for human review without exposing executable or source payloads.",
+        "rationale": "Demonstrate reversible cleanup of the newly proposed practice island while preserving the updated checkpoint scene.",
         "traceIds": [
           "trace:gom-checkpoint-two"
         ],
@@ -718,11 +718,11 @@
         ],
         "inverse": {
           "restoreScene": {
-            "id": "element:signal-bloom-checkpoint-two",
-            "name": "Signal Bloom Checkpoint Two",
-            "purpose": "Test the original pulse-reading route with one clearly optional, non-purchasable shard beside the safe path.",
-            "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
-            "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+            "id": "element:signal-bloom-practice-island",
+            "name": "Signal Bloom Practice Island",
+            "purpose": "Teach the pulse-to-route cue on a short original garden crossing before checkpoint two.",
+            "entryCondition": "The server confirms the player completed the opening movement check.",
+            "exitCondition": "The server validates one legal practice crossing without requiring a shard.",
             "systemIds": [
               "system:signal-bloom-course",
               "system:signal-bloom-presentation"
@@ -732,7 +732,7 @@
               "trace:signal-bloom-origin"
             ]
           },
-          "restoreIndex": 0
+          "restoreIndex": 1
         }
       },
       {
