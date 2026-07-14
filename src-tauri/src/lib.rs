@@ -1,6 +1,7 @@
 mod ai;
 mod builder;
 mod commands;
+pub mod platform;
 mod project;
 mod roblox;
 mod state;
