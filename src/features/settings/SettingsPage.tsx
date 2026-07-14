@@ -254,7 +254,6 @@ export function SettingsPage() {
       rojoGenerationRef.current += 1;
       studioSyncExpandedRef.current = false;
       apiSaveInFlightRef.current = false;
-      rojoOperationOwnerRef.current = null;
       clearSavedTimer();
     };
   }, [clearSavedTimer]);
