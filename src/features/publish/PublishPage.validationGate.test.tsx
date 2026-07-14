@@ -45,6 +45,7 @@ beforeEach(() => {
   useProjectStore.setState(originalProjectStoreState, true);
   useAuthStore.setState({
     auth,
+    status: "signed_in",
     isConnecting: false,
     error: null,
     checkAuth: vi.fn().mockResolvedValue(undefined),

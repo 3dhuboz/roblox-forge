@@ -46,6 +46,7 @@ beforeEach(() => {
   useProjectStore.setState(originalProjectStoreState, true);
   useAuthStore.setState({
     auth,
+    status: "signed_in",
     isConnecting: false,
     error: null,
     checkAuth: vi.fn().mockResolvedValue(undefined),
@@ -179,6 +180,33 @@ describe("PublishPage attempt cleanup", () => {
       "Roblox gateway timed out.",
     );
     expect(screen.queryByText("Your Game is Live!")).not.toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not publish when auth is invalidated at action time", async () => {
+    const publishGame = vi
+      .spyOn(publishCommands, "publishGame")
+      .mockResolvedValueOnce({ success: true });
+    await renderReadyToPublish();
+    const publishButton = screen.getByRole("button", {
+      name: "Publish to Roblox!",
+    });
+
+    await act(async () => {
+      useAuthStore.setState({
+        auth: null,
+        status: "unavailable",
+        isConnecting: false,
+        error:
+          "Roblox authentication requires the RobloxForge Desktop app. Open the Desktop app to continue.",
+      });
+      fireEvent.click(publishButton);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(publishGame).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/Desktop app/i);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

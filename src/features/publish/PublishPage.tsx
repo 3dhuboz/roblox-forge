@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
-import { useAuthStore } from "../../stores/authStore";
+import {
+  AUTH_DESKTOP_REQUIRED_MESSAGE,
+  useAuthStore,
+} from "../../stores/authStore";
 import {
   isOperationUnavailableError,
   publishCommands,
@@ -57,8 +60,17 @@ export function PublishPage() {
     fixingIssueId,
     validateProject,
   } = useProjectStore();
-  const { auth, isConnecting, startLogin, logout, checkAuth } = useAuthStore();
+  const {
+    auth,
+    status: authStatus,
+    isConnecting,
+    error: authError,
+    startLogin,
+    logout,
+    checkAuth,
+  } = useAuthStore();
   const [step, setStep] = useState<PublishStep>("auth");
+  const [hasCompletedAuthCheck, setHasCompletedAuthCheck] = useState(false);
   const [gameName, setGameName] = useState("");
   const [gameDescription, setGameDescription] = useState("");
   const [universeId, setUniverseId] = useState("");
@@ -77,17 +89,41 @@ export function PublishPage() {
     phaseTimersRef.current.forEach((timer) => clearTimeout(timer));
     phaseTimersRef.current = [];
   }, []);
+  const hasValidAuth =
+    authStatus === "signed_in" && auth !== null && auth.expiresAt > Date.now();
+  const authUnavailableAlert = (
+    <div
+      role="alert"
+      className="mt-4 max-w-lg rounded-xl border border-amber-800/60 bg-amber-950/30 p-4 text-sm text-amber-200"
+    >
+      <div className="flex items-start gap-2">
+        <AlertCircle size={18} className="mt-0.5 shrink-0" />
+        <p>{authError ?? AUTH_DESKTOP_REQUIRED_MESSAGE}</p>
+      </div>
+    </div>
+  );
 
-  // Auto-skip auth if already connected
   useEffect(() => {
-    checkAuth();
+    let active = true;
+    setHasCompletedAuthCheck(false);
+    void checkAuth().finally(() => {
+      if (active) {
+        setHasCompletedAuthCheck(true);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [checkAuth]);
 
   useEffect(() => {
-    if (auth && step === "auth") {
-      setStep("settings");
-    }
-  }, [auth, step]);
+    setStep((currentStep) => {
+      if (!hasCompletedAuthCheck || !hasValidAuth || authError !== null) {
+        return "auth";
+      }
+      return currentStep === "auth" ? "settings" : currentStep;
+    });
+  }, [authError, hasCompletedAuthCheck, hasValidAuth]);
 
   useEffect(() => {
     return () => clearPhaseTimers();
@@ -106,6 +142,7 @@ export function PublishPage() {
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-800/60">
           <Upload size={28} className="text-gray-600" />
         </div>
+        {authStatus === "unavailable" && authUnavailableAlert}
         <div className="text-center">
           <p className="text-lg font-semibold text-gray-300">Nothing to share yet</p>
           <p className="mt-1 text-sm text-gray-500">Build a game first, then come back here to publish it!</p>
@@ -123,6 +160,20 @@ export function PublishPage() {
     isNumericId(placeId);
 
   const handlePublish = async () => {
+    const currentAuthState = useAuthStore.getState();
+    if (
+      currentAuthState.status !== "signed_in" ||
+      currentAuthState.auth === null ||
+      currentAuthState.auth.expiresAt <= Date.now()
+    ) {
+      clearPhaseTimers();
+      setIsPublishing(false);
+      setPublishResult(null);
+      setPublishPhase("idle");
+      setStep("auth");
+      return;
+    }
+
     if (
       !universeId ||
       !placeId ||
@@ -241,35 +292,80 @@ export function PublishPage() {
               <p className="mt-1 text-sm text-gray-400">
                 Connect your Roblox account so we can publish your game.
               </p>
-              {auth ? (
-                <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-800/60 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600/20">
-                      <CheckCircle size={20} className="text-green-400" />
-                    </div>
+              {authStatus === "unavailable" ? (
+                authUnavailableAlert
+              ) : authStatus === "unknown" || authStatus === "checking" ? (
+                <div
+                  role="status"
+                  className="mt-4 flex items-center gap-2 rounded-xl bg-gray-800/60 p-4 text-sm text-gray-300"
+                >
+                  <Loader2 size={18} className="animate-spin" />
+                  {isConnecting
+                    ? "Waiting for Roblox login..."
+                    : "Checking Roblox connection..."}
+                </div>
+              ) : authStatus === "error" ? (
+                <div
+                  role="alert"
+                  className="mt-4 rounded-xl border border-red-900/60 bg-red-950/30 p-4 text-sm text-red-200"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
                     <div>
-                      <p className="font-semibold text-white">{auth.displayName}</p>
-                      <p className="text-sm text-gray-400">@{auth.username}</p>
+                      <p>{authError ?? "Roblox authentication failed."}</p>
+                      <button
+                        type="button"
+                        onClick={() => void checkAuth()}
+                        className="mt-3 rounded-lg bg-gray-800 px-3 py-2 font-semibold text-white hover:bg-gray-700"
+                      >
+                        Check Again
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={logout}
-                      className="rounded-xl bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"
-                    >
-                      <LogOut size={14} />
-                    </button>
-                    <button
-                      onClick={() => setStep("settings")}
-                      className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold hover:bg-indigo-500"
-                    >
-                      Next
-                    </button>
                   </div>
                 </div>
-              ) : (
+              ) : hasValidAuth ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between rounded-xl bg-gray-800/60 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600/20">
+                        <CheckCircle size={20} className="text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-white">{auth.displayName}</p>
+                        <p className="text-sm text-gray-400">@{auth.username}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        aria-label="Log out of Roblox"
+                        onClick={() => void logout()}
+                        className="rounded-xl bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"
+                      >
+                        <LogOut size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStep("settings")}
+                        className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold hover:bg-indigo-500"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                  {authError && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-xl border border-red-900/60 bg-red-950/30 p-3 text-sm text-red-200"
+                    >
+                      <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                      <p>{authError}</p>
+                    </div>
+                  )}
+                </div>
+              ) : authStatus === "signed_out" ? (
                 <button
-                  onClick={startLogin}
+                  onClick={() => void startLogin()}
                   disabled={isConnecting}
                   className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:opacity-50"
                 >
@@ -280,6 +376,14 @@ export function PublishPage() {
                   )}
                   {isConnecting ? "Connecting..." : "Log In with Roblox"}
                 </button>
+              ) : (
+                <div
+                  role="alert"
+                  className="mt-4 rounded-xl border border-red-900/60 bg-red-950/30 p-4 text-sm text-red-200"
+                >
+                  The Roblox session is not valid. Check the connection again
+                  before publishing.
+                </div>
               )}
             </div>
           )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BarChart3,
   Users,
@@ -12,7 +12,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useAuthStore } from "../../stores/authStore";
+import {
+  AUTH_DESKTOP_REQUIRED_MESSAGE,
+  useAuthStore,
+} from "../../stores/authStore";
 import { dashboardCommands, type GameStats } from "../../services/tauriCommands";
 
 function StatCard({
@@ -53,31 +56,95 @@ function formatTimeAgo(isoString: string): string {
 }
 
 export function DashboardPage() {
-  const { auth } = useAuthStore();
+  const {
+    auth,
+    status: authStatus,
+    error: authError,
+    checkAuth,
+  } = useAuthStore();
   const [games, setGames] = useState<GameStats[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const requestGenerationRef = useRef(0);
+  const activeSessionIdentityRef = useRef<string | null>(null);
+  const hasValidAuth =
+    authStatus === "signed_in" && auth !== null && auth.expiresAt > Date.now();
+  const sessionIdentity =
+    hasValidAuth && auth !== null ? `${auth.userId}:${auth.expiresAt}` : null;
 
   const fetchStats = useCallback(async () => {
+    const currentAuth = useAuthStore.getState();
+    if (
+      currentAuth.status !== "signed_in" ||
+      currentAuth.auth === null ||
+      currentAuth.auth.expiresAt <= Date.now()
+    ) {
+      return;
+    }
+
+    const requestSessionIdentity = `${currentAuth.auth.userId}:${currentAuth.auth.expiresAt}`;
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
+    activeSessionIdentityRef.current = requestSessionIdentity;
+    const ownsRequest = () => {
+      const latestAuth = useAuthStore.getState();
+      const latestSessionIdentity =
+        latestAuth.status === "signed_in" && latestAuth.auth !== null
+          ? `${latestAuth.auth.userId}:${latestAuth.auth.expiresAt}`
+          : null;
+      return (
+        requestGenerationRef.current === requestGeneration &&
+        activeSessionIdentityRef.current === requestSessionIdentity &&
+        latestSessionIdentity === requestSessionIdentity
+      );
+    };
+
     setIsLoading(true);
-    setError(null);
+    setStatsError(null);
     try {
       const stats = await dashboardCommands.fetchGameStats();
-      setGames(stats);
-      setLastRefreshed(new Date());
+      if (ownsRequest()) {
+        setGames(stats);
+        setLastRefreshed(new Date());
+      }
     } catch (e) {
-      setError(String(e));
+      if (ownsRequest()) {
+        setStatsError(e instanceof Error ? e.message : String(e));
+      }
     } finally {
-      setIsLoading(false);
+      if (ownsRequest()) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (auth) {
-      fetchStats();
+    void checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    requestGenerationRef.current += 1;
+    activeSessionIdentityRef.current = sessionIdentity;
+
+    if (sessionIdentity !== null) {
+      void fetchStats();
+      return;
     }
-  }, [auth, fetchStats]);
+
+    setGames([]);
+    setStatsError(null);
+    setLastRefreshed(null);
+    setIsLoading(false);
+  }, [auth, authStatus, sessionIdentity, fetchStats]);
+
+  useEffect(
+    () => () => {
+      requestGenerationRef.current += 1;
+      activeSessionIdentityRef.current = null;
+    },
+    [],
+  );
 
   const totalVisits = games.reduce((sum, g) => sum + g.visits, 0);
   const totalPlayers = games.reduce((sum, g) => sum + g.playing, 0);
@@ -99,9 +166,9 @@ export function DashboardPage() {
             </p>
           </div>
         </div>
-        {auth && (
+        {hasValidAuth && (
           <button
-            onClick={fetchStats}
+            onClick={() => void fetchStats()}
             disabled={isLoading}
             className="flex items-center gap-2 rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-2 text-sm text-gray-300 hover:border-gray-600 disabled:opacity-50"
           >
@@ -115,7 +182,52 @@ export function DashboardPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-8">
-        {!auth ? (
+        {authStatus === "unavailable" ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center gap-4 py-20"
+          >
+            <AlertCircle size={32} className="text-amber-400" />
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-gray-300">
+                Roblox Stats Need the Desktop App
+              </h3>
+              <p className="mt-1 max-w-md text-sm text-gray-500">
+                {authError ?? AUTH_DESKTOP_REQUIRED_MESSAGE}
+              </p>
+            </div>
+          </div>
+        ) : authStatus === "unknown" || authStatus === "checking" ? (
+          <div
+            role="status"
+            className="flex flex-col items-center justify-center gap-4 py-20 text-gray-400"
+          >
+            <RefreshCw size={28} className="animate-spin" />
+            <p>Checking Roblox connection...</p>
+          </div>
+        ) : authStatus === "error" ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center gap-4 py-20"
+          >
+            <AlertCircle size={32} className="text-red-400" />
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-gray-300">
+                Couldn't Check Roblox Login
+              </h3>
+              <p className="mt-1 max-w-md text-sm text-gray-500">
+                {authError ?? "Roblox authentication failed."}
+              </p>
+              <button
+                type="button"
+                onClick={() => void checkAuth()}
+                className="mt-4 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Check Again
+              </button>
+            </div>
+          </div>
+        ) : authStatus === "signed_out" ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-800/60">
               <BarChart3 size={28} className="text-gray-600" />
@@ -133,16 +245,32 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-20">
+        ) : !hasValidAuth ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center gap-4 py-20"
+          >
+            <AlertCircle size={32} className="text-red-400" />
+            <p className="max-w-md text-center text-sm text-gray-500">
+              The Roblox session is not valid. Check the connection again before
+              loading stats.
+            </p>
+          </div>
+        ) : statsError ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center justify-center gap-4 py-20"
+          >
             <AlertCircle size={32} className="text-red-400" />
             <div className="text-center">
               <h3 className="text-lg font-bold text-gray-300">
                 Couldn't Load Stats
               </h3>
-              <p className="mt-1 max-w-md text-sm text-gray-500">{error}</p>
+              <p className="mt-1 max-w-md text-sm text-gray-500">
+                {statsError}
+              </p>
               <button
-                onClick={fetchStats}
+                onClick={() => void fetchStats()}
                 className="mt-4 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
               >
                 Try Again
