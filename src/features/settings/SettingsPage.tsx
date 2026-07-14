@@ -16,7 +16,6 @@ import {
   Play,
   Square,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import {
   aiCommands,
@@ -243,7 +242,7 @@ export function SettingsPage() {
         }
       }
     }
-  }, [desktopRuntime, showRojoRuntimeUnavailable]);
+  }, [desktopRuntime, rojoExpanded, showRojoRuntimeUnavailable]);
 
   useEffect(() => {
     mountedRef.current = true;

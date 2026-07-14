@@ -145,7 +145,7 @@ describe("SettingsPage desktop authority", () => {
     expect(within(region).getByText(/Not needed to create, preview, publish, or monitor your game/)).toBeInTheDocument();
     expect(within(region).getByRole("button", { name: "Show Advanced Studio Sync" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
-    expect(screen.getByText(/Rojo status requires the RobloxForge Desktop app/i)).toBeInTheDocument();
+    expect(within(region).queryByText(/Rojo status requires|Rojo Installed|Checking Rojo/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("AI API key")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(aiCommands.checkApiKey).not.toHaveBeenCalled();
@@ -170,6 +170,14 @@ describe("SettingsPage desktop authority", () => {
     const region = expandStudioSync();
     await within(region).findByRole("status");
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows missing Rojo as neutral guidance", async () => {
+    enableTauriRuntime();
+    render(<SettingsPage />);
+    const region = expandStudioSync();
+    expect(await within(region).findByText("Rojo is not installed. That is fine unless you choose live Studio sync.")).toBeInTheDocument();
+    expect(within(region).queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("defensively skips save, refresh, and Rojo actions if the desktop runtime disappears", async () => {
