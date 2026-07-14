@@ -57,8 +57,26 @@ No lead edits another lead's exclusive files. Cross-lane changes are sequenced t
 - Create: `src/test/setup.ts`
 - Create: `src/test/smoke/AppContract.test.tsx`
 - Modify: `src/App.tsx`
+- Modify: `src/components/ToastContainer.tsx`
 - Modify: `src/features/build/BuildPage.tsx`
+- Modify: `src/features/build/GuidedWizard.tsx`
+- Modify: `src/features/build/InstanceExplorer.tsx`
 - Modify: `src/features/builder/AiSceneChat.tsx`
+- Modify: `src/features/builder/BuilderToolbar.tsx`
+- Modify: `src/features/builder/ElementPalette.tsx`
+- Modify: `src/features/builder/PropertiesPanel.tsx`
+- Modify: `src/features/builder/VisualScriptEditor.tsx`
+- Modify: `src/features/builder/nodes/ScriptNode.tsx`
+- Modify: `src/features/dashboard/DashboardPage.tsx`
+- Modify: `src/features/onboarding/OnboardingFlow.tsx`
+- Modify: `src/features/settings/SettingsPage.tsx`
+- Modify: `src/features/templates/TemplateSelector.tsx`
+- Modify: `src/features/validation/ValidationPanel.tsx`
+- Modify: `src/lib/gameLogic.ts`
+- Modify: `src/lib/luauCodeGen.ts`
+- Modify: `src/lib/templatePresets.ts`
+- Modify: `src/services/browserDevMocks.ts`
+- Modify: `src/stores/visualScriptStore.ts`
 
 - [ ] **Step 1: Run the existing bounded checks and record the real baseline**
 
@@ -194,6 +212,8 @@ In `src/App.tsx`, replace the Suspense spinner with:
 
 In `src/features/build/BuildPage.tsx`, remove the unused `refreshProjectState` binding. In `src/features/builder/AiSceneChat.tsx`, remove the unused `projectPath` prop until Task 5 replaces the component with a typed Director client.
 
+Resolve every additional error recorded by the current `tsc` baseline with the smallest behavior-preserving type or dead-code correction. In particular, use the current Lucide icon component type instead of inferring impossible `never` props, make XYFlow `NodeData` satisfy its `Record<string, unknown>` constraint, type the connection validator for both connection and edge inputs, add the missing `structure` palette category, and remove genuinely unused symbols. Do not weaken `strict`, `noUnusedLocals`, or `noUnusedParameters`, add casts through `unknown`, or suppress errors.
+
 - [ ] **Step 7: Run baseline verification**
 
 Run: `npm run test:run -- src/test/smoke/AppContract.test.tsx`
@@ -211,7 +231,7 @@ Expected: PASS and Vite reports emitted chunks; no process remains running.
 - [ ] **Step 8: Commit the baseline**
 
 ```powershell
-git add package.json package-lock.json tsconfig.json vite.config.ts vitest.config.ts playwright.config.ts src/test/setup.ts src/test/smoke/AppContract.test.tsx src/App.tsx src/features/build/BuildPage.tsx src/features/builder/AiSceneChat.tsx
+git add package.json package-lock.json tsconfig.json vite.config.ts vitest.config.ts playwright.config.ts src/test/setup.ts src/test/smoke/AppContract.test.tsx src/App.tsx src/components src/features src/lib src/services/browserDevMocks.ts src/stores/visualScriptStore.ts
 git commit -m "test: establish truthful frontend baseline"
 ```
 
