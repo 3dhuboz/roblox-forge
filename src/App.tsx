@@ -25,6 +25,11 @@ const GameDirectorPage = lazy(() =>
     default: m.GameDirectorPage,
   })),
 );
+const MarketRadarPage = lazy(() =>
+  import("./features/radar/MarketRadarPage").then((m) => ({
+    default: m.MarketRadarPage,
+  })),
+);
 
 function App() {
   const { profile } = useUserStore();
@@ -64,6 +69,7 @@ function App() {
           <Route path="/publish" element={<PublishPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/director" element={<GameDirectorPage />} />
+          <Route path="/radar" element={<MarketRadarPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Suspense>

@@ -4,6 +4,7 @@ import {
   BrainCircuit,
   Gamepad2,
   Hammer,
+  Radar,
   Rocket,
   Settings,
 } from "lucide-react";
@@ -11,6 +12,7 @@ import {
 const navItems = [
   { path: "/", icon: Gamepad2, label: "Create" },
   { path: "/director", icon: BrainCircuit, label: "Director" },
+  { path: "/radar", icon: Radar, label: "Radar" },
   { path: "/build", icon: Hammer, label: "Build" },
   { path: "/publish", icon: Rocket, label: "Share" },
   { path: "/dashboard", icon: BarChart3, label: "Stats" },
@@ -36,6 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={path}
                 to={path}
+                aria-current={isActive ? "page" : undefined}
                 className={`group flex w-14 flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition-all ${
                   isActive
                     ? "bg-indigo-600/20 text-indigo-300"

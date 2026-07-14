@@ -233,6 +233,20 @@ describe("game intelligence JSON contracts", () => {
     asJsonObjects(radarSignalEntry.signals, "radarSnapshot.entries/0/signals")[0]
       .sourceUrl = url;
 
+    const radarOffer = clone(asJsonObject(validFixture.radarSnapshot, "radarSnapshot"));
+    asJsonObjects(radarOffer.entries, "radarSnapshot.entries")[0].publicOffers = [
+      {
+        evidenceId: "evidence:tower-of-hell-public-visits",
+        offerType: "private_server",
+        offerId: null,
+        sourceUrl: url,
+        observedAt: "2026-07-14T00:00:00Z",
+        locale: "en-AU",
+        priceContext: "unavailable",
+        priceRobux: null,
+      },
+    ];
+
     const monetization = clone(
       asJsonObject(
         validFixture.monetizationOpportunitySignal,
@@ -264,6 +278,11 @@ describe("game intelligence JSON contracts", () => {
         label: "radarSnapshot.entries.signals.sourceUrl",
         filename: "radar-snapshot.v1.schema.json",
         document: radarSignal,
+      },
+      {
+        label: "radarSnapshot.entries.publicOffers.sourceUrl",
+        filename: "radar-snapshot.v1.schema.json",
+        document: radarOffer,
       },
       {
         label: "monetizationOpportunitySignal.publicSignals.sourceUrl",
@@ -1127,7 +1146,7 @@ describe("game intelligence JSON contracts", () => {
     }
   });
 
-  it("uses the documented public URL lexical boundary at all five consumers", () => {
+  it("uses the documented public URL lexical boundary at all six consumers", () => {
     const publicUrlRefs: string[] = [];
     for (const [filename, schema] of schemas) {
       walkSchema(schema, filename, (node, path) => {
@@ -1141,7 +1160,7 @@ describe("game intelligence JSON contracts", () => {
       });
     }
 
-    expect(publicUrlRefs).toHaveLength(5);
+    expect(publicUrlRefs).toHaveLength(6);
     expect(
       publicUrlRefs.every((entry) =>
         entry.endsWith("common.schema.json#/$defs/publicHttpsUri"),

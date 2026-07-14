@@ -1582,6 +1582,8 @@
     "entries": [
       {
         "id": "radarentry:tower-of-hell",
+        "universeId": 703124385,
+        "rootPlaceId": 1962086868,
         "gameLabel": "Tower of Hell",
         "publicUrl": "https://www.roblox.com/games/1962086868/Tower-of-Hell",
         "signals": [
@@ -1610,7 +1612,9 @@
         "patternTags": [
           "obby",
           "progression"
-        ]
+        ],
+        "publicOffers": [],
+        "discontinuities": []
       }
     ],
     "provenance": {

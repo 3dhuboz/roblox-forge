@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit --pretty false",
+    "typecheck:worker": "tsc -p workers/game-director/tsconfig.json --noEmit --pretty false",
+    "test:worker:migrations": "python workers/game-director/test/radar-migrations.test.py",
     "test": "vitest",
     "test:run": "vitest run",
     "test:integration": "vitest run src/test/integration",
