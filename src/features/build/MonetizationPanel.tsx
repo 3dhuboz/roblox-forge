@@ -10,7 +10,7 @@ import {
   getDefaultMonetizationConfig,
   generateMonetizationScript,
 } from "../../lib/monetization";
-import { projectCommands } from "../../services/tauriCommands";
+import { writeFile } from "../../services/projectFileClient";
 
 export function MonetizationPanel({ projectPath }: { projectPath: string }) {
   const { project } = useProjectStore();
@@ -99,13 +99,13 @@ export function MonetizationPanel({ projectPath }: { projectPath: string }) {
     setIsSaving(true);
     try {
       const script = generateMonetizationScript(config);
-      await projectCommands.writeFile(
+      await writeFile(
         projectPath,
         "src/server/MonetizationHandler.server.luau",
         script,
       );
       // Also save config as JSON for persistence
-      await projectCommands.writeFile(
+      await writeFile(
         projectPath,
         "monetization.json",
         JSON.stringify(config, null, 2),

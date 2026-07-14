@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { getDefaultLogic, type GameLogicProperties } from "../lib/gameLogic";
 import { serializeCanvasToModelJson, generateTerrainScript } from "../lib/canvasSerializer";
 import { generateAllBehaviorScripts } from "../lib/behaviorScriptGen";
-import { projectCommands } from "../services/tauriCommands";
+import { writeFile } from "../services/projectFileClient";
 import { projectStateToCanvasElements } from "../lib/projectToCanvas";
 import type { InstanceNode } from "../types/project";
 
@@ -319,7 +319,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set({ isSaving: true });
     try {
       const modelJson = serializeCanvasToModelJson(elements);
-      await projectCommands.writeFile(
+      await writeFile(
         projectPath,
         "workspace/CanvasWorld.model.json",
         modelJson,
@@ -328,7 +328,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       // Generate terrain fill script if canvas has terrain elements
       const terrainScript = generateTerrainScript(elements);
       if (terrainScript) {
-        await projectCommands.writeFile(
+        await writeFile(
           projectPath,
           "src/server/TerrainFill.server.luau",
           terrainScript,
@@ -339,7 +339,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       const template = get().template || "obby";
       const behaviorScripts = generateAllBehaviorScripts(elements, template);
       for (const script of behaviorScripts) {
-        await projectCommands.writeFile(projectPath, script.path, script.content);
+        await writeFile(projectPath, script.path, script.content);
       }
 
       set({ lastSavedAt: Date.now() });

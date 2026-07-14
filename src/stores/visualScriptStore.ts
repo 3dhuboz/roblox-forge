@@ -3,7 +3,8 @@ import type { Node, Edge } from "@xyflow/react";
 import { NODE_TYPES } from "../lib/nodeTypes";
 import type { PortType } from "../lib/nodeTypes";
 import { compileGraphToLuau } from "../lib/luauCodeGen";
-import { projectCommands } from "../services/tauriCommands";
+import { readFile, writeFile } from "../services/projectFileClient";
+import { isOperationUnavailableError } from "../services/tauriCommands";
 
 export interface NodeData extends Record<string, unknown> {
   nodeType: string;
@@ -213,7 +214,7 @@ export const useVisualScriptStore = create<VisualScriptStore>()((set, get) => ({
   saveToProject: async (projectPath) => {
     const { compiledCode, scriptName } = get();
     if (!compiledCode) return;
-    await projectCommands.writeFile(
+    await writeFile(
       projectPath,
       `src/server/VisualScripts/${scriptName}.server.luau`,
       compiledCode,
@@ -242,12 +243,12 @@ export const useVisualScriptStore = create<VisualScriptStore>()((set, get) => ({
       null,
       2,
     );
-    await projectCommands.writeFile(projectPath, "visual-scripts.json", json);
+    await writeFile(projectPath, "visual-scripts.json", json);
   },
 
   loadGraphJson: async (projectPath) => {
     try {
-      const json = await projectCommands.readFile(projectPath, "visual-scripts.json");
+      const json = await readFile(projectPath, "visual-scripts.json");
       const parsed = JSON.parse(json) as Array<{
         name: string;
         nodes: Node<NodeData>[];
@@ -268,7 +269,10 @@ export const useVisualScriptStore = create<VisualScriptStore>()((set, get) => ({
         scriptName: g.name,
         compiledCode: null,
       });
-    } catch {
+    } catch (error) {
+      if (isOperationUnavailableError(error)) {
+        throw error;
+      }
       // No saved graphs — keep defaults
     }
   },

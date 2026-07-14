@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { FileCode, Save, X, ChevronDown } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
-import { projectCommands } from "../../services/tauriCommands";
+import { writeFile } from "../../services/projectFileClient";
 import { tokenizeLuau, getTokenClass } from "../../lib/luauHighlight";
 import type { ScriptFile } from "../../types/project";
 
@@ -16,6 +16,7 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
   const [editedContent, setEditedContent] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const editorScrollRef = useRef<HTMLDivElement>(null);
 
@@ -30,22 +31,25 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
     setActiveScript(script);
     setEditedContent(script.content);
     setIsDirty(false);
+    setSaveError(null);
     setShowPicker(false);
   };
 
   const handleSave = async () => {
     if (!activeScript || !isDirty) return;
     setIsSaving(true);
+    setSaveError(null);
     try {
-      await projectCommands.writeFile(
+      await writeFile(
         projectPath,
         activeScript.relativePath,
         editedContent,
       );
-      setIsDirty(false);
       await refreshProjectState();
+      setIsDirty(false);
     } catch (e) {
-      console.error("Save failed:", e);
+      const message = e instanceof Error ? e.message : String(e);
+      setSaveError(`Save failed: ${message}`);
     } finally {
       setIsSaving(false);
     }
@@ -139,6 +143,7 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
                 if (activeScript) {
                   setEditedContent(activeScript.content);
                   setIsDirty(false);
+                  setSaveError(null);
                 }
               }}
               className="rounded-md p-1 text-gray-500 hover:bg-gray-800 hover:text-gray-300"
@@ -152,6 +157,15 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
           <span className="h-2 w-2 rounded-full bg-amber-500" title="Unsaved changes" />
         )}
       </div>
+
+      {saveError && (
+        <div
+          role="alert"
+          className="border-b border-red-900/60 bg-red-950/60 px-3 py-2 text-xs text-red-300"
+        >
+          {saveError}
+        </div>
+      )}
 
       {/* Editor area */}
       <div className="relative flex-1 overflow-hidden">
@@ -188,6 +202,7 @@ export function ScriptEditor({ projectPath }: ScriptEditorProps) {
               onChange={(e) => {
                 setEditedContent(e.target.value);
                 setIsDirty(true);
+                setSaveError(null);
               }}
               onKeyDown={(e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === "s") {
