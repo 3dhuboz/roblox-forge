@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Key,
   Save,
@@ -18,76 +18,465 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
-import { aiCommands, rojoCommands } from "../../services/tauriCommands";
+import {
+  aiCommands,
+  isOperationUnavailableError,
+  rojoCommands,
+} from "../../services/tauriCommands";
 import type { RojoStatus } from "../../services/tauriCommands";
 import { useUserStore } from "../../stores/userStore";
 import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";
 import type { ExperienceLevel } from "../../types/user";
+import { isTauriRuntime } from "../../lib/isTauriRuntime";
+
+type ApiAuthorityStatus =
+  | "checking"
+  | "missing"
+  | "configured"
+  | "saving"
+  | "unavailable"
+  | "error";
+
+type ApiAuthorityState = {
+  status: ApiAuthorityStatus;
+  message: string | null;
+  provider: string | null;
+  recoveryAction: string | null;
+};
+
+type RojoAuthorityStatus = "checking" | "ready" | "unavailable" | "error";
+
+type RojoAuthorityState = {
+  status: RojoAuthorityStatus;
+  message: string | null;
+  recoveryAction: string | null;
+};
+
+type AuthorityUiError = {
+  status: "unavailable" | "error";
+  message: string;
+  recoveryAction: string | null;
+};
+
+const API_DESKTOP_REQUIRED =
+  "AI key management requires the RobloxForge Desktop app. Open the Desktop app to continue.";
+const ROJO_DESKTOP_REQUIRED =
+  "Rojo status requires the RobloxForge Desktop app. Open the Desktop app to continue.";
+
+function unavailableApiAuthorityState(): ApiAuthorityState {
+  return {
+    status: "unavailable",
+    message: API_DESKTOP_REQUIRED,
+    provider: null,
+    recoveryAction: null,
+  };
+}
+
+function unavailableRojoAuthorityState(): RojoAuthorityState {
+  return {
+    status: "unavailable",
+    message: ROJO_DESKTOP_REQUIRED,
+    recoveryAction: null,
+  };
+}
+
+function providerLabel(provider: string): string {
+  const normalized = provider.trim().toLowerCase();
+  if (normalized === "openrouter") return "OpenRouter";
+  if (normalized === "anthropic") return "Anthropic";
+  return "Desktop provider";
+}
+
+function safeDisplayMessage(
+  message: string,
+  fallbackMessage: string,
+  sensitiveValues: readonly string[] = [],
+): string {
+  const trimmed = message.trim();
+  const containsCredential =
+    /sk-(?:or-|ant-)?[a-z0-9_-]{3,}/i.test(trimmed) ||
+    /(?:bearer|password|secret|token|api[_ -]?key)\s*[:=]\s*\S+/i.test(
+      trimmed,
+    ) ||
+    sensitiveValues.some((value) => value.length > 0 && trimmed.includes(value));
+  if (!trimmed || containsCredential) return fallbackMessage;
+  return [...trimmed].slice(0, 256).join("");
+}
+
+function toAuthorityUiError(
+  error: unknown,
+  fallbackMessage: string,
+  sensitiveValues: readonly string[] = [],
+): AuthorityUiError {
+  if (isOperationUnavailableError(error)) {
+    const recoveryAction = error.receipt.recoveryAction;
+    return {
+      status: "unavailable",
+      message: safeDisplayMessage(
+        error.message,
+        fallbackMessage,
+        sensitiveValues,
+      ),
+      recoveryAction: recoveryAction
+        ? safeDisplayMessage(
+            recoveryAction,
+            "Follow the recovery steps shown in RobloxForge Desktop.",
+            sensitiveValues,
+          )
+        : null,
+    };
+  }
+
+  return {
+    status: "error",
+    message:
+      error instanceof Error && error.message.trim()
+        ? safeDisplayMessage(error.message, fallbackMessage, sensitiveValues)
+        : fallbackMessage,
+    recoveryAction: null,
+  };
+}
 
 export function SettingsPage() {
   const { profile, updateProfile, resetProfile } = useUserStore();
+  const desktopRuntime = isTauriRuntime();
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [envKeyProvider, setEnvKeyProvider] = useState<string | null>(null);
+  const [apiAuthority, setApiAuthority] = useState<ApiAuthorityState>(() =>
+    desktopRuntime
+      ? {
+          status: "checking",
+          message: "Checking AI key in RobloxForge Desktop...",
+          provider: null,
+          recoveryAction: null,
+        }
+      : unavailableApiAuthorityState(),
+  );
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
   const [rojoLoading, setRojoLoading] = useState(false);
-  const [rojoError, setRojoError] = useState<string | null>(null);
+  const [rojoAuthority, setRojoAuthority] = useState<RojoAuthorityState>(() =>
+    desktopRuntime
+      ? { status: "checking", message: null, recoveryAction: null }
+      : unavailableRojoAuthorityState(),
+  );
+  const mountedRef = useRef(false);
+  const apiAttemptIdRef = useRef(0);
+  const apiSaveInFlightRef = useRef(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rojoAttemptIdRef = useRef(0);
+  const rojoInFlightRef = useRef(false);
 
-  const refreshRojoStatus = useCallback(async () => {
-    try {
-      const status = await rojoCommands.checkStatus();
-      setRojoStatus(status);
-      setRojoError(null);
-    } catch (e) {
-      setRojoError(e instanceof Error ? e.message : String(e));
+  const clearSavedTimer = useCallback(() => {
+    if (savedTimerRef.current !== null) {
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = null;
     }
   }, []);
 
-  useEffect(() => {
-    refreshRojoStatus();
-    aiCommands.checkApiKey().then((provider) => {
-      if (provider) {
-        setEnvKeyProvider(provider);
-        updateProfile({ hasSetApiKey: true });
-      }
-    }).catch(() => {});
-  }, [refreshRojoStatus, updateProfile]);
+  const showApiRuntimeUnavailable = useCallback(() => {
+    clearSavedTimer();
+    setSaved(false);
+    setApiAuthority(unavailableApiAuthorityState());
+  }, [clearSavedTimer]);
 
-  const handleStartServe = async () => {
+  const showRojoRuntimeUnavailable = useCallback(() => {
+    setRojoAuthority(unavailableRojoAuthorityState());
+  }, []);
+
+  const refreshRojoStatus = useCallback(async () => {
+    if (
+      !desktopRuntime ||
+      !isTauriRuntime() ||
+      !mountedRef.current ||
+      rojoInFlightRef.current
+    ) {
+      return;
+    }
+
+    rojoInFlightRef.current = true;
+    const attemptId = ++rojoAttemptIdRef.current;
     setRojoLoading(true);
     try {
-      await rojoCommands.startServe(".");
-      await refreshRojoStatus();
-    } catch (e) {
-      setRojoError(e instanceof Error ? e.message : String(e));
+      const status = await rojoCommands.checkStatus();
+      if (
+        !mountedRef.current ||
+        attemptId !== rojoAttemptIdRef.current
+      ) {
+        return;
+      }
+      if (!isTauriRuntime()) {
+        showRojoRuntimeUnavailable();
+        return;
+      }
+      setRojoStatus(status);
+      setRojoAuthority({
+        status: "ready",
+        message: null,
+        recoveryAction: null,
+      });
+    } catch (error) {
+      if (
+        !mountedRef.current ||
+        attemptId !== rojoAttemptIdRef.current
+      ) {
+        return;
+      }
+      if (!isTauriRuntime()) {
+        showRojoRuntimeUnavailable();
+        return;
+      }
+      const uiError = toAuthorityUiError(
+        error,
+        "RobloxForge Desktop could not check Rojo status.",
+      );
+      setRojoAuthority(uiError);
     } finally {
-      setRojoLoading(false);
+      if (attemptId === rojoAttemptIdRef.current) {
+        rojoInFlightRef.current = false;
+        if (mountedRef.current) {
+          setRojoLoading(false);
+        }
+      }
     }
+  }, [desktopRuntime, showRojoRuntimeUnavailable]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (desktopRuntime) {
+      const attemptId = ++apiAttemptIdRef.current;
+      void aiCommands
+        .checkApiKey()
+        .then((provider) => {
+          if (
+            !mountedRef.current ||
+            attemptId !== apiAttemptIdRef.current
+          ) {
+            return;
+          }
+          if (!isTauriRuntime()) {
+            showApiRuntimeUnavailable();
+            return;
+          }
+
+          if (provider) {
+            setApiAuthority({
+              status: "configured",
+              message: "AI key configured in RobloxForge Desktop.",
+              provider: providerLabel(provider),
+              recoveryAction: null,
+            });
+            updateProfile({ hasSetApiKey: true });
+          } else {
+            setApiAuthority({
+              status: "missing",
+              message: "No AI key is configured in RobloxForge Desktop.",
+              provider: null,
+              recoveryAction: null,
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          if (
+            !mountedRef.current ||
+            attemptId !== apiAttemptIdRef.current
+          ) {
+            return;
+          }
+          if (!isTauriRuntime()) {
+            showApiRuntimeUnavailable();
+            return;
+          }
+          const uiError = toAuthorityUiError(
+            error,
+            "RobloxForge Desktop could not check the AI key.",
+          );
+          setApiAuthority({
+            ...uiError,
+            provider: null,
+          });
+        });
+
+      void refreshRojoStatus();
+    }
+
+    return () => {
+      mountedRef.current = false;
+      apiAttemptIdRef.current += 1;
+      rojoAttemptIdRef.current += 1;
+      apiSaveInFlightRef.current = false;
+      rojoInFlightRef.current = false;
+      clearSavedTimer();
+    };
+  }, [
+    clearSavedTimer,
+    desktopRuntime,
+    refreshRojoStatus,
+    showApiRuntimeUnavailable,
+    updateProfile,
+  ]);
+
+  const runRojoAction = useCallback(
+    async (action: () => Promise<unknown>) => {
+      if (
+        !desktopRuntime ||
+        !isTauriRuntime() ||
+        !mountedRef.current ||
+        rojoInFlightRef.current
+      ) {
+        return;
+      }
+
+      rojoInFlightRef.current = true;
+      const attemptId = ++rojoAttemptIdRef.current;
+      setRojoLoading(true);
+      try {
+        await action();
+        if (
+          !mountedRef.current ||
+          attemptId !== rojoAttemptIdRef.current
+        ) {
+          return;
+        }
+        if (!isTauriRuntime()) {
+          showRojoRuntimeUnavailable();
+          return;
+        }
+
+        const status = await rojoCommands.checkStatus();
+        if (
+          !mountedRef.current ||
+          attemptId !== rojoAttemptIdRef.current
+        ) {
+          return;
+        }
+        if (!isTauriRuntime()) {
+          showRojoRuntimeUnavailable();
+          return;
+        }
+        setRojoStatus(status);
+        setRojoAuthority({
+          status: "ready",
+          message: null,
+          recoveryAction: null,
+        });
+      } catch (error) {
+        if (
+          !mountedRef.current ||
+          attemptId !== rojoAttemptIdRef.current
+        ) {
+          return;
+        }
+        if (!isTauriRuntime()) {
+          showRojoRuntimeUnavailable();
+          return;
+        }
+        const uiError = toAuthorityUiError(
+          error,
+          "RobloxForge Desktop could not change Rojo sync.",
+        );
+        setRojoAuthority(uiError);
+      } finally {
+        if (attemptId === rojoAttemptIdRef.current) {
+          rojoInFlightRef.current = false;
+          if (mountedRef.current) {
+            setRojoLoading(false);
+          }
+        }
+      }
+    },
+    [desktopRuntime, showRojoRuntimeUnavailable],
+  );
+
+  const handleStartServe = async () => {
+    if (!desktopRuntime || !isTauriRuntime()) return;
+    await runRojoAction(() => rojoCommands.startServe("."));
   };
 
   const handleStopServe = async () => {
-    setRojoLoading(true);
-    try {
-      await rojoCommands.stopServe();
-      await refreshRojoStatus();
-    } catch (e) {
-      setRojoError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setRojoLoading(false);
-    }
+    if (!desktopRuntime || !isTauriRuntime()) return;
+    await runRojoAction(() => rojoCommands.stopServe());
   };
 
   const handleSaveKey = async () => {
-    if (!apiKey.trim()) return;
+    const trimmedKey = apiKey.trim();
+    if (
+      !desktopRuntime ||
+      !isTauriRuntime() ||
+      !trimmedKey ||
+      apiSaveInFlightRef.current ||
+      !mountedRef.current
+    ) {
+      return;
+    }
+
+    apiSaveInFlightRef.current = true;
+    const attemptId = ++apiAttemptIdRef.current;
+    clearSavedTimer();
+    setSaved(false);
+    setApiKey("");
+    setApiAuthority({
+      status: "saving",
+      message: "Saving AI key in RobloxForge Desktop...",
+      provider: null,
+      recoveryAction: null,
+    });
     try {
-      await aiCommands.setApiKey(apiKey.trim());
+      await aiCommands.setApiKey(trimmedKey);
+      if (
+        !mountedRef.current ||
+        attemptId !== apiAttemptIdRef.current
+      ) {
+        return;
+      }
+      if (!isTauriRuntime()) {
+        showApiRuntimeUnavailable();
+        return;
+      }
       updateProfile({ hasSetApiKey: true });
+      setApiAuthority({
+        status: "configured",
+        message: "AI key configured in RobloxForge Desktop.",
+        provider: "Saved key",
+        recoveryAction: null,
+      });
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      console.error("Failed to save API key:", e);
+      savedTimerRef.current = setTimeout(() => {
+        savedTimerRef.current = null;
+        if (
+          mountedRef.current &&
+          attemptId === apiAttemptIdRef.current
+        ) {
+          setSaved(false);
+        }
+      }, 3000);
+    } catch (error) {
+      if (
+        !mountedRef.current ||
+        attemptId !== apiAttemptIdRef.current
+      ) {
+        return;
+      }
+      if (!isTauriRuntime()) {
+        showApiRuntimeUnavailable();
+        return;
+      }
+      const uiError = toAuthorityUiError(
+        error,
+        "RobloxForge Desktop could not save the AI key.",
+        [trimmedKey],
+      );
+      setSaved(false);
+      setApiAuthority({
+        ...uiError,
+        provider: null,
+      });
+    } finally {
+      if (attemptId === apiAttemptIdRef.current) {
+        apiSaveInFlightRef.current = false;
+      }
     }
   };
 
@@ -234,31 +623,81 @@ export function SettingsPage() {
               <Key size={20} className="text-indigo-400" />
               <h3 className="text-[15px] font-bold text-white">AI Key</h3>
             </div>
-            {envKeyProvider ? (
-              <div className="mt-3 rounded-xl bg-green-950/20 border border-green-900/40 px-4 py-3 text-[13px] text-green-300">
+            {apiAuthority.status === "configured" ? (
+              <div
+                className="mt-3 rounded-xl border border-green-900/40 bg-green-950/20 px-4 py-3 text-[13px] text-green-300"
+                role="status"
+              >
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} />
-                  Key auto-loaded from .env ({envKeyProvider === "openrouter" ? "OpenRouter" : "Anthropic"})
+                  {apiAuthority.message}
+                  {apiAuthority.provider ? ` (${apiAuthority.provider})` : ""}
                 </div>
               </div>
+            ) : apiAuthority.status === "checking" ||
+              apiAuthority.status === "saving" ? (
+              <div
+                className="mt-3 flex items-center gap-2 text-[13px] text-gray-400"
+                role="status"
+              >
+                <Loader2 size={14} className="animate-spin" />
+                {apiAuthority.message}
+              </div>
+            ) : apiAuthority.status === "missing" ? (
+              <div className="mt-2 space-y-2 text-[13px] text-gray-400">
+                <p>{apiAuthority.message}</p>
+                <p>
+                  Add{" "}
+                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
+                    OPENROUTER_API_KEY
+                  </code>{" "}
+                  or{" "}
+                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
+                    ANTHROPIC_API_KEY
+                  </code>{" "}
+                  to your{" "}
+                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">
+                    .env
+                  </code>{" "}
+                  file, or paste below.
+                </p>
+              </div>
             ) : (
-              <p className="mt-2 text-[13px] text-gray-400">
-                Add <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">OPENROUTER_API_KEY</code> or{" "}
-                <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">ANTHROPIC_API_KEY</code> to your{" "}
-                <code className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">.env</code> file, or paste below.
-              </p>
+              <div
+                className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 px-4 py-3 text-[13px] text-red-300"
+                role="alert"
+              >
+                <p>{apiAuthority.message}</p>
+                {apiAuthority.recoveryAction && (
+                  <p className="mt-1 text-red-200">
+                    {apiAuthority.recoveryAction}
+                  </p>
+                )}
+              </div>
             )}
             <div className="mt-4 flex gap-2">
               <div className="relative flex-1">
                 <input
+                  aria-label="AI API key"
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-or-... or sk-ant-..."
+                  disabled={
+                    !desktopRuntime ||
+                    apiAuthority.status === "saving" ||
+                    apiAuthority.status === "unavailable"
+                  }
                   className="w-full rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-3 pr-10 text-white outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
                 />
                 <button
                   onClick={() => setShowKey(!showKey)}
+                  disabled={
+                    !desktopRuntime ||
+                    apiAuthority.status === "saving" ||
+                    apiAuthority.status === "unavailable"
+                  }
+                  aria-label={showKey ? "Hide AI API key" : "Show AI API key"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                 >
                   {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -266,10 +705,19 @@ export function SettingsPage() {
               </div>
               <button
                 onClick={handleSaveKey}
-                disabled={!apiKey.trim()}
+                disabled={
+                  !desktopRuntime ||
+                  !apiKey.trim() ||
+                  apiAuthority.status === "saving" ||
+                  apiAuthority.status === "unavailable"
+                }
                 className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saved ? (
+                {apiAuthority.status === "saving" ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Saving...
+                  </>
+                ) : saved ? (
                   <>
                     <CheckCircle size={16} /> Saved!
                   </>
@@ -284,15 +732,46 @@ export function SettingsPage() {
 
           {/* Rojo Sync */}
           <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
-            <div className="flex items-center gap-2.5">
-              <Radio size={20} className="text-indigo-400" />
-              <h3 className="text-[15px] font-bold text-white">Rojo Sync</h3>
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <Radio size={20} className="text-indigo-400" />
+                <h3 className="text-[15px] font-bold text-white">Rojo Sync</h3>
+              </div>
+              <button
+                type="button"
+                aria-label="Refresh Rojo status"
+                onClick={refreshRojoStatus}
+                disabled={
+                  !desktopRuntime ||
+                  rojoLoading ||
+                  rojoAuthority.status === "unavailable"
+                }
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <RotateCcw
+                  size={14}
+                  className={rojoLoading ? "animate-spin" : undefined}
+                />
+              </button>
             </div>
             <p className="mt-2 text-[13px] text-gray-400">
               Sync your project to Roblox Studio in real time.
             </p>
 
-            {rojoStatus ? (
+            {rojoAuthority.status === "error" ||
+            rojoAuthority.status === "unavailable" ? (
+              <div
+                className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 px-4 py-3 text-[13px] text-red-300"
+                role="alert"
+              >
+                <p>{rojoAuthority.message}</p>
+                {rojoAuthority.recoveryAction && (
+                  <p className="mt-1 text-red-200">
+                    {rojoAuthority.recoveryAction}
+                  </p>
+                )}
+              </div>
+            ) : rojoAuthority.status === "ready" && rojoStatus ? (
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3">
                   <div>
@@ -349,10 +828,11 @@ export function SettingsPage() {
                   </div>
                 )}
               </div>
-            ) : rojoError ? (
-              <p className="mt-3 text-[13px] text-red-400">{rojoError}</p>
             ) : (
-              <div className="mt-4 flex items-center gap-2 text-[13px] text-gray-500">
+              <div
+                className="mt-4 flex items-center gap-2 text-[13px] text-gray-500"
+                role="status"
+              >
                 <Loader2 size={14} className="animate-spin" /> Checking Rojo...
               </div>
             )}

@@ -4,8 +4,12 @@ import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, 
 import type { LucideIcon } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
-import { rojoCommands, aiCommands } from "../../services/tauriCommands";
-import type { RojoStatus } from "../../services/tauriCommands";
+import {
+  rojoCommands,
+  aiCommands,
+  isOperationUnavailableError,
+} from "../../services/tauriCommands";
+import { isTauriRuntime } from "../../lib/isTauriRuntime";
 
 interface Template {
   id: string;
@@ -21,6 +25,94 @@ interface RecentProject {
   template: string;
   path: string;
   createdAt: string;
+}
+
+type ApiChecklistStatus =
+  | "checking"
+  | "configured"
+  | "missing"
+  | "unavailable"
+  | "error";
+
+type RojoChecklistStatus =
+  | "checking"
+  | "ready"
+  | "missing"
+  | "unavailable"
+  | "error";
+
+type ApiChecklistState = {
+  status: ApiChecklistStatus;
+  hint: string;
+  provider: string | null;
+};
+
+type RojoChecklistState = {
+  status: RojoChecklistStatus;
+  hint: string;
+};
+
+function unavailableApiChecklistState(): ApiChecklistState {
+  return {
+    status: "unavailable",
+    hint: "Desktop app required to check your AI key.",
+    provider: null,
+  };
+}
+
+function unavailableRojoChecklistState(): RojoChecklistState {
+  return {
+    status: "unavailable",
+    hint: "Desktop app required to check Rojo.",
+  };
+}
+
+function checklistProviderLabel(provider: string): string {
+  const normalized = provider.trim().toLowerCase();
+  if (normalized === "openrouter") return "OpenRouter";
+  if (normalized === "anthropic") return "Anthropic";
+  return "Desktop provider";
+}
+
+function checklistSafeMessage(
+  message: string,
+  fallbackMessage: string,
+): string {
+  const trimmed = message.trim();
+  const containsCredential =
+    /sk-(?:or-|ant-)?[a-z0-9_-]{3,}/i.test(trimmed) ||
+    /(?:bearer|password|secret|token|api[_ -]?key)\s*[:=]\s*\S+/i.test(
+      trimmed,
+    );
+  if (!trimmed || containsCredential) return fallbackMessage;
+  return [...trimmed].slice(0, 256).join("");
+}
+
+function checklistFailure(
+  error: unknown,
+  fallbackMessage: string,
+): { status: "unavailable" | "error"; hint: string } {
+  if (isOperationUnavailableError(error)) {
+    const recoveryAction = error.receipt.recoveryAction;
+    const message = checklistSafeMessage(error.message, fallbackMessage);
+    return {
+      status: "unavailable",
+      hint: recoveryAction
+        ? `${message} ${checklistSafeMessage(
+            recoveryAction,
+            "Follow the recovery steps shown in RobloxForge Desktop.",
+          )}`
+        : message,
+    };
+  }
+
+  return {
+    status: "error",
+    hint:
+      error instanceof Error && error.message.trim()
+        ? checklistSafeMessage(error.message, fallbackMessage)
+        : fallbackMessage,
+  };
 }
 
 const templates: Template[] = [
@@ -395,22 +487,114 @@ function TemplateScene({ id }: { id: string }) {
 
 function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
   const navigate = useNavigate();
-  const { profile, updateProfile } = useUserStore();
-  const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
-  const [envKeyLoaded, setEnvKeyLoaded] = useState(false);
+  const { updateProfile } = useUserStore();
+  const desktopRuntime = isTauriRuntime();
+  const [apiState, setApiState] = useState<ApiChecklistState>(() =>
+    desktopRuntime
+      ? {
+          status: "checking",
+          hint: "Checking AI key in RobloxForge Desktop...",
+          provider: null,
+        }
+      : unavailableApiChecklistState(),
+  );
+  const [rojoState, setRojoState] = useState<RojoChecklistState>(() =>
+    desktopRuntime
+      ? {
+          status: "checking",
+          hint: "Checking Rojo in RobloxForge Desktop...",
+        }
+      : unavailableRojoChecklistState(),
+  );
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem("roblox-forge-setup-dismissed") === "true"; } catch { return false; }
   });
 
   useEffect(() => {
-    rojoCommands.checkStatus().then(setRojoStatus).catch(() => {});
-    aiCommands.checkApiKey().then((provider) => {
-      if (provider) {
-        setEnvKeyLoaded(true);
-        updateProfile({ hasSetApiKey: true });
-      }
-    }).catch(() => {});
-  }, [updateProfile]);
+    let cancelled = false;
+    if (!desktopRuntime) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void aiCommands
+      .checkApiKey()
+      .then((provider) => {
+        if (cancelled) return;
+        if (!isTauriRuntime()) {
+          setApiState(unavailableApiChecklistState());
+          return;
+        }
+        if (provider) {
+          const label = checklistProviderLabel(provider);
+          setApiState({
+            status: "configured",
+            hint: `AI key verified by RobloxForge Desktop (${label}).`,
+            provider: label,
+          });
+          updateProfile({ hasSetApiKey: true });
+        } else {
+          setApiState({
+            status: "missing",
+            hint: "No AI key is configured in RobloxForge Desktop.",
+            provider: null,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (!isTauriRuntime()) {
+          setApiState(unavailableApiChecklistState());
+          return;
+        }
+        const failure = checklistFailure(
+          error,
+          "RobloxForge Desktop could not check the AI key.",
+        );
+        setApiState({ ...failure, provider: null });
+      });
+
+    void rojoCommands
+      .checkStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (!isTauriRuntime()) {
+          setRojoState(unavailableRojoChecklistState());
+          return;
+        }
+        if (status.installed) {
+          setRojoState({
+            status: "ready",
+            hint: status.version ?? "Rojo installed and verified.",
+          });
+        } else {
+          setRojoState({
+            status: "missing",
+            hint:
+              status.install_instructions ??
+              "Rojo is not installed in RobloxForge Desktop.",
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (!isTauriRuntime()) {
+          setRojoState(unavailableRojoChecklistState());
+          return;
+        }
+        setRojoState(
+          checklistFailure(
+            error,
+            "RobloxForge Desktop could not check Rojo status.",
+          ),
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [desktopRuntime, updateProfile]);
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);
@@ -419,8 +603,8 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
 
   if (dismissed) return null;
 
-  const apiKeyDone = profile.hasSetApiKey || envKeyLoaded;
-  const rojoDone = rojoStatus?.installed ?? false;
+  const apiKeyDone = apiState.status === "configured";
+  const rojoDone = rojoState.status === "ready";
   const projectDone = hasProjects;
   const allDone = apiKeyDone && rojoDone && projectDone;
 
@@ -431,7 +615,9 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
       done: apiKeyDone,
       icon: Key,
       label: "Set up your AI key",
-      hint: "Needed to use the AI builder",
+      hint: apiState.hint,
+      attention:
+        apiState.status === "unavailable" || apiState.status === "error",
       action: () => navigate("/settings"),
       actionLabel: "Settings",
     },
@@ -439,7 +625,9 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
       done: rojoDone,
       icon: Radio,
       label: "Install Rojo",
-      hint: rojoStatus ? (rojoDone ? rojoStatus.version ?? "Installed" : "Optional — needed to sync to Studio") : "Checking...",
+      hint: rojoState.hint,
+      attention:
+        rojoState.status === "unavailable" || rojoState.status === "error",
       action: () => navigate("/settings"),
       actionLabel: "Details",
     },
@@ -448,6 +636,7 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
       icon: Gamepad2,
       label: "Create your first game",
       hint: "Pick a template below to get started",
+      attention: false,
       action: null,
       actionLabel: null,
     },
@@ -483,7 +672,12 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
                 <p className={`text-[13px] font-medium ${item.done ? "text-gray-500 line-through" : "text-gray-200"}`}>
                   {item.label}
                 </p>
-                <p className="text-[11px] text-gray-500">{item.hint}</p>
+                <p
+                  className="text-[11px] text-gray-500"
+                  role={item.attention ? "alert" : undefined}
+                >
+                  {item.hint}
+                </p>
               </div>
               {!item.done && item.action && (
                 <button
