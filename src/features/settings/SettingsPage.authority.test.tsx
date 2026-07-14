@@ -313,14 +313,12 @@ describe("SettingsPage desktop authority", () => {
 
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(false);
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
-    expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/AI key configured in RobloxForge Desktop/i),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
-
   it("treats a desktop null check as missing even when the persisted profile says configured", async () => {
     enableTauriRuntime();
     setPersistedApiKey(true);
@@ -606,4 +604,3 @@ describe("SettingsPage desktop authority", () => {
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2);
   });
 });
-
