@@ -656,4 +656,57 @@ describe("SettingsPage desktop authority", () => {
     expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2);
   });
+
+  it("reconciles after a stale status settles across collapse and reopen", async () => {
+    enableTauriRuntime();
+    const oldStatus = deferred<RojoStatus>();
+    vi.mocked(rojoCommands.checkStatus).mockReturnValueOnce(oldStatus.promise).mockResolvedValueOnce(installedRojo);
+    render(<SettingsPage />);
+    expandStudioSync();
+    await waitFor(() => expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Advanced Studio Sync" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Advanced Studio Sync" }));
+    expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
+    await act(async () => { oldStatus.resolve(installedRojo); await oldStatus.promise; });
+    await waitFor(() => expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps Start locked across collapse and reopen and reconciles once", async () => {
+    enableTauriRuntime();
+    vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo).mockResolvedValueOnce({ ...installedRojo, serving: true, serve_port: 34872 });
+    const start = deferred<number>();
+    vi.mocked(rojoCommands.startServe).mockReturnValueOnce(start.promise);
+    render(<SettingsPage />); expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    fireEvent.click(screen.getByRole("button", { name: "Start Sync to Studio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Advanced Studio Sync" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Advanced Studio Sync" }));
+    await act(async () => { start.resolve(34872); await start.promise; });
+    await waitFor(() => expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2));
+    expect(rojoCommands.startServe).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles same-tick Start and Stop with one action each", async () => {
+    enableTauriRuntime();
+    vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce({ ...installedRojo, serving: true, serve_port: 34872 });
+    render(<SettingsPage />); expandStudioSync();
+    await screen.findByRole("button", { name: "Stop" });
+    await act(async () => {
+      screen.getByRole("button", { name: "Stop" }).click();
+      screen.getByRole("button", { name: "Stop" }).click();
+      await Promise.resolve();
+    });
+    expect(rojoCommands.stopServe).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reconcile after unmount during a probe", async () => {
+    enableTauriRuntime();
+    const probe = deferred<RojoStatus>();
+    vi.mocked(rojoCommands.checkStatus).mockReturnValueOnce(probe.promise);
+    const view = render(<SettingsPage />); expandStudioSync();
+    await waitFor(() => expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1));
+    view.unmount();
+    await act(async () => { probe.resolve(installedRojo); await probe.promise; });
+    expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
+  });
 });

@@ -251,6 +251,18 @@ export function SettingsPage() {
 
   useEffect(() => {
     mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      apiAttemptIdRef.current += 1;
+      rojoGenerationRef.current += 1;
+      studioSyncExpandedRef.current = false;
+      apiSaveInFlightRef.current = false;
+      rojoOperationOwnerRef.current = null;
+      clearSavedTimer();
+    };
+  }, [clearSavedTimer]);
+
+  useEffect(() => {
 
     if (desktopRuntime) {
       const attemptId = ++apiAttemptIdRef.current;
@@ -301,17 +313,7 @@ export function SettingsPage() {
         });
     }
 
-    return () => {
-      mountedRef.current = false;
-      apiAttemptIdRef.current += 1;
-      rojoAttemptIdRef.current += 1;
-      rojoGenerationRef.current += 1;
-      apiSaveInFlightRef.current = false;
-      rojoInFlightRef.current = false;
-      clearSavedTimer();
-    };
   }, [
-    clearSavedTimer,
     desktopRuntime,
     refreshRojoStatus,
     showApiRuntimeUnavailable,
