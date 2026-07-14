@@ -210,7 +210,10 @@ export function SettingsPage() {
     ) {
       return;
     }
-    if (!isTauriRuntime()) { showRojoRuntimeUnavailable(); return; }
+    if (!isTauriRuntime()) {
+      showRojoRuntimeUnavailable();
+      return;
+    }
 
     const operationOwner = ++rojoOperationSequenceRef.current;
     rojoOperationOwnerRef.current = operationOwner;
@@ -218,7 +221,11 @@ export function SettingsPage() {
     setRojoLoading(true);
     try {
       const status = await rojoCommands.checkStatus();
-      if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
+      if (
+        !mountedRef.current ||
+        generation !== rojoGenerationRef.current ||
+        !studioSyncExpandedRef.current
+      ) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -232,7 +239,11 @@ export function SettingsPage() {
         recoveryAction: null,
       });
     } catch (error) {
-      if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
+      if (
+        !mountedRef.current ||
+        generation !== rojoGenerationRef.current ||
+        !studioSyncExpandedRef.current
+      ) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -245,9 +256,20 @@ export function SettingsPage() {
       );
       setRojoAuthority(uiError);
     } finally {
-      if (rojoOperationOwnerRef.current === operationOwner) rojoOperationOwnerRef.current = null;
-      if (mountedRef.current && generation === rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoLoading(false);
-      if (mountedRef.current && generation !== rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoReconcileTick((tick) => tick + 1);
+      if (rojoOperationOwnerRef.current === operationOwner)
+        rojoOperationOwnerRef.current = null;
+      if (
+        mountedRef.current &&
+        generation === rojoGenerationRef.current &&
+        studioSyncExpandedRef.current
+      )
+        setRojoLoading(false);
+      if (
+        mountedRef.current &&
+        generation !== rojoGenerationRef.current &&
+        studioSyncExpandedRef.current
+      )
+        setRojoReconcileTick((tick) => tick + 1);
     }
   }, [desktopRuntime, showRojoRuntimeUnavailable]);
 
@@ -264,7 +286,6 @@ export function SettingsPage() {
   }, [clearSavedTimer]);
 
   useEffect(() => {
-
     if (desktopRuntime) {
       const attemptId = ++apiAttemptIdRef.current;
       void aiCommands
@@ -313,12 +334,7 @@ export function SettingsPage() {
           });
         });
     }
-
-  }, [
-    desktopRuntime,
-    showApiRuntimeUnavailable,
-    updateProfile,
-  ]);
+  }, [desktopRuntime, showApiRuntimeUnavailable, updateProfile]);
 
   useEffect(() => {
     if (!rojoExpanded) return;
@@ -362,7 +378,10 @@ export function SettingsPage() {
       ) {
         return;
       }
-      if (!isTauriRuntime()) { showRojoRuntimeUnavailable(); return; }
+      if (!isTauriRuntime()) {
+        showRojoRuntimeUnavailable();
+        return;
+      }
 
       const operationOwner = ++rojoOperationSequenceRef.current;
       rojoOperationOwnerRef.current = operationOwner;
@@ -370,7 +389,11 @@ export function SettingsPage() {
       setRojoLoading(true);
       try {
         await action();
-        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
+        if (
+          !mountedRef.current ||
+          generation !== rojoGenerationRef.current ||
+          !studioSyncExpandedRef.current
+        ) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -379,7 +402,11 @@ export function SettingsPage() {
         }
 
         const status = await rojoCommands.checkStatus();
-        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
+        if (
+          !mountedRef.current ||
+          generation !== rojoGenerationRef.current ||
+          !studioSyncExpandedRef.current
+        ) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -393,7 +420,11 @@ export function SettingsPage() {
           recoveryAction: null,
         });
       } catch (error) {
-        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
+        if (
+          !mountedRef.current ||
+          generation !== rojoGenerationRef.current ||
+          !studioSyncExpandedRef.current
+        ) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -406,9 +437,20 @@ export function SettingsPage() {
         );
         setRojoAuthority(uiError);
       } finally {
-        if (rojoOperationOwnerRef.current === operationOwner) rojoOperationOwnerRef.current = null;
-        if (mountedRef.current && generation === rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoLoading(false);
-        if (mountedRef.current && generation !== rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoReconcileTick((tick) => tick + 1);
+        if (rojoOperationOwnerRef.current === operationOwner)
+          rojoOperationOwnerRef.current = null;
+        if (
+          mountedRef.current &&
+          generation === rojoGenerationRef.current &&
+          studioSyncExpandedRef.current
+        )
+          setRojoLoading(false);
+        if (
+          mountedRef.current &&
+          generation !== rojoGenerationRef.current &&
+          studioSyncExpandedRef.current
+        )
+          setRojoReconcileTick((tick) => tick + 1);
       }
     },
     [desktopRuntime, showRojoRuntimeUnavailable],
@@ -775,13 +817,17 @@ export function SettingsPage() {
                 aria-controls="advanced-studio-sync-content"
                 onClick={() => {
                   const next = !studioSyncExpandedRef.current;
-                    studioSyncExpandedRef.current = next;
-                    rojoGenerationRef.current += 1;
-                    if (!next) {
-                      setRojoStatus(null);
-                      setRojoLoading(false);
-                      setRojoAuthority({ status: "idle", message: null, recoveryAction: null });
-                    }
+                  studioSyncExpandedRef.current = next;
+                  rojoGenerationRef.current += 1;
+                  if (!next) {
+                    setRojoStatus(null);
+                    setRojoLoading(false);
+                    setRojoAuthority({
+                      status: "idle",
+                      message: null,
+                      recoveryAction: null,
+                    });
+                  }
                   setRojoExpanded(next);
                 }}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-gray-800"
