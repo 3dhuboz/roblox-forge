@@ -4,7 +4,7 @@
 
 **Goal:** Implement the versioned Game Director intelligence that understands a game's intended achievement and operation, safely transforms reference-game patterns into an original Game Operating Model, monitors public monetization signals without fabricating revenue, and proposes evidence-backed improvements.
 
-**Architecture:** JSON Schema 2020-12 is the cross-runtime contract for Game Briefs, Game Operating Models, proposals, provenance, corpus records, reference analysis, radar observations, and recommendations. Cloudflare verifies Steve and brokers OpenRouter; Rust validates, stages, approves, persists, and hashes typed domain operations. Public competitor evidence and private Steve-owned analytics stay in separate namespaces.
+**Architecture:** JSON Schema 2020-12 is the cross-runtime contract for Game Briefs, Game Operating Models, proposals, provenance, corpus records, reference analysis, radar observations, and recommendations. Cloudflare verifies Steve and brokers OpenRouter; Rust validates reference rights before ingestion, then stages, approves, persists, and hashes typed domain operations. Allowlisted public metadata evidence and private Steve-owned analytics stay in separate namespaces; owner metrics never enter the corpus, radar, or shared model context.
 
 **Tech Stack:** JSON Schema 2020-12, TypeScript, Ajv, Rust/serde, Cloudflare Workers/D1, Clerk, OpenRouter, Vitest, Cargo tests.
 
@@ -25,6 +25,7 @@
 - Create: `schemas/intelligence/recommendation.v1.schema.json`
 - Create: `schemas/intelligence/fixtures/valid/obby.json`
 - Create: `schemas/intelligence/fixtures/invalid/competitor-revenue.json`
+- Create: `schemas/intelligence/fixtures/invalid/unverified-reference-url.json`
 - Test: `tests/contracts/intelligence-schemas.test.ts`
 
 - [ ] **Step 1: Write failing schema-conformance tests**
@@ -42,6 +43,12 @@ it("rejects unknown competitor revenue estimates", () => {
 it("rejects arbitrary filesystem commands", () => {
   const proposal = validProposal({ operation: { type: "write_file", path: "C:/x" } });
   expect(validate("director-proposal.v1", proposal).valid).toBe(false);
+});
+
+it("rejects a reference before rights policy allows ingestion", () => {
+  const errors = validateFixture("invalid/unverified-reference-url.json");
+  expect(errors.some((error) => error.includes("rightsBasis"))).toBe(true);
+  expect(errors.some((error) => error.includes("policyDecision"))).toBe(true);
 });
 ```
 
@@ -75,7 +82,25 @@ Every object uses `"additionalProperties": false`. The proposal operation union 
 }
 ```
 
-Every operation has one stable dot-qualified `type` matching the definitions above, a typed target ID, `before`/precondition data, `after` data, rationale, GOM trace, risk, affected acceptance-test IDs, and generated inverse data. No proposal schema permits host paths, shell text, credentials, arbitrary commands, or unbounded source content. The GOM requires schema/generator/knowledge versions, revision/hash, provenance, loops, objectives, runtime rules, scene/system trace, mobile/performance budgets, monetization safety, analytics, and acceptance tests.
+Every operation has one stable dot-qualified `type` matching the definitions above, a typed target ID, `before`/precondition data, `after` data, rationale, GOM trace, risk, affected acceptance-test IDs, and generated inverse data. No proposal schema permits host paths, shell text, credentials, arbitrary commands, or unbounded source content. Every reference/corpus source requires the exact closed fields `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision` with these values:
+
+```ts
+type ReferenceSourceKind =
+  | "owner_authored"
+  | "licensed_template"
+  | "copy_enabled_template"
+  | "public_metadata"
+  | "user_authored_abstract";
+type ReferenceRightsBasis =
+  | "owned"
+  | "expressly_licensed"
+  | "copy_enabled"
+  | "public_metadata_only"
+  | "user_authored";
+type ReferencePolicyDecision = "allowed" | "needs_review" | "blocked";
+```
+
+`rightsEvidenceRef` is required for every source and points to the immutable provenance record. Only `policyDecision: "allowed"` may enter retrieval or an OpenRouter request. A URL without an allowed decision is an inert identifier: it cannot trigger fetching, gameplay observation, asset/script/UI extraction, or Design DNA generation. The GOM requires schema/generator/knowledge versions, revision/hash, provenance, loops, objectives, runtime rules, scene/system trace, mobile/performance budgets, monetization safety, analytics, and acceptance tests.
 
 - [ ] **Step 4: Run and commit**
 
@@ -186,7 +211,7 @@ Expected: PASS.
 
 Commit: `git add src-tauri/src/intelligence src-tauri/tests/game_brief.rs src-tauri/tests/game_operating_model.rs src-tauri/tests/operating_model_invariants.rs && git commit -m "feat: model game intent and operation explicitly"`
 
-### Task 4: Build the cited game-intelligence corpus
+### Task 4: Build the rights-approved cited game-intelligence corpus
 
 **Files:**
 - Create: `data/intelligence/corpus/manifest.v1.json`
@@ -204,7 +229,7 @@ Commit: `git add src-tauri/src/intelligence src-tauri/tests/game_brief.rs src-ta
 #[test]
 fn modified_record_breaks_manifest_hash() {
     let mut pack = fixture_pack();
-    pack.tamper_record("tower-of-hell");
+    pack.tamper_record("licensed-obby-template");
     assert!(pack.verify().is_err());
 }
 
@@ -214,6 +239,12 @@ fn retrieval_requires_cited_diverse_evidence() {
     assert!(results.iter().all(|r| !r.evidence_refs.is_empty()));
     assert!(distinct_source_count(&results) >= 3);
 }
+
+#[test]
+fn retrieval_rejects_unallowed_reference_before_content_ingestion() {
+    let result = fixture_index().ingest(unverified_game_url_record());
+    assert!(matches!(result, Err(CorpusError::RightsPolicyBlocked)));
+}
 ```
 
 - [ ] **Step 2: Verify failure**
@@ -222,13 +253,13 @@ Run: `cargo test --manifest-path src-tauri/Cargo.toml --test corpus_manifest --t
 
 Expected: FAIL before corpus services exist.
 
-- [ ] **Step 3: Encode the 36 researched studies**
+- [ ] **Step 3: Encode only rights-approved studies**
 
-Store one record per studied experience with observation date, sources, confidence, conflicts, stable structure, volatile fields, reusable patterns, genre-specific patterns, monetization observations, mobile implications, and anti-patterns. Do not store copied code/assets or uncited revenue claims. Generate the manifest hashes deterministically.
+Treat rights review as a private-alpha release gate. Do not migrate any of the proposed 36 studies until its provenance record has an allowed `sourceKind`, matching `rightsBasis`, immutable `rightsEvidenceRef`, and `policyDecision: "allowed"`. Start fixtures with Steve-owned, expressly licensed, or copy-enabled templates whose permission evidence and included asset rights were checked; public-metadata records may contain only allowlisted public metadata, and user-authored-abstract records may contain only Steve's own description. Store observation date, sources, confidence, conflicts, permitted stable/volatile fields, reusable abstract patterns, genre-specific patterns, public monetization signals, mobile implications, and anti-patterns. Do not access or store third-party gameplay, maps, code, assets, scripts, names, characters, branded UI, distinctive abilities, audio, or uncited revenue claims for AI use. Roblox's current [Terms of Use](https://en.help.roblox.com/hc/en-us/articles/115004647846-Roblox-Terms-of-Use) restrict using Roblox Virtual Content with ML/AI; Roblox's [copying controls](https://en.help.roblox.com/hc/en-us/articles/203313940-Disallow-Copying-of-Your-Experience) are evidence only when copying was expressly enabled. Generate manifest hashes deterministically.
 
 - [ ] **Step 4: Implement deterministic retrieval**
 
-Rank by genre/loop/pattern/device fit, evidence confidence, freshness, and source diversity. Return bounded records with citations. Stale volatile fields remain visible as stale rather than silently refreshed.
+Filter to `policyDecision: "allowed"` before ranking by genre/loop/pattern/device fit, evidence confidence, freshness, and source diversity. Return bounded records with citations and rights evidence. Stale volatile fields remain visible as stale rather than silently refreshed; no retrieval path can bypass the pre-ingestion rights gate.
 
 - [ ] **Step 5: Run and commit**
 
@@ -238,7 +269,7 @@ Expected: PASS, with tampering rejected and deterministic tie-breaking.
 
 Commit: `git add data/intelligence src-tauri/src/intelligence src-tauri/tests/corpus_manifest.rs src-tauri/tests/intelligence_retrieval.rs && git commit -m "feat: add cited Roblox game intelligence corpus"`
 
-### Task 5: Deconstruct references and enforce originality
+### Task 5: Gate reference rights before deconstruction and enforce originality
 
 **Files:**
 - Create: `src-tauri/src/intelligence/reference/mod.rs`
@@ -259,8 +290,15 @@ fn cosmetic_reskin_of_one_reference_is_blocked() {
 }
 
 #[test]
-fn transformed_multi_reference_design_passes() {
-    let result = originality_review(original_obby_horror_hybrid());
+fn unlicensed_game_url_is_blocked_before_deconstruction() {
+    let result = deconstruct_reference(unverified_game_url());
+    assert!(matches!(result, Err(ReferenceError::RightsPolicyBlocked)));
+    assert_eq!(reference_fetch_count(), 0);
+}
+
+#[test]
+fn transformed_licensed_multi_reference_design_passes() {
+    let result = originality_review(original_licensed_obby_horror_hybrid());
     assert_eq!(result.verdict, OriginalityVerdict::Pass);
     assert!(result.corroborating_corpus_ids.len() >= 3);
     assert!(!result.material_mechanical_differences.is_empty());
@@ -275,13 +313,13 @@ Expected: FAIL before reference services exist.
 
 - [ ] **Step 3: Implement the reference pipeline**
 
-Resolve public identity and cited observations, extract Design DNA, record Steve-selected admired traits, corroborate abstract patterns against the corpus, transform theme/narrative/characters/names/space/assets/audio/UI/rewards/distinctive abilities, require one material mechanical/progression difference, and return `pass | needs_review | blocked` with reasons.
+Validate `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision` before resolving or fetching anything. An arbitrary Roblox game URL remains inert and returns `blocked`; originality transformation never cures unauthorized input. For an allowed Steve-owned, expressly licensed, copy-enabled, public-metadata-only, or user-authored-abstract source, ingest only the content permitted by its rights basis, record Steve-selected admired abstract traits, corroborate them against rights-approved corpus records, and transform theme/narrative/characters/names/space/assets/audio/UI/rewards/distinctive abilities. Require one material mechanical/progression difference even for licensed/copy-enabled templates, and return `pass | needs_review | blocked` with reasons and rights evidence.
 
 - [ ] **Step 4: Run and commit**
 
 Run focused tests.
 
-Expected: PASS; recognizable names/assets/signature abilities and cosmetic-only changes block.
+Expected: PASS; unallowed URLs cause zero fetches, and recognizable names/assets/signature abilities or cosmetic-only changes block even when the source itself is permitted.
 
 Commit: `git add src-tauri/src/intelligence/reference src-tauri/tests/reference_deconstruction.rs src-tauri/tests/originality_transform.rs && git commit -m "feat: transform reference games into original designs"`
 
@@ -314,6 +352,11 @@ it("does not convert rank or CCU into revenue", () => {
 it("keeps missing rank missing", () => {
   expect(scoreSnapshot(noRankSnapshot()).modelVersion).toBe("MOS-public-no-rank-v1");
 });
+
+it("rejects non-allowlisted content and private owner analytics", () => {
+  expect(() => normalizeSnapshot(gameplayContentSnapshot())).toThrow("source_not_allowlisted");
+  expect(() => normalizeSnapshot(ownerAnalyticsSnapshot())).toThrow("private_owner_evidence_forbidden");
+});
 ```
 
 - [ ] **Step 2: Run and verify failure**
@@ -324,7 +367,7 @@ Expected: FAIL because Radar modules are absent.
 
 - [ ] **Step 3: Implement normalization/features/scoring**
 
-Public momentum is 30 points, observed rank evidence 20, monetization architecture 25, retention/live ops 15, and build/originality/mobile/safety fit 10. Confidence is `.35*sourceCoverage + .25*sampleDuration + .20*rankEvidence + .20*productObservability`; adjusted score is `50 + C*(raw-50)`; uncertainty is `5 + 20*(1-C)`. Counter resets create discontinuities, never negative velocity. Prices retain locale/account context.
+Allow only timestamped public signals from an explicit source allowlist: official Roblox public discovery/experience metadata, public rank/CCU/visit counters, publicly advertised item/pass prices, and public update/event metadata. Never fetch or analyze gameplay, maps, assets, scripts, UI, audio, or other Virtual Content; never admit private owner Analytics Query data or confidential Creator Analytics benchmarks. Score public momentum at 30 points, observed rank evidence at 20, public price/catalog signals at 25, public update/event cadence at 15, and build/originality/mobile/safety fit at 10. Confidence is `.35*sourceCoverage + .25*sampleDuration + .20*rankEvidence + .20*productObservability`; adjusted score is `50 + C*(raw-50)`; uncertainty is `5 + 20*(1-C)`. Counter resets create discontinuities, never negative velocity. Prices retain locale/account context. Do not infer competitor revenue, payer conversion, or retention from any public proxy.
 
 - [ ] **Step 4: Run and commit**
 
@@ -421,7 +464,7 @@ Expected: FAIL because evidence/recommendation services are absent.
 
 - [ ] **Step 3: Implement separated evidence namespaces**
 
-A recommendation cites a GOM path, public/owner evidence IDs, predicted direction, risk, one acceptance metric, one rollback condition, and exactly one bounded change. Public evidence cannot populate revenue/payer/retention fields. Owner evidence requires authorized universe and place-version correlation. Network/no-data remains unknown, not zero.
+A recommendation cites a GOM path, public/owner evidence IDs, predicted direction, risk, one acceptance metric, one rollback condition, and exactly one bounded change. Public evidence cannot populate revenue/payer/retention fields. Owner evidence requires `universe.analytics:read`, authorized-universe and place-version correlation, and preserves Roblox point status as `valid | projected | not_statistically_significant`; missing stays absent rather than zero. Network/no-data remains unknown. Private owner metrics and Creator Analytics benchmarking data may evaluate Steve's own experience only and can never populate the public radar, corpus, shared model context/training, or cross-experience/customer benchmark output.
 
 - [ ] **Step 4: Run end-to-end intelligence tests and commit**
 

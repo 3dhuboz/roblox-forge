@@ -4,7 +4,7 @@
 
 **Goal:** Build a truthful Steve-only create-understand-approve workflow, versioned Game Operating Model editor, transactional proposal/undo system, responsive performant R3F builder, and honest test/publish UI with automated frontend proof.
 
-**Architecture:** The approved Game Operating Model is the single persistent source of truth. React feature screens render projections of that model, AI and manual edits both produce typed proposals, and only approved transactions create a new model version; Tauri receipts separately represent authoritative build, Studio, and publish evidence. Browser mode may render deterministic previews but can never satisfy an authoritative capability gate.
+**Architecture:** The approved Game Operating Model is the single persistent source of truth. React feature screens render projections of that model, AI and manual edits both produce typed proposals, and only approved transactions create a new model version; Tauri receipts separately represent candidate-artifact build, official Studio MCP/CLI, publish, and owner-analytics evidence. Reference rights are approved before ingestion, and browser mode may render deterministic previews but can never satisfy an authoritative capability gate.
 
 **Tech Stack:** React 19, TypeScript 5.8, Zustand 5, Tailwind CSS 4, React Router 7, React Three Fiber 9, Three.js, XYFlow 12, Tauri v2, Vitest, React Testing Library, Playwright, axe-core.
 
@@ -33,16 +33,16 @@ No lead edits another lead's exclusive files. Cross-lane changes are sequenced t
 - `src/services/runtimeCapabilities.ts`: Tauri/browser capability detection.
 - `src/services/gameDirectorClient.ts`: typed brief, model, and proposal requests.
 - `src/services/creatorProjectClient.ts`: managed-project lifecycle client.
-- `src/services/validationClient.ts`: static/Studio evidence client.
+- `src/services/validationClient.ts`: static evidence plus official Studio MCP/CLI client.
 - `src/services/publishClient.ts`: publish-preflight and receipt client.
-- `src/features/create/**`: idea, references, and managed-project creation.
+- `src/features/create/**`: idea, rights-gated references, and managed-project creation.
 - `src/features/understand/**`: editable understanding and approval gate.
 - `src/features/operating-model/**`: model projections and invariant visibility.
 - `src/features/proposals/**`: before/after review, approval, history, undo, and redo.
 - `src/features/builder/**`: responsive shell, accessible scene tools, Director dock.
 - `src/features/builder/viewport/**`: R3F projection, interaction, camera, quality, and resource lifecycle.
-- `src/features/test/**`: browser preview versus authoritative Studio evidence.
-- `src/features/publish/**`: preflight and partial-success-aware receipts.
+- `src/features/test/**`: browser preview versus authoritative official-Studio evidence.
+- `src/features/publish/**`: verified-target preflight and partial/unknown-outcome-aware receipts.
 - `src/test/integration/**`: complete React workflow tests.
 - `e2e/**`: responsive, accessibility, truth-boundary, and publish-gating proof.
 
@@ -290,8 +290,9 @@ describe("browser runtime truth", () => {
     expect(browserCapabilities()).toEqual({
       runtime: "browser_preview",
       canCreateManagedProject: false,
-      canBuildRojo: false,
-      canRunStudio: false,
+      canBuildCandidateArtifact: false,
+      canConnectStudioMcp: false,
+      canRunStudioCli: false,
       canValidateAuthoritatively: false,
       canPublish: false,
       canReadOwnerAnalytics: false,
@@ -319,10 +320,19 @@ export interface GameBrief {
   primaryGenre: string;
   secondaryGenre?: string;
   audience: { maturity: "minimal" | "mild"; targetDevices: ("desktop" | "mobile" | "console")[]; sessionMinutes: number };
-  references: { url: string; admiredTraits: string[] }[];
+  references: ReferenceExperience[];
   direction: { visual: string; emotional: string; audio: string };
   assumptions: { id: string; text: string; confidence: number; material: boolean }[];
   materialQuestions: { id: string; question: string; answer?: string }[];
+}
+
+export interface ReferenceExperience {
+  url?: string;
+  admiredTraits: string[];
+  sourceKind: "owner_authored" | "licensed_template" | "copy_enabled_template" | "public_metadata" | "user_authored_abstract";
+  rightsBasis: "owned" | "expressly_licensed" | "copy_enabled" | "public_metadata_only" | "user_authored";
+  rightsEvidenceRef: string;
+  policyDecision: "allowed" | "needs_review" | "blocked";
 }
 ```
 
@@ -375,8 +385,9 @@ The Platform Lead also creates `src/types/runtimeCapabilities.ts` and `src/servi
 export interface RuntimeCapabilities {
   runtime: "tauri_desktop" | "browser_preview";
   canCreateManagedProject: boolean;
-  canBuildRojo: boolean;
-  canRunStudio: boolean;
+  canBuildCandidateArtifact: boolean;
+  canConnectStudioMcp: boolean;
+  canRunStudioCli: boolean;
   canValidateAuthoritatively: boolean;
   canPublish: boolean;
   canReadOwnerAnalytics: boolean;
@@ -389,13 +400,16 @@ import type { RuntimeCapabilities } from "../types/runtimeCapabilities";
 export const browserCapabilities = (): RuntimeCapabilities => ({
   runtime: "browser_preview",
   canCreateManagedProject: false,
-  canBuildRojo: false,
-  canRunStudio: false,
+  canBuildCandidateArtifact: false,
+  canConnectStudioMcp: false,
+  canRunStudioCli: false,
   canValidateAuthoritatively: false,
   canPublish: false,
   canReadOwnerAnalytics: false,
 });
 ```
+
+`canBuildCandidateArtifact` reports only the pinned Rojo build capability. `canConnectStudioMcp` requires the built-in [Studio MCP server](https://create.roblox.com/docs/studio/mcp) to be explicitly enabled and trusted, Studio to be open, and the intended Studio instance to be selected. `canRunStudioCli` reports the separate documented [Studio CLI](https://create.roblox.com/docs/studio/command-line-interface) fallback. None of these capabilities implies another, and Rojo alone never satisfies authoritative Studio proof.
 
 Modify `src/services/tauriCommands.ts` so browser calls return `unavailable` or explicitly `simulated` receipts. Remove mock authenticated users, empty-success validation, successful publishing, and real-looking analytics from `src/services/browserDevMocks.ts`.
 
@@ -463,6 +477,17 @@ describe("create understand approve", () => {
     await user.click(screen.getByRole("button", { name: "Understand my game" }));
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ idea: expect.stringContaining("obby") }));
   });
+
+  it("blocks an arbitrary game URL before reference ingestion", async () => {
+    const user = userEvent.setup();
+    const create = vi.fn();
+    render(<CreatePage createProject={create} />);
+    await user.type(screen.getByLabelText("Describe your game"), "An original obby");
+    await user.type(screen.getByLabelText("Reference URL"), "https://www.roblox.com/games/123/example");
+    expect(screen.getByText("Rights evidence is required before this reference can be analyzed")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Understand my game" })).toBeDisabled();
+    expect(create).not.toHaveBeenCalled();
+  });
 });
 ```
 
@@ -496,8 +521,9 @@ Create `src/services/creatorProjectClient.ts`:
 
 ```ts
 import type { OperationReceipt } from "../types/receipts";
+import type { ReferenceExperience } from "../domain/game-model/gameBrief";
 
-export interface CreateProjectInput { idea: string; references: { url: string; admiredTraits: string[] }[] }
+export interface CreateProjectInput { idea: string; references: ReferenceExperience[] }
 export interface ManagedProject { projectId: string; name: string }
 export interface CreatorProjectClient { create(input: CreateProjectInput): Promise<OperationReceipt<ManagedProject>> }
 ```
@@ -505,12 +531,12 @@ export interface CreatorProjectClient { create(input: CreateProjectInput): Promi
 Create `src/services/gameDirectorClient.ts`:
 
 ```ts
-import type { GameBrief } from "../domain/game-model/gameBrief";
+import type { GameBrief, ReferenceExperience } from "../domain/game-model/gameBrief";
 import type { GameOperatingModel } from "../domain/game-model/gameOperatingModel";
 import type { OperationReceipt } from "../types/receipts";
 
 export interface GameDirectorClient {
-  interpret(projectId: string, idea: string, references: string[]): Promise<OperationReceipt<GameBrief>>;
+  interpret(projectId: string, idea: string, references: ReferenceExperience[]): Promise<OperationReceipt<GameBrief>>;
   reviseBrief(projectId: string, brief: GameBrief): Promise<OperationReceipt<GameBrief>>;
   proposeModel(projectId: string, brief: GameBrief): Promise<OperationReceipt<GameOperatingModel>>;
 }
@@ -518,13 +544,17 @@ export interface GameDirectorClient {
 
 - [ ] **Step 5: Implement the create and understand screens**
 
-Create `src/features/create/CreatePage.tsx` with an injected `createProject` action, labelled idea textarea, reference list, submit state, and inline receipt failure. Create `UnderstandPage.tsx` to render player promise, fantasy, core loops, progression/recovery, direction, assumptions with confidence, and material questions. `ApprovalBar` receives `validation.valid`, unanswered material-question count, and receipt state; it enables approval only when all three are satisfied.
+Create `src/features/create/CreatePage.tsx` with an injected `createProject` action, labelled idea textarea, rights-gated reference list, submit state, and inline receipt failure. `ReferenceExperienceInput` collects `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, optional URL, and Steve-authored admired abstract traits. It never previews or fetches an arbitrary URL and disables `Understand my game` unless every reference is `allowed`; `needs_review` and `blocked` show the policy reason. Create `UnderstandPage.tsx` to render player promise, fantasy, core loops, progression/recovery, direction, assumptions with confidence, material questions, and reference provenance. `ApprovalBar` receives `validation.valid`, unanswered material-question count, reference-policy state, and receipt state; it enables approval only when all four are satisfied.
 
 Use this approval predicate:
 
 ```ts
-export const canApproveModel = (valid: boolean, unansweredMaterialQuestions: number, receiptState: string) =>
-  valid && unansweredMaterialQuestions === 0 && receiptState === "succeeded";
+export const canApproveModel = (
+  valid: boolean,
+  unansweredMaterialQuestions: number,
+  referencesAllowed: boolean,
+  receiptState: string,
+) => valid && unansweredMaterialQuestions === 0 && referencesAllowed && receiptState === "succeeded";
 ```
 
 Modify `TemplateSelector.tsx` so a selection seeds `CreatePage` rather than creating a project. Recent entries store and reopen the returned managed `projectId`. Modify `projectStore.ts` so create/validation failures return failed receipts and never resolve as success.
@@ -827,7 +857,7 @@ git add src/features/build src/features/builder src/stores/canvasStore.ts src/st
 git commit -m "feat: add responsive transactional 3d builder"
 ```
 
-### Task 7: Add honest preview, validation, and publish states
+### Task 7: Add honest preview, validation, publish, and owner-analytics states
 
 **Files:**
 - Create: `src/services/validationClient.ts`
@@ -843,7 +873,9 @@ git commit -m "feat: add responsive transactional 3d builder"
 - Modify: `src/features/publish/PublishPage.tsx`
 - Create: `src/features/publish/PublishPreflight.tsx`
 - Create: `src/features/publish/PublishReceiptView.tsx`
+- Modify: `src/features/dashboard/DashboardPage.tsx`
 - Create: `src/test/integration/validation-publish-truth.test.tsx`
+- Create: `src/test/integration/owner-analytics-truth.test.tsx`
 
 - [ ] **Step 1: Write the failing truth test**
 
@@ -852,7 +884,24 @@ Create `src/test/integration/validation-publish-truth.test.tsx`:
 ```tsx
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { PublishReceiptView } from "../../features/publish/PublishReceiptView";
 import { ValidationPanel } from "../../features/validation/ValidationPanel";
+
+const outcomeUnknownPublishReceipt = () => ({
+  operationId: "b92aeffb-a527-4197-a48a-d640b6e8b156",
+  correlationId: "publish-1",
+  operation: "publish",
+  state: "outcome_unknown" as const,
+  authoritative: false,
+  startedAt: "2026-07-14T08:00:00.000Z",
+  finishedAt: "2026-07-14T08:00:10.000Z",
+  inputHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  artifactHash: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  message: "Roblox did not return a definitive publish result",
+  diagnostics: [],
+  retrySafety: "unsafe_without_reconciliation" as const,
+  recoveryAction: "Verify the latest place version before retrying",
+});
 
 describe("validation truth", () => {
   it("does not treat an empty issue array as proof", () => {
@@ -860,18 +909,54 @@ describe("validation truth", () => {
     expect(screen.getByText("Authoritative validation has not run")).toBeVisible();
     expect(screen.queryByText("Validation Passed")).not.toBeInTheDocument();
   });
+
+  it("does not offer retry for an ambiguous publish outcome", () => {
+    render(<PublishReceiptView receipt={outcomeUnknownPublishReceipt()} />);
+    expect(screen.getByText(/Roblox may have accepted this upload/i)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+});
+```
+
+Create `src/test/integration/owner-analytics-truth.test.tsx`:
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { DashboardPage } from "../../features/dashboard/DashboardPage";
+
+const mixedStatusAnalyticsFixture = () => ({
+  availability: "available" as const,
+  series: [{
+    metric: "DailyActiveUsers",
+    points: [
+      { timestamp: "2026-07-12", value: 12, status: "projected" as const },
+      { timestamp: "2026-07-13", value: 4, status: "not_statistically_significant" as const },
+      { timestamp: "2026-07-14", value: undefined, status: "valid" as const },
+    ],
+  }],
+});
+
+describe("owner analytics truth", () => {
+  it("keeps projected and missing points distinct from confirmed zero", () => {
+    render(<DashboardPage analytics={mixedStatusAnalyticsFixture()} />);
+    expect(screen.getByText("Projected")).toBeVisible();
+    expect(screen.getByText("Not statistically significant")).toBeVisible();
+    expect(screen.getByText("—")).toBeVisible();
+    expect(screen.queryByText("0", { exact: true })).not.toBeInTheDocument();
+  });
 });
 ```
 
 - [ ] **Step 2: Run the test to verify current false success fails**
 
-Run: `npm run test:run -- src/test/integration/validation-publish-truth.test.tsx`
+Run: `npm run test:run -- src/test/integration/validation-publish-truth.test.tsx src/test/integration/owner-analytics-truth.test.tsx`
 
-Expected: FAIL because the current panel infers success from zero issues.
+Expected: FAIL because current validation, publish, and analytics views collapse authoritative/unknown/missing distinctions.
 
 - [ ] **Step 3: Define validation and publish clients**
 
-Create `validationClient.ts` with methods for schema, deterministic generation, static/Rojo, Studio health, and Studio acceptance receipts. Create `publishClient.ts` with preflight and publish methods. Both consume managed project/model IDs and hashes; neither accepts arbitrary paths or raw credentials.
+Create `validationClient.ts` with methods for schema, deterministic generation, static/Rojo candidate-artifact checks, official Studio MCP health/instance selection, documented Studio CLI fallback, and Studio acceptance receipts. Create `publishClient.ts` with verified-target preflight and publish methods. Both consume managed project/model IDs and hashes; neither accepts arbitrary paths or raw credentials.
 
 Use this gate:
 
@@ -881,7 +966,10 @@ export interface PublishGateInput {
   artifactModelHash: string;
   staticReceiptAuthoritative: boolean;
   studioReceiptAuthoritative: boolean;
-  placeSelected: boolean;
+  targetBindingVerified: boolean;
+  privateVisibilityConfirmed: boolean;
+  artifactWithin10MiBLimit: boolean;
+  publishBudgetAvailable: boolean;
   canPublish: boolean;
 }
 
@@ -889,28 +977,34 @@ export const canPublish = (input: PublishGateInput) =>
   input.approvedModelHash === input.artifactModelHash &&
   input.staticReceiptAuthoritative &&
   input.studioReceiptAuthoritative &&
-  input.placeSelected &&
+  input.targetBindingVerified &&
+  input.privateVisibilityConfirmed &&
+  input.artifactWithin10MiBLimit &&
+  input.publishBudgetAvailable &&
   input.canPublish;
 ```
 
 - [ ] **Step 4: Implement explicit test states**
 
-Change `ValidationPanel` to accept `not_run | running | failed | passed`. Only `passed` plus an authoritative succeeded receipt renders green. `TestPage` labels R3F as `Approximate browser preview`; Studio evidence is shown separately with receipt IDs, artifact hashes, acceptance traces, and timestamps. `VisualScenePreview` becomes an accessible map/outline only and must not display proof language.
+Change `ValidationPanel` to accept `not_run | running | failed | passed`. Only `passed` plus an authoritative succeeded receipt renders green. `TestPage` labels R3F as `Approximate browser preview`; `StudioHealthCard` separately shows `Studio MCP disabled | awaiting trust | no instance | instance selected | CLI fallback`, never conflates Rojo with Studio, and requires Steve to choose the intended open Studio instance before MCP mutation. Studio evidence is shown with adapter kind, selected instance/invocation identity, receipt IDs, candidate artifact hashes, acceptance traces, and timestamps. `VisualScenePreview` becomes an accessible map/outline only and must not display proof language.
 
-- [ ] **Step 5: Implement private-publish and partial-success UI**
+- [ ] **Step 5: Implement private-publish, unknown-outcome, and owner-analytics UI**
 
-`PublishPreflight` lists every gate with pass/fail state. `PublishPage` disables upload until `canPublish` returns true. `PublishReceiptView` renders:
+`PublishPreflight` lists every gate with pass/fail state, including an already-created Steve-owned universe/place relationship, separate private-visibility confirmation, the 10 MiB artifact limit, and the 30-per-minute API-key-owner publish budget. A `409` target mismatch invalidates the binding instead of offering upload. `PublishPage` disables upload until `canPublish` returns true. `PublishReceiptView` renders:
 
 - `succeeded`: `Private place version uploaded`;
-- `partial_success`: `Place version uploaded; metadata update failed`;
+- `partial_success` only when a returned version number is known: `Place version uploaded; metadata update failed`;
+- `outcome_unknown`: `Roblox may have accepted this upload. Verify the latest place version in Creator Dashboard or Studio before retrying`, with automatic/manual Retry disabled until reconciliation;
 - `failed`: safe error and recovery action;
 - `unavailable` or `simulated`: `Publishing requires RobloxForge desktop`.
 
 Never render `public`, `live`, or `players can now find it` solely from a successful version upload.
 
+`DashboardPage` consumes Platform-owned Analytics Query evidence. It renders the query state `available | delayed | no_data | unavailable`, keeps missing values as `—`, visibly labels `projected` and `not_statistically_significant` points, and never presents either as confirmed zero. A `202` operation remains `delayed` while polling; `429` displays `Query too large — reduce date range or breakdowns` rather than repeating the same request. Owner metrics remain private and never appear in public Radar/corpus UI.
+
 - [ ] **Step 6: Run tests and commit**
 
-Run: `npm run test:run -- src/test/integration/validation-publish-truth.test.tsx`
+Run: `npm run test:run -- src/test/integration/validation-publish-truth.test.tsx src/test/integration/owner-analytics-truth.test.tsx`
 
 Expected: PASS.
 
@@ -919,8 +1013,8 @@ Run: `npm run typecheck`
 Expected: PASS.
 
 ```powershell
-git add src/services/validationClient.ts src/services/publishClient.ts src/features/preview src/features/validation/ValidationPanel.tsx src/features/test src/features/publish src/test/integration/validation-publish-truth.test.tsx
-git commit -m "feat: add honest test and private publish workflow"
+git add src/services/validationClient.ts src/services/publishClient.ts src/features/preview src/features/validation/ValidationPanel.tsx src/features/test src/features/publish src/features/dashboard/DashboardPage.tsx src/test/integration/validation-publish-truth.test.tsx src/test/integration/owner-analytics-truth.test.tsx
+git commit -m "feat: add honest test publish and analytics workflow"
 ```
 
 ### Task 8: Prove the complete frontend journey, responsiveness, and accessibility
@@ -940,7 +1034,7 @@ git commit -m "feat: add honest test and private publish workflow"
 
 - [ ] **Step 1: Add integration tests for prior failure modes**
 
-`browser-truth-boundary.test.tsx` asserts browser mode never renders authenticated Roblox, passed validation, owner analytics, or successful publish. `save-before-test.test.tsx` changes a property, attempts Test immediately, and asserts generation waits for the approved transaction receipt. `recent-project-open.test.tsx` clicks a recent item and asserts `creatorProjectClient.open(projectId)` rather than project recreation.
+`browser-truth-boundary.test.tsx` asserts browser mode never renders authenticated Roblox, passed validation, official Studio evidence, owner analytics, or successful/partial/unknown publish receipts. `save-before-test.test.tsx` changes a property, attempts Test immediately, and asserts generation waits for the approved transaction receipt. `recent-project-open.test.tsx` clicks a recent item and asserts `creatorProjectClient.open(projectId)` rather than project recreation.
 
 - [ ] **Step 2: Run integration tests before fixes**
 
@@ -967,7 +1061,7 @@ Maintain a 44px minimum touch target for primary mobile controls and 12px minimu
 
 - [ ] **Step 4: Add complete Playwright journeys**
 
-`create-to-approved-model.spec.ts` creates an Obby brief, answers a material question, approves the model, and reaches Build. `builder-responsive.spec.ts` runs at every configured viewport and asserts the canvas region remains at least 480px wide on laptop and fills narrow mode behind drawers. `browser-preview-truth.spec.ts` asserts Preview-only status and unavailable publish. `keyboard-accessibility.spec.ts` completes create/approve and selects/moves a scene node without pointer input, then runs `axe.run(document)`. `publish-gating.spec.ts` verifies stale artifact hashes disable Publish and partial success uses private-upload wording.
+`create-to-approved-model.spec.ts` creates an Obby brief from a licensed/copy-enabled fixture with allowed rights evidence, proves an arbitrary URL is blocked before ingestion, answers a material question, approves the model, and reaches Build. `builder-responsive.spec.ts` runs at every configured viewport and asserts the canvas region remains at least 480px wide on laptop and fills narrow mode behind drawers. `browser-preview-truth.spec.ts` asserts Preview-only status and unavailable publish. `keyboard-accessibility.spec.ts` completes create/approve and selects/moves a scene node without pointer input, then runs `axe.run(document)`. `publish-gating.spec.ts` verifies stale artifact hashes and an unverified target/private visibility disable Publish, partial success requires a known place version, and `outcome_unknown` disables retry pending reconciliation.
 
 - [ ] **Step 5: Run the full frontend proof**
 
@@ -1005,10 +1099,14 @@ Expected: intended commits pushed to the validated GitHub remote and a credentia
 - Manual edits and Director edits share one typed proposal and inverse-operation ledger.
 - Explorer, inspector, viewport, generation, and tests address one canonical scene graph.
 - Browser preview cannot claim Roblox authentication, validation, Studio proof, analytics, or publishing.
+- A reference cannot be fetched or deconstructed until its exact source, rights basis, evidence reference, and policy decision are allowed.
 - R3F uses demand rendering, bounded DPR/shadows, shared resources, instancing, and no steady-state frame allocations or store writes.
 - Laptop and narrow layouts preserve a usable viewport and accessible non-canvas scene controls.
 - Empty scenes, deletions, and last-second changes persist before test/export.
 - Validation requires an authoritative receipt; zero issues alone is not proof.
-- Publish requires matching model/artifact hashes and authoritative static plus Studio receipts.
+- Rojo produces the canonical candidate artifact; authoritative engine proof requires an explicitly trusted official Studio MCP session or documented Studio CLI fallback bound to that hash.
+- Publish requires matching model/artifact hashes, authoritative static plus Studio receipts, and a verified already-created Steve-owned private universe/place binding.
+- A known uploaded version plus later metadata failure is `partial_success`; an ambiguous upload is `outcome_unknown`, non-authoritative, and never automatically retried.
+- Owner analytics preserves `valid | projected | not_statistically_significant` status, missing values remain absent, and private metrics never enter public Radar/corpus output.
 - Private upload and public release remain distinct states.
 - Frontend typecheck, unit/integration tests, Playwright journeys, axe checks, and production build all pass.

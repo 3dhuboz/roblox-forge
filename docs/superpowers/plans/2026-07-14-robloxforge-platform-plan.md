@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the secure local platform that contains projects, generates one authoritative Roblox artifact, proves it in Studio, publishes it to a Steve-owned place, queries owner analytics, and packages a truthful Windows alpha.
+**Goal:** Build the secure local platform that contains projects, generates one canonical Roblox candidate artifact, proves it in Studio, publishes it to a verified Steve-owned private place, queries owner analytics, and packages a truthful Windows alpha.
 
-**Architecture:** Tauri Rust is the only privileged boundary. React addresses managed project IDs and receives typed receipts; it never supplies arbitrary filesystem paths or sees Roblox credentials. One pinned Rojo pipeline produces the artifact used by validation, Studio proof, and publishing, and every privileged operation returns a hash-linked receipt.
+**Architecture:** Tauri Rust is the only privileged boundary. React addresses managed project IDs and receives typed receipts; it never supplies arbitrary filesystem paths or sees Roblox credentials. One pinned Rojo pipeline produces the canonical candidate artifact used by validation, Studio proof, and publishing; Roblox's built-in Studio MCP server is the primary engine-truth adapter, the documented Studio CLI is the fallback, and every privileged operation returns a hash-linked receipt.
 
-**Tech Stack:** Rust, Tauri v2, serde, reqwest, keyring/Windows Credential Manager, Tokio, Rojo 7, Roblox Studio MCP, Roblox Open Cloud Place Publishing and Analytics Query APIs, TypeScript contract adapters.
+**Tech Stack:** Rust, Tauri v2, serde, reqwest, keyring/Windows Credential Manager, Tokio, Rojo 7, Roblox Studio MCP, Roblox Studio CLI, Roblox Open Cloud Place Publishing and Analytics Query APIs, TypeScript contract adapters.
 
 ---
 
@@ -27,25 +27,54 @@
 - [ ] **Step 1: Write the failing Rust receipt tests**
 
 ```rust
-use roblox_forge_lib::platform::receipt::{OperationReceipt, OperationState, RetrySafety};
+use roblox_forge_lib::platform::receipt::{
+    OperationAttempt, OperationState, OutcomeUnknownEvidence, PartialSuccessEvidence, RetrySafety,
+};
+
+const INPUT_HASH: &str =
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const ARTIFACT_HASH: &str =
+    "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 #[test]
 fn simulated_receipt_is_never_authoritative() {
-    let receipt = OperationReceipt::simulated("build", "browser preview");
-    assert_eq!(receipt.state, OperationState::Simulated);
+    let receipt = OperationAttempt::new("build", "build-1", None)
+        .unwrap()
+        .simulated("browser preview", Vec::<String>::new());
+    assert_eq!(receipt.state(), OperationState::Simulated);
     assert!(!receipt.is_authoritative_success());
 }
 
 #[test]
 fn partial_success_preserves_external_resource_id() {
-    let receipt = OperationReceipt::partial_success(
-        "publish",
-        "version upload succeeded; metadata update failed",
-        "place-version:42",
-        RetrySafety::UnsafeWithoutReconciliation,
-    );
-    assert_eq!(receipt.external_resource_id.as_deref(), Some("place-version:42"));
-    assert_eq!(receipt.state, OperationState::PartialSuccess);
+    let receipt = OperationAttempt::new("publish", "publish-1", Some(INPUT_HASH))
+        .unwrap()
+        .partial_success(
+            PartialSuccessEvidence::new("place-version:42")
+                .unwrap()
+                .with_artifact_hash(ARTIFACT_HASH)
+                .unwrap(),
+            "version upload succeeded; metadata update failed",
+            Vec::<String>::new(),
+        );
+    assert_eq!(receipt.external_resource_id(), Some("place-version:42"));
+    assert_eq!(receipt.state(), OperationState::PartialSuccess);
+}
+
+#[test]
+fn ambiguous_publish_is_unknown_and_cannot_claim_an_external_version() {
+    let receipt = OperationAttempt::new("publish", "publish-2", Some(INPUT_HASH))
+        .unwrap()
+        .outcome_unknown(
+            OutcomeUnknownEvidence::new(ARTIFACT_HASH).unwrap(),
+            "Roblox did not return a definitive publish result",
+            Vec::<String>::new(),
+            "Verify the latest place version in Creator Dashboard or Studio before retrying",
+        );
+    assert_eq!(receipt.state(), OperationState::OutcomeUnknown);
+    assert_eq!(receipt.retry_safety(), RetrySafety::UnsafeWithoutReconciliation);
+    assert!(receipt.external_resource_id().is_none());
+    assert!(!receipt.is_authoritative_success());
 }
 ```
 
@@ -58,7 +87,7 @@ Expected: FAIL because `platform::receipt` is not defined.
 - [ ] **Step 3: Implement the receipt model**
 
 ```rust
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum OperationState {
     Queued,
@@ -67,6 +96,7 @@ pub enum OperationState {
     Failed,
     Cancelled,
     PartialSuccess,
+    OutcomeUnknown,
     Unavailable,
     Simulated,
 }
@@ -79,24 +109,24 @@ pub enum RetrySafety {
     NotRetryable,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationReceipt {
-    pub operation_id: String,
-    pub correlation_id: String,
-    pub operation: String,
-    pub state: OperationState,
-    pub authoritative: bool,
-    pub started_at: String,
-    pub finished_at: Option<String>,
-    pub input_hash: Option<String>,
-    pub artifact_hash: Option<String>,
-    pub external_resource_id: Option<String>,
-    pub message: String,
-    pub diagnostics: Vec<String>,
-    pub retry_safety: RetrySafety,
-    pub recovery_action: Option<String>,
-    pub value: Option<serde_json::Value>,
+    operation_id: String,
+    correlation_id: String,
+    operation: String,
+    state: OperationState,
+    authoritative: bool,
+    started_at: String,
+    finished_at: Option<String>,
+    input_hash: Option<String>,
+    artifact_hash: Option<String>,
+    external_resource_id: Option<String>,
+    message: String,
+    diagnostics: Vec<String>,
+    retry_safety: RetrySafety,
+    recovery_action: Option<String>,
+    value: Option<serde_json::Value>,
 }
 
 impl OperationReceipt {
@@ -106,7 +136,7 @@ impl OperationReceipt {
 }
 ```
 
-Implement constructors used by the tests with UUID operation/correlation IDs and RFC3339 timestamps.
+Implement private, serialize-only receipts with UUID operation/correlation IDs, RFC3339 timestamps, state-specific evidence, bounded redacted diagnostics, and consuming terminal constructors. `outcome_unknown` is terminal and non-authoritative, requires validated artifact-hash evidence, preserves the attempt input hash, fixes retry safety to `unsafe_without_reconciliation`, requires a recovery action, and cannot carry an external resource ID.
 
 - [ ] **Step 4: Add the TypeScript mirror and exhaustive state guard**
 
@@ -118,6 +148,7 @@ export type OperationState =
   | "failed"
   | "cancelled"
   | "partial_success"
+  | "outcome_unknown"
   | "unavailable"
   | "simulated";
 
@@ -275,7 +306,7 @@ Expected: PASS.
 
 Commit: `git add src-tauri/src/project src-tauri/tests/platform_project_transaction.rs && git commit -m "feat: create projects transactionally"`
 
-### Task 4: Disable legacy OAuth exposure and secure credentials
+### Task 4: Disable legacy OAuth exposure and secure Open Cloud API-key credentials
 
 **Files:**
 - Create: `src-tauri/src/platform/credentials.rs`
@@ -288,10 +319,15 @@ Commit: `git add src-tauri/src/project src-tauri/tests/platform_project_transact
 ```rust
 #[test]
 fn credential_handle_serializes_without_secret() {
-    let handle = CredentialHandle::configured("roblox-place-publisher", "universe:123");
+    let handle = CredentialHandle::configured(
+        "roblox-open-cloud-private-alpha",
+        ["universe-places:write", "universe.analytics:read"],
+    );
     let json = serde_json::to_string(&handle).unwrap();
     assert!(!json.contains("api-key-value"));
     assert!(json.contains("configured"));
+    assert!(json.contains("universe-places:write"));
+    assert!(json.contains("universe.analytics:read"));
 }
 
 #[test]
@@ -317,7 +353,7 @@ Expected: FAIL because the legacy auth state exposes tokens.
 pub struct CredentialHandle {
     pub id: String,
     pub purpose: String,
-    pub scope: String,
+    pub permissions: Vec<String>,
     pub configured: bool,
     pub last_verified_at: Option<String>,
 }
@@ -329,7 +365,7 @@ pub trait CredentialVault: Send + Sync {
 }
 ```
 
-Use Windows Credential Manager through a maintained keyring crate. The private-alpha auth DTO contains only the allowlisted Clerk/operator state and credential handles. Do not register legacy Roblox OAuth start/callback/refresh commands in `lib.rs`.
+Use Windows Credential Manager through a maintained keyring crate. The private-alpha auth DTO contains only the allowlisted Clerk/operator state and non-secret credential handles. Store a least-privilege Open Cloud API key whose selected experience permissions include `universe-places:write` for Place Publishing and `universe.analytics:read` for owner analytics; Rust alone retrieves it and sends it as `x-api-key`. Do not expose it to React, serialize it into receipts, or register legacy Roblox OAuth start/callback/refresh commands in `lib.rs`. OAuth remains deferred until multi-user public release because it is beta and these private-alpha endpoints are API-key pathways. Follow Roblox's [API-key authentication guidance](https://create.roblox.com/docs/cloud/auth/api-keys).
 
 - [ ] **Step 4: Add a redaction regression test**
 
@@ -381,7 +417,7 @@ Expected: PASS.
 
 Commit: `git add src-tauri/tauri.conf.json src-tauri/capabilities/default.json src-tauri/src/lib.rs src-tauri/tests/platform_config.rs && git commit -m "security: restrict Tauri webview capabilities"`
 
-### Task 6: Package templates and pin one Rojo pipeline
+### Task 6: Package templates and pin one Rojo candidate-artifact pipeline
 
 **Files:**
 - Create: `rokit.toml`
@@ -396,7 +432,7 @@ Commit: `git add src-tauri/tauri.conf.json src-tauri/capabilities/default.json s
 
 ```rust
 #[tokio::test]
-async fn build_receipt_hashes_the_published_artifact() {
+async fn build_receipt_hashes_the_candidate_artifact() {
     let harness = BuildHarness::fixture("obby");
     let result = harness.build().await.unwrap();
     assert_eq!(result.receipt.artifact_hash.as_deref(), Some(result.sha256.as_str()));
@@ -433,9 +469,9 @@ pub struct BuildArtifact {
 }
 ```
 
-- [ ] **Step 4: Make build, Studio, and publish consume `BuildArtifact`**
+- [ ] **Step 4: Make build, Studio, and publish consume one candidate `BuildArtifact`**
 
-Remove the native-builder-first/publish-with-Rojo split. Unsupported model properties or files fail validation; they are not silently dropped. Convert templates to valid Rojo 7 structure and test their manifest/hash presence in packaged resources.
+Remove the native-builder-first/publish-with-Rojo split. Unsupported model properties or files fail validation; they are not silently dropped. Convert templates to valid Rojo 7 structure and test their manifest/hash presence in packaged resources. Rojo is a pinned external build dependency and its output is the canonical candidate artifact, not Roblox engine proof; only a matching official Studio MCP or documented Studio CLI receipt can establish authoritative Studio evidence.
 
 - [ ] **Step 5: Run and commit**
 
@@ -443,13 +479,14 @@ Run: `cargo test --manifest-path src-tauri/Cargo.toml --test platform_build_arti
 
 Expected: PASS with one artifact hash across every consumer.
 
-Commit: `git add rokit.toml src-tauri/src/builder src-tauri/src/commands/build.rs src-tauri/tauri.conf.json src-tauri/tests/platform_build_artifact.rs templates && git commit -m "feat: build one authoritative Rojo artifact"`
+Commit: `git add rokit.toml src-tauri/src/builder src-tauri/src/commands/build.rs src-tauri/tauri.conf.json src-tauri/tests/platform_build_artifact.rs templates && git commit -m "feat: build one canonical candidate artifact"`
 
-### Task 7: Add Studio companion health and proof receipts
+### Task 7: Add official Studio MCP/CLI health and proof receipts
 
 **Files:**
 - Create: `src-tauri/src/studio/mod.rs`
-- Create: `src-tauri/src/studio/client.rs`
+- Create: `src-tauri/src/studio/mcp.rs`
+- Create: `src-tauri/src/studio/cli.rs`
 - Create: `src-tauri/src/studio/proof.rs`
 - Create: `src-tauri/src/commands/studio.rs`
 - Test: `src-tauri/tests/platform_studio_proof.rs`
@@ -476,13 +513,13 @@ Run: `cargo test --manifest-path src-tauri/Cargo.toml --test platform_studio_pro
 
 Expected: FAIL because the Studio proof contract does not exist.
 
-- [ ] **Step 3: Implement the companion protocol**
+- [ ] **Step 3: Implement the official Studio adapters**
 
-Define health/version negotiation, artifact load, playtest start, acceptance-test result, performance sample, cancellation, and final proof messages. Bind every proof to project ID, GOM hash, artifact hash, Studio version, companion version, test IDs, timestamps, diagnostics, and an immutable receipt hash.
+Use Roblox's built-in [Studio MCP server](https://create.roblox.com/docs/studio/mcp) as the primary open-session adapter. Require Studio to be open, require Steve to explicitly enable and trust MCP access, enumerate/select the intended Studio instance before mutation, and expose typed health, data-model inspection/editing, playtest, Luau execution, console, screenshot/input, cancellation, and acceptance-result operations over the local MCP session. Use only documented [Studio command-line interface](https://create.roblox.com/docs/studio/command-line-interface) operations such as `EditFile` to open the exact candidate artifact and `RunScript` for deterministic fallback tests; do not depend on undocumented CLI switches. Bind every proof to project ID, GOM hash, candidate artifact hash, Studio version, adapter kind (`studio_mcp | studio_cli`), selected instance or invocation identity, test IDs, timestamps, diagnostics, and an immutable receipt hash.
 
 - [ ] **Step 4: Add a recorded-fixture adapter test**
 
-Use a redacted Studio MCP fixture to prove protocol parsing without requiring Studio in CI. Keep the real Studio run as a separate release gate.
+Use a redacted Studio MCP fixture and a documented CLI harness to prove adapter parsing without requiring Studio in CI. Keep one real, explicitly trusted Studio MCP run as the primary release gate and record CLI fallback evidence separately when MCP is unavailable.
 
 - [ ] **Step 5: Run and commit**
 
@@ -498,6 +535,7 @@ Commit: `git add src-tauri/src/studio src-tauri/src/commands/studio.rs src-tauri
 - Modify: `src-tauri/src/roblox/open_cloud.rs`
 - Modify: `src-tauri/src/commands/publish.rs`
 - Create: `src-tauri/src/roblox/http_client.rs`
+- Create: `src-tauri/src/roblox/target_binding.rs`
 - Test: `src-tauri/tests/platform_publish.rs`
 
 - [ ] **Step 1: Write auth, retry, and partial-success tests**
@@ -517,21 +555,36 @@ async fn metadata_failure_after_upload_is_partial_success() {
     assert_eq!(receipt.external_resource_id.as_deref(), Some("place-version:42"));
     assert_eq!(receipt.retry_safety, RetrySafety::UnsafeWithoutReconciliation);
 }
+
+#[tokio::test]
+async fn ambiguous_place_publish_is_unknown_and_is_not_retried() {
+    let result = publish_harness().accept_body_then_timeout().run().await;
+    assert_eq!(result.request_count, 1);
+    assert_eq!(result.receipt.state, OperationState::OutcomeUnknown);
+    assert_eq!(result.receipt.retry_safety, RetrySafety::UnsafeWithoutReconciliation);
+    assert!(result.receipt.external_resource_id.is_none());
+}
+
+#[tokio::test]
+async fn place_must_belong_to_bound_universe() {
+    let result = target_harness().universe(123).place(456).place_owner_universe(999).verify().await;
+    assert!(matches!(result, Err(TargetBindingError::PlaceUniverseMismatch)));
+}
 ```
 
 - [ ] **Step 2: Verify failure**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml --test platform_publish`
 
-Expected: FAIL because the legacy upload uses bearer auth and collapses partial success.
+Expected: FAIL because the legacy upload uses bearer auth, retries ambiguous POST outcomes, does not verify the target relationship, and collapses partial/unknown outcomes.
 
 - [ ] **Step 3: Implement a hardened shared client**
 
-Use explicit connect/request timeouts, bounded responses, redacted structured errors, capped `Retry-After`, and retries only for requests proven safe. Do not automatically retry an ambiguous Place Publishing POST.
+Use explicit connect/request timeouts, bounded responses, redacted structured errors, capped `Retry-After`, and retries only for requests proven safe. Never send a second Place Publishing POST after a timeout, connection loss after dispatch, 5xx, or malformed success response because Roblox documents no idempotency key or reconciliation endpoint. Map those cases to `outcome_unknown`, retain the local artifact/input hashes, omit `externalResourceId`, and require Creator Dashboard or Studio reconciliation. Use `partial_success` only after Roblox returned a concrete `versionNumber` and a later metadata step failed.
 
 - [ ] **Step 4: Enforce preflight evidence**
 
-Publish requires matching approved GOM, build artifact, and Studio proof hashes; a configured universe/place credential handle; size under Roblox's documented place limit; and an explicit private deployment choice. Construct game URLs with `placeId`, not `universeId`.
+Create and persist a non-secret `RobloxTargetBinding { universe_id, place_id, credential_handle_id, relationship_verified_at, private_visibility_confirmed_at }`. The binding must point to an already-created Steve-owned universe/place, verify through the available Universe/Place reads that the place belongs to that universe, reject Roblox's documented `409` mismatch, and record Steve's Creator Dashboard confirmation that the experience is private; Place Publishing uploads a version but does not create a universe/place or change visibility. Publish requires matching approved GOM, candidate artifact, and Studio proof hashes; a verified target binding; a configured `x-api-key` credential handle; artifact size at or below 10,485,760 bytes (10 MiB); a per-owner budget below 30 publish requests per minute; and an explicit private deployment choice. Construct game URLs with `placeId`, not `universeId`. Follow the [Place Publishing guide](https://create.roblox.com/docs/cloud/guides/usage-place-publishing) and the current [official OpenAPI contract](https://raw.githubusercontent.com/Roblox/creator-docs/main/content/en-us/reference/cloud/openapi.json).
 
 - [ ] **Step 5: Run and commit**
 
@@ -563,6 +616,22 @@ async fn network_failure_is_unknown_not_zero() {
     let result = analytics_harness().network_failure().query(owner_query()).await;
     assert!(matches!(result, Err(AnalyticsError::Unavailable { .. })));
 }
+
+#[tokio::test]
+async fn projected_and_statistically_insignificant_points_preserve_status() {
+    let result = analytics_harness().mixed_point_statuses().query(owner_query()).await.unwrap();
+    assert_eq!(result.series[0].points[0].status, AnalyticsPointStatus::Projected);
+    assert_eq!(
+        result.series[0].points[1].status,
+        AnalyticsPointStatus::NotStatisticallySignificant,
+    );
+}
+
+#[tokio::test]
+async fn missing_point_remains_missing_instead_of_becoming_zero() {
+    let result = analytics_harness().missing_point().query(owner_query()).await.unwrap();
+    assert!(result.series[0].points[0].value.is_none());
+}
 ```
 
 - [ ] **Step 2: Verify failure**
@@ -573,7 +642,7 @@ Expected: FAIL because the current dashboard collapses failures to empty/zero da
 
 - [ ] **Step 3: Implement Analytics Query**
 
-Support metric/dimension allowlists, bounded date ranges and data-point budgets, `202` polling with timeout/cancellation, `429` backoff, owner-universe authorization, place-version correlation, and explicit `available | delayed | no_data | unavailable` status.
+Send the credential-vault key as `x-api-key` with `universe.analytics:read`. Support metric/dimension allowlists, bounded date ranges and data-point budgets, `202` long-running-operation polling with the same credential and timeout/cancellation, owner-universe authorization, place-version correlation, and explicit `available | delayed | no_data | unavailable` query status. Preserve each Roblox data-point status as `valid | projected | not_statistically_significant` with an optional numeric value; missing values remain absent and projected or statistically insignificant values never become confirmed zeroes. Treat `429` as an exceeded query data-point budget: reduce date range, granularity, or breakdowns before a bounded retry rather than replaying the same oversized query. Follow the beta [Analytics Query guide](https://create.roblox.com/docs/cloud/guides/analytics) and [supported metrics contract](https://create.roblox.com/docs/cloud/guides/analytics/metrics).
 
 ```rust
 pub struct OwnerAnalyticsEvidence {
@@ -584,7 +653,21 @@ pub struct OwnerAnalyticsEvidence {
     pub series: Vec<MetricSeries>,
     pub receipt: OperationReceipt,
 }
+
+pub struct MetricPoint {
+    pub timestamp: String,
+    pub value: Option<f64>,
+    pub status: AnalyticsPointStatus,
+}
+
+pub enum AnalyticsPointStatus {
+    Valid,
+    Projected,
+    NotStatisticallySignificant,
+}
 ```
+
+Owner analytics and Creator Analytics benchmarking data are private evidence for Steve's authorized universe only. Never copy them into the public Monetization Radar, the game-intelligence corpus, shared model training, or cross-experience/customer benchmark output.
 
 - [ ] **Step 4: Run and commit**
 
@@ -620,7 +703,7 @@ Expected: FAIL with the first missing packaged resource.
 2. verify Authenticode status or explicitly record unsigned-private-alpha status;
 3. install or unpack into an isolated test directory;
 4. launch with a temporary managed-project root;
-5. verify the app reports desktop, credential-vault, template, Rojo, and Studio-companion capability states truthfully;
+5. verify the app reports desktop, credential-vault, candidate-artifact build, Studio MCP connection, selected Studio instance, and documented Studio CLI fallback capabilities truthfully;
 6. create and build the fixture Obby;
 7. confirm no secret appears in logs/receipts;
 8. stop the process and emit a JSON evidence file.
@@ -646,4 +729,4 @@ Commit: `git add src-tauri/tauri.conf.json scripts/verify-packaged-alpha.ps1 doc
 
 ## Platform completion evidence
 
-The Platform lane is complete only when all focused tests pass, one real Studio proof is hash-linked to the exact built artifact, one private version is uploaded to a Steve-owned test place, owner analytics return real evidence or an explicit documented delay, the packaged Windows alpha passes the smoke verifier, and no browser/mock/failed operation can satisfy an authoritative gate.
+The Platform lane is complete only when all focused tests pass, one real official-Studio proof is hash-linked to the exact candidate artifact, one private version is uploaded to a verified already-created Steve-owned private test place, ambiguous upload outcomes require reconciliation instead of retry, owner analytics preserve Roblox point status or an explicit documented delay/no-data state, the packaged Windows alpha passes the smoke verifier, and no browser/mock/failed/partial/unknown operation can satisfy an authoritative gate.

@@ -4,9 +4,9 @@
 
 **Goal:** Coordinate the Intelligence, Creator, and Roblox Platform lanes into one verified Steve-only RobloxForge private alpha that completes the create, understand, build, Studio-test, private-publish, monitor, and improve loop.
 
-**Architecture:** The program lands shared contracts and truthful runtime gates before parallel feature work. Each lead owns exclusive paths and commits small TDD slices; the Integration Lead reviews contracts, merges seams, runs the full matrix, and preserves release evidence. The approved design spec and the three lane plans are normative.
+**Architecture:** The program lands shared contracts and truthful runtime gates before parallel feature work. Each lead owns exclusive paths and commits small TDD slices; the Integration Lead reviews contracts, merges seams, runs the full matrix, and preserves release evidence. Reference rights are checked before ingestion, public radar evidence remains separate from private Steve-owned analytics, and the approved design spec plus the three lane plans are normative.
 
-**Tech Stack:** React 19, TypeScript, Vitest, Playwright, React Three Fiber, Zustand, Rust, Tauri v2, Rojo 7, Roblox Studio MCP, Roblox Open Cloud, Cloudflare Workers/D1, Clerk, OpenRouter, Git/GitHub.
+**Tech Stack:** React 19, TypeScript, Vitest, Playwright, React Three Fiber, Zustand, Rust, Tauri v2, Rojo 7, Roblox Studio MCP, Roblox Studio CLI, Roblox Open Cloud, Cloudflare Workers/D1, Clerk, OpenRouter, Git/GitHub.
 
 ---
 
@@ -104,11 +104,11 @@ Commit: `git add package.json package-lock.json vitest.config.ts src/test src/Ap
 
 - [ ] **Step 1: Dispatch the Intelligence Lead for schema fixtures**
 
-Require failing valid/invalid fixture tests first. The resulting JSON Schemas forbid unknown fields, arbitrary filesystem commands, credentials, and competitor revenue estimates.
+Require failing valid/invalid fixture tests first. The resulting JSON Schemas forbid unknown fields, arbitrary filesystem commands, credentials, competitor revenue estimates, and reference ingestion without an allowed `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision`.
 
 - [ ] **Step 2: Dispatch the Platform Lead for receipt contracts**
 
-Require failing tests proving `simulated` cannot authorize build/validation/publish and `partial_success` preserves an external resource ID.
+Require failing tests proving `simulated` cannot authorize build/validation/publish, `partial_success` requires a known external resource ID, and `outcome_unknown` is terminal, non-authoritative, carries artifact/input hashes but no external resource ID, fixes retry safety to `unsafe_without_reconciliation`, and disables automatic retry.
 
 - [ ] **Step 3: Integrate dependencies and module registration**
 
@@ -178,7 +178,7 @@ Expected: FAIL against the legacy command/mocking surface.
 
 - [ ] **Step 3: Quarantine unsafe commands**
 
-Unregister OAuth, raw filesystem, local AI-key, generic shell, and generic opener commands. Replace browser success substitutions with typed `unavailable` or visibly `simulated` receipts. Replace direct AI command application with a temporary unavailable proposal service until the typed proposal lane lands.
+Unregister OAuth, raw filesystem, local AI-key, generic shell, and generic opener commands. For the Steve-only alpha, keep the Roblox Open Cloud API key solely in Windows Credential Manager behind a non-secret Rust handle; require `universe-places:write` and `universe.analytics:read` permissions and send it only as `x-api-key`. Replace browser success substitutions with typed `unavailable` or visibly `simulated` receipts. Replace direct AI command application with a temporary unavailable proposal service until the typed proposal lane lands.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -198,7 +198,7 @@ Commit: `git add src-tauri/src src/services src/types && git commit -m "security
 
 - [ ] **Step 1: Write the cross-lane failing journey**
 
-The test submits an Obby idea and reference URL, receives a typed brief, shows assumptions/material questions, rejects an invalid GOM, approves the corrected model, records schema/knowledge versions, and enables Build only after approval.
+The test submits an Obby idea and a licensed or copy-enabled reference fixture with stored rights evidence, receives a typed brief, shows assumptions/material questions, rejects an invalid or rights-blocked GOM, approves the corrected model, records schema/knowledge versions, and enables Build only after approval. An arbitrary game URL alone must be blocked before any content is fetched or deconstructed.
 
 - [ ] **Step 2: Run and verify failure**
 
@@ -248,7 +248,7 @@ git show --stat --oneline <commit>
 git diff <commit>^ <commit> --check
 ```
 
-Run its focused tests. Reject out-of-scope shared-file edits, duplicate contract types, fake success states, uncited intelligence, unbounded model/file operations, or undocumented verification gaps.
+Run its focused tests. Reject out-of-scope shared-file edits, duplicate contract types, fake success states, uncited intelligence, unverified reference rights, private owner metrics entering the corpus/radar, unbounded model/file operations, or undocumented verification gaps.
 
 - [ ] **Step 3: Integrate shared seams one at a time**
 
@@ -296,14 +296,14 @@ Expected: every command exits `0` and produces no unexplained tracked/generated 
 
 - [ ] **Step 3: Run the real-system proof**
 
-Using Steve's allowlisted account and test place:
+Using Steve's allowlisted account, a credential-vault Open Cloud API key, and an already-created Steve-owned private test universe/place whose relationship and private visibility were verified before upload:
 
-1. create and approve an original Obby from an idea plus references;
+1. create and approve an original Obby from an idea plus a licensed or copy-enabled reference fixture whose `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and allowed `policyDecision` are preserved;
 2. apply one typed visual/Director change and prove undo/redo hashes;
-3. generate the canonical artifact twice and compare hashes;
-4. run Studio acceptance tests and preserve the exact artifact proof;
-5. publish privately and preserve the place-version receipt;
-6. query owner analytics or preserve an explicit availability-delay receipt;
+3. generate the canonical Rojo candidate artifact twice and compare hashes;
+4. run Studio acceptance tests through the explicitly trusted official Studio MCP adapter, or the documented Studio CLI fallback, and preserve the selected-instance/adapter and exact artifact proof;
+5. enforce the 10 MiB artifact limit and 30-per-minute owner budget, publish to the verified binding, and preserve the place-version receipt; a known version plus later metadata failure is `partial_success`, while a timeout/connection loss/5xx/malformed success is `outcome_unknown` and is never automatically retried;
+6. query owner analytics through the beta Analytics Query API, poll any `202` operation, preserve `valid | projected | not_statistically_significant` point status, keep missing values absent rather than zero, and preserve an explicit budget/delay/no-data/unavailable receipt when appropriate;
 7. approve one evidence-backed improvement;
 8. rebuild, retest, and publish a second place version.
 
