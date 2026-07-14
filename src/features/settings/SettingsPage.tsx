@@ -45,7 +45,7 @@ type ApiAuthorityState = {
   recoveryAction: string | null;
 };
 
-type RojoAuthorityStatus = "checking" | "ready" | "unavailable" | "error";
+type RojoAuthorityStatus = "idle" | "checking" | "ready" | "unavailable" | "error";
 
 type RojoAuthorityState = {
   status: RojoAuthorityStatus;
@@ -62,7 +62,7 @@ type AuthorityUiError = {
 const API_DESKTOP_REQUIRED =
   "AI key management requires the RobloxForge Desktop app. Open the Desktop app to continue.";
 const ROJO_DESKTOP_REQUIRED =
-  "Rojo status requires the RobloxForge Desktop app. Open the Desktop app to continue.";
+  "Advanced Studio Sync can only be managed in RobloxForge Desktop.";
 
 function unavailableApiAuthorityState(): ApiAuthorityState {
   return {
@@ -157,10 +157,9 @@ export function SettingsPage() {
   );
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
   const [rojoLoading, setRojoLoading] = useState(false);
+  const [rojoExpanded, setRojoExpanded] = useState(false);
   const [rojoAuthority, setRojoAuthority] = useState<RojoAuthorityState>(() =>
-    desktopRuntime
-      ? { status: "checking", message: null, recoveryAction: null }
-      : unavailableRojoAuthorityState(),
+    ({ status: "idle", message: null, recoveryAction: null }),
   );
   const mountedRef = useRef(false);
   const apiAttemptIdRef = useRef(0);
@@ -183,12 +182,15 @@ export function SettingsPage() {
   }, [clearSavedTimer]);
 
   const showRojoRuntimeUnavailable = useCallback(() => {
+    setRojoStatus(null);
+    setRojoLoading(false);
     setRojoAuthority(unavailableRojoAuthorityState());
   }, []);
 
   const refreshRojoStatus = useCallback(async () => {
     if (
       !desktopRuntime ||
+      !rojoExpanded ||
       !isTauriRuntime() ||
       !mountedRef.current ||
       rojoInFlightRef.current
@@ -300,7 +302,6 @@ export function SettingsPage() {
           });
         });
 
-      void refreshRojoStatus();
     }
 
     return () => {
@@ -319,10 +320,21 @@ export function SettingsPage() {
     updateProfile,
   ]);
 
+  useEffect(() => {
+    if (!rojoExpanded) return;
+    if (!desktopRuntime || !isTauriRuntime()) {
+      showRojoRuntimeUnavailable();
+      return;
+    }
+    setRojoAuthority({ status: "checking", message: null, recoveryAction: null });
+    void refreshRojoStatus();
+  }, [desktopRuntime, rojoExpanded, refreshRojoStatus, showRojoRuntimeUnavailable]);
+
   const runRojoAction = useCallback(
     async (action: () => Promise<unknown>) => {
       if (
         !desktopRuntime ||
+        !rojoExpanded ||
         !isTauriRuntime() ||
         !mountedRef.current ||
         rojoInFlightRef.current
@@ -388,16 +400,16 @@ export function SettingsPage() {
         }
       }
     },
-    [desktopRuntime, showRojoRuntimeUnavailable],
+    [desktopRuntime, rojoExpanded, showRojoRuntimeUnavailable],
   );
 
   const handleStartServe = async () => {
-    if (!desktopRuntime || !isTauriRuntime()) return;
+    if (!desktopRuntime || !rojoExpanded || !isTauriRuntime()) return;
     await runRojoAction(() => rojoCommands.startServe("."));
   };
 
   const handleStopServe = async () => {
-    if (!desktopRuntime || !isTauriRuntime()) return;
+    if (!desktopRuntime || !rojoExpanded || !isTauriRuntime()) return;
     await runRojoAction(() => rojoCommands.stopServe());
   };
 
@@ -733,39 +745,43 @@ export function SettingsPage() {
 
           <RobloxAuthorityPanel />
 
-          {/* Rojo Sync */}
-          <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
+          {/* Advanced Studio Sync */}
+          <section
+            className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6"
+            role="region"
+            aria-labelledby="advanced-studio-sync-heading"
+          >
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5">
                 <Radio size={20} className="text-indigo-400" />
-                <h3 className="text-[15px] font-bold text-white">Rojo Sync</h3>
+                <h3 id="advanced-studio-sync-heading" className="text-[15px] font-bold text-white">Advanced Studio Sync</h3>
+                <span className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Optional</span>
               </div>
               <button
                 type="button"
-                aria-label="Refresh Rojo status"
-                onClick={refreshRojoStatus}
-                disabled={
-                  !desktopRuntime ||
-                  rojoLoading ||
-                  rojoAuthority.status === "unavailable"
-                }
-                className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-expanded={rojoExpanded}
+                aria-controls="advanced-studio-sync-content"
+                onClick={() => setRojoExpanded((expanded) => !expanded)}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-gray-800"
               >
-                <RotateCcw
-                  size={14}
-                  className={rojoLoading ? "animate-spin" : undefined}
-                />
+                {rojoExpanded ? "Hide" : "Show"}
               </button>
             </div>
             <p className="mt-2 text-[13px] text-gray-400">
-              Sync your project to Roblox Studio in real time.
+              Not needed to create, preview, publish, or monitor your game. Open this only if you want live synchronization with Roblox Studio.
             </p>
+
+            {rojoExpanded && <div id="advanced-studio-sync-content">
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-gray-500">Rojo live synchronization</p>
+              <button type="button" aria-label="Refresh Rojo status" onClick={refreshRojoStatus} disabled={!desktopRuntime || rojoLoading || rojoAuthority.status === "unavailable"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14} className={rojoLoading ? "animate-spin" : undefined} /></button>
+            </div>
 
             {rojoAuthority.status === "error" ||
             rojoAuthority.status === "unavailable" ? (
               <div
-                className="mt-3 rounded-xl border border-red-900/40 bg-red-950/20 px-4 py-3 text-[13px] text-red-300"
-                role="alert"
+                className="mt-3 rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400"
+                role={rojoAuthority.status === "unavailable" ? "status" : "alert"}
               >
                 <p>{rojoAuthority.message}</p>
                 {rojoAuthority.recoveryAction && (
@@ -839,7 +855,8 @@ export function SettingsPage() {
                 <Loader2 size={14} className="animate-spin" /> Checking Rojo...
               </div>
             )}
-          </div>
+            </div>}
+          </section>
 
           {/* Appearance */}
           <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
