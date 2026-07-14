@@ -20,6 +20,11 @@ const DashboardPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("./features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
+const GameDirectorPage = lazy(() =>
+  import("./features/director/GameDirectorPage").then((m) => ({
+    default: m.GameDirectorPage,
+  })),
+);
 
 function App() {
   const { profile } = useUserStore();
@@ -58,6 +63,7 @@ function App() {
           <Route path="/build" element={<BuildPage />} />
           <Route path="/publish" element={<PublishPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/director" element={<GameDirectorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Suspense>

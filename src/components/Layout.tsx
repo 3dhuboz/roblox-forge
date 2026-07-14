@@ -1,8 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
-import { Gamepad2, Rocket, Settings, Hammer, BarChart3 } from "lucide-react";
+import {
+  BarChart3,
+  BrainCircuit,
+  Gamepad2,
+  Hammer,
+  Rocket,
+  Settings,
+} from "lucide-react";
 
 const navItems = [
   { path: "/", icon: Gamepad2, label: "Create" },
+  { path: "/director", icon: BrainCircuit, label: "Director" },
   { path: "/build", icon: Hammer, label: "Build" },
   { path: "/publish", icon: Rocket, label: "Share" },
   { path: "/dashboard", icon: BarChart3, label: "Stats" },
