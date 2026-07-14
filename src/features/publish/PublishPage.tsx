@@ -46,7 +46,13 @@ function isNumericId(value: string): boolean {
 }
 
 export function PublishPage() {
-  const { project, validationIssues, validateProject } = useProjectStore();
+  const {
+    project,
+    validationIssues,
+    validationState,
+    validationError,
+    validateProject,
+  } = useProjectStore();
   const { auth, isConnecting, startLogin, logout, checkAuth } = useAuthStore();
   const [step, setStep] = useState<PublishStep>("auth");
   const [gameName, setGameName] = useState("");
@@ -103,7 +109,14 @@ export function PublishPage() {
     isNumericId(placeId);
 
   const handlePublish = async () => {
-    if (!universeId || !placeId) return;
+    if (
+      !universeId ||
+      !placeId ||
+      validationState !== "passed" ||
+      validationIssues.some((issue) => issue.severity === "error")
+    ) {
+      return;
+    }
     setIsPublishing(true);
     setPublishResult(null);
     setPublishPhase("building");
@@ -336,6 +349,26 @@ export function PublishPage() {
                     Found under your experience → Places → Start Place.
                   </p>
                 </div>
+                {validationState === "failed" && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-3 rounded-xl border border-red-900/40 bg-red-950/20 p-4"
+                  >
+                    <AlertCircle
+                      size={18}
+                      className="mt-0.5 shrink-0 text-red-400"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-red-300">
+                        Game check failed
+                      </p>
+                      <p className="mt-1 text-xs text-red-400/80">
+                        {validationError ??
+                          "Validation did not pass. Resolve the issues and try again."}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2">
                   <button
                     onClick={() => setStep("auth")}
@@ -345,8 +378,10 @@ export function PublishPage() {
                   </button>
                   <button
                     onClick={async () => {
-                      await validateProject();
-                      setStep("validate");
+                      const passed = await validateProject();
+                      if (passed) {
+                        setStep("validate");
+                      }
                     }}
                     disabled={!canProceedToValidate}
                     className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -361,7 +396,11 @@ export function PublishPage() {
           {/* Validate step */}
           {step === "validate" && (
             <div className="space-y-4">
-              <ValidationPanel issues={validationIssues} />
+              <ValidationPanel
+                issues={validationIssues}
+                state={validationState}
+                error={validationError}
+              />
 
               {/* Publish progress bar */}
               {isPublishing && (
@@ -414,6 +453,7 @@ export function PublishPage() {
                     onClick={handlePublish}
                     disabled={
                       isPublishing ||
+                      validationState !== "passed" ||
                       validationIssues.some((i) => i.severity === "error")
                     }
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-7 py-3 text-[15px] font-bold text-white shadow-lg shadow-green-600/20 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50"

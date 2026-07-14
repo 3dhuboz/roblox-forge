@@ -1,10 +1,15 @@
 import { CheckCircle, XCircle, AlertTriangle, Info, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ValidationIssue, Severity } from "../../types/validation";
-import { useProjectStore } from "../../stores/projectStore";
+import {
+  useProjectStore,
+  type ValidationState,
+} from "../../stores/projectStore";
 
 interface ValidationPanelProps {
   issues: ValidationIssue[];
+  state: ValidationState;
+  error: string | null;
 }
 
 const severityConfig: Record<
@@ -20,29 +25,70 @@ const severityConfig: Record<
   info: { icon: Info, color: "text-blue-400", bgColor: "bg-blue-950/30" },
 };
 
-export function ValidationPanel({ issues }: ValidationPanelProps) {
+const stateConfig: Record<
+  ValidationState,
+  { icon: LucideIcon; title: string; color: string }
+> = {
+  not_run: {
+    icon: Info,
+    title: "Validation Not Run",
+    color: "text-gray-400",
+  },
+  running: {
+    icon: Loader2,
+    title: "Validation Running",
+    color: "text-indigo-400",
+  },
+  failed: {
+    icon: XCircle,
+    title: "Validation Failed",
+    color: "text-red-400",
+  },
+  passed: {
+    icon: CheckCircle,
+    title: "Validation Passed",
+    color: "text-green-400",
+  },
+};
+
+export function ValidationPanel({
+  issues,
+  state,
+  error,
+}: ValidationPanelProps) {
   const { autoFixIssue, fixingIssueId } = useProjectStore();
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
-  const passed = errors.length === 0;
+  const status = stateConfig[state];
+  const StatusIcon = status.icon;
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
       <div className="flex items-center gap-3">
-        {passed ? (
-          <CheckCircle size={24} className="text-green-400" />
-        ) : (
-          <XCircle size={24} className="text-red-400" />
-        )}
+        <StatusIcon
+          size={24}
+          className={`${status.color} ${state === "running" ? "animate-spin" : ""}`}
+        />
         <div>
-          <h3 className="text-lg font-semibold">
-            {passed ? "Validation Passed" : "Issues Found"}
-          </h3>
+          <h3 className="text-lg font-semibold">{status.title}</h3>
           <p className="text-sm text-gray-400">
-            {errors.length} errors, {warnings.length} warnings
+            {state === "not_run"
+              ? "Run validation before publishing."
+              : state === "running"
+                ? "Checking project files and game rules..."
+                : `${errors.length} errors, ${warnings.length} warnings`}
           </p>
         </div>
       </div>
+
+      {state === "failed" && (
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border border-red-900/40 bg-red-950/20 px-3 py-2 text-sm text-red-300"
+        >
+          {error ?? "Validation did not pass. Resolve the issues before publishing."}
+        </div>
+      )}
 
       {issues.length > 0 && (
         <div className="mt-4 space-y-2">
@@ -86,7 +132,7 @@ export function ValidationPanel({ issues }: ValidationPanelProps) {
         </div>
       )}
 
-      {issues.length === 0 && (
+      {state === "passed" && (
         <p className="mt-3 text-sm text-gray-400">
           All checks passed. Your game is ready to publish!
         </p>
