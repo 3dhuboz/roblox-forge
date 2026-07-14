@@ -731,4 +731,61 @@ describe("intelligence semantic validation", () => {
       "scene.remove",
     );
   });
+
+  it("rejects first-operation preconditions that drift from the immutable proposal base", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = records(proposal.operations, "operations")[0];
+    const precondition = record(operation.precondition, "precondition");
+    precondition.baseRevision = Number(proposal.baseModelRevision) + 1;
+    precondition.expectedModelHash = `sha256:${"f".repeat(64)}`;
+
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "precondition_mismatch",
+          path: "/directorProposal/operations/0/precondition/baseRevision",
+          operationType: "brief.set_field",
+        }),
+        expect.objectContaining({
+          code: "precondition_mismatch",
+          path: "/directorProposal/operations/0/precondition/expectedModelHash",
+          operationType: "brief.set_field",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects later chained preconditions that drift after valid evolving changes", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const [first, second] = chainedUpdatePair(
+      proposal,
+      "progression.update",
+      "restoreProgression",
+    );
+    const precondition = record(second.precondition, "second.precondition");
+    precondition.baseRevision = Number(gom.revision) + 1;
+    precondition.expectedModelHash = `sha256:${"e".repeat(64)}`;
+    proposal.operations = [first, second];
+
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "precondition_mismatch",
+          path: "/directorProposal/operations/1/precondition/baseRevision",
+          operationType: "progression.update",
+        }),
+        expect.objectContaining({
+          code: "precondition_mismatch",
+          path: "/directorProposal/operations/1/precondition/expectedModelHash",
+          operationType: "progression.update",
+        }),
+      ]),
+    );
+  });
 });

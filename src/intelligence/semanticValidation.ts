@@ -4,7 +4,8 @@ export type SemanticIssueCode =
   | "duplicate_id"
   | "target_mismatch"
   | "payload_mismatch"
-  | "inverse_mismatch";
+  | "inverse_mismatch"
+  | "precondition_mismatch";
 
 export interface SemanticIssue {
   readonly code: SemanticIssueCode;
@@ -225,6 +226,55 @@ function compareModelField(
       path: `/directorProposal/${proposalKey}`,
       relatedPath: `/gameOperatingModel/${gomKey}`,
       message: `Director proposal ${proposalKey} must match GOM ${gomKey}.`,
+    });
+  }
+}
+
+function validateOperationPrecondition(
+  operation: JsonRecord,
+  index: number,
+  proposal: JsonRecord,
+  gom: JsonRecord,
+  issues: SemanticIssue[],
+): void {
+  const path = `/directorProposal/operations/${index}`;
+  const operationType =
+    typeof operation.type === "string" ? operation.type : "unknown";
+  const precondition = recordAt(
+    operation.precondition,
+    `${path}/precondition`,
+    issues,
+    operationType,
+  );
+  if (!precondition) {
+    return;
+  }
+
+  if (
+    precondition.baseRevision !== proposal.baseModelRevision ||
+    proposal.baseModelRevision !== gom.revision
+  ) {
+    addIssue(issues, {
+      code: "precondition_mismatch",
+      path: `${path}/precondition/baseRevision`,
+      relatedPath: "/directorProposal/baseModelRevision",
+      message:
+        "Operation precondition baseRevision must match the immutable proposal and GOM base revision.",
+      operationType,
+    });
+  }
+
+  if (
+    precondition.expectedModelHash !== proposal.baseModelHash ||
+    proposal.baseModelHash !== gom.hash
+  ) {
+    addIssue(issues, {
+      code: "precondition_mismatch",
+      path: `${path}/precondition/expectedModelHash`,
+      relatedPath: "/directorProposal/baseModelHash",
+      message:
+        "Operation precondition expectedModelHash must match the immutable proposal and GOM base hash.",
+      operationType,
     });
   }
 }
@@ -1129,6 +1179,7 @@ export function validateIntelligenceSemantics(
       );
       if (operation) {
         const issueCountBeforeOperation = issues.length;
+        validateOperationPrecondition(operation, index, proposal, gom, issues);
         validateOperation(
           operation,
           index,
