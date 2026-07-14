@@ -786,16 +786,32 @@ describe("game intelligence JSON contracts", () => {
     ).toBe(true);
   });
 
-  it("accepts HTTPS URLs for every public evidence URL consumer", () => {
-    for (const { label, filename, document } of publicUrlCases(
-      "https://evidence.example.test/public/game",
-    )) {
+  it.each([
+    "https://evidence.example.test/public/game",
+    "https://subdomain.example.com:8443/public/game?view=summary",
+    "https://xn--bcher-kva.example/public/game",
+  ])("accepts public HTTPS domain URL %s for every evidence consumer", (url) => {
+    for (const { label, filename, document } of publicUrlCases(url)) {
       const validator = validate(filename, document);
       expect(validator.errors, `${label}: ${formatErrors(validator.errors)}`).toBeNull();
     }
   });
 
   it.each([
+    ["localhost", "https://localhost/private"],
+    ["localhost subdomain", "https://metadata.localhost/private"],
+    ["IPv4 loopback", "https://127.42.0.1/private"],
+    ["unspecified IPv4", "https://0.0.0.0/private"],
+    ["RFC1918 10/8", "https://10.1.2.3/private"],
+    ["RFC1918 172.16/12", "https://172.31.255.254/private"],
+    ["RFC1918 192.168/16", "https://192.168.1.1/private"],
+    ["CGNAT", "https://100.64.0.1/private"],
+    ["IPv4 link-local", "https://169.254.169.254/latest/meta-data"],
+    ["IPv6 loopback", "https://[::1]/private"],
+    ["IPv6 link-local", "https://[fe80::1]/private"],
+    ["IPv6 ULA", "https://[fd12:3456:789a::1]/private"],
+    ["userinfo", "https://user:password@evidence.example.com/private"],
+    ["percent-encoded loopback", "https://%31%32%37.0.0.1/private"],
     ["Windows file", "file:///C:/Users/Steve/private-evidence.json"],
     ["Unix file", "file:///etc/passwd"],
     ["UNC file", "file://server/share/private-evidence.json"],
@@ -808,6 +824,41 @@ describe("game intelligence JSON contracts", () => {
       const validator = validate(filename, document);
       expect(validator.errors, `${label} accepted ${url}`).not.toBeNull();
     }
+  });
+
+  it("uses the documented public URL lexical boundary at all five consumers", () => {
+    const publicUrlRefs: string[] = [];
+    for (const [filename, schema] of schemas) {
+      walkSchema(schema, filename, (node, path) => {
+        if (
+          typeof node.$ref === "string" &&
+          node.$ref.includes("common.schema.json#/$defs/") &&
+          node.$ref.toLowerCase().includes("uri")
+        ) {
+          publicUrlRefs.push(`${path}:${node.$ref}`);
+        }
+      });
+    }
+
+    expect(publicUrlRefs).toHaveLength(5);
+    expect(
+      publicUrlRefs.every((entry) =>
+        entry.endsWith("common.schema.json#/$defs/publicHttpsUri"),
+      ),
+      publicUrlRefs.join("\n"),
+    ).toBe(true);
+
+    const commonSchema = asJsonObject(
+      schemas.get("common.schema.json"),
+      "common schema",
+    );
+    const definitions = asJsonObject(commonSchema.$defs, "common schema definitions");
+    const publicHttpsUri = asJsonObject(
+      definitions.publicHttpsUri,
+      "publicHttpsUri definition",
+    );
+    expect(String(publicHttpsUri.$comment).toLowerCase()).toContain("runtime");
+    expect(String(publicHttpsUri.$comment).toLowerCase()).toContain("not fetch");
   });
 
   it("keeps all intelligence document links coherent", () => {

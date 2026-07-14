@@ -51,7 +51,44 @@
       "minItems": 1,
       "maxItems": 16,
       "items": {
-        "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "metric",
+          "ordinalBand",
+          "evidenceId",
+          "sourceUrl",
+          "observedAt",
+          "expiresAt",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/id"
+          },
+          "metric": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/metric"
+          },
+          "ordinalBand": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/ordinalBand"
+          },
+          "evidenceId": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/evidenceId"
+          },
+          "sourceUrl": {
+            "$ref": "common.schema.json#/$defs/publicHttpsUri"
+          },
+          "observedAt": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/observedAt"
+          },
+          "expiresAt": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/expiresAt"
+          },
+          "confidence": {
+            "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal/properties/confidence"
+          }
+        }
       }
     },
     "ordinalScores": {

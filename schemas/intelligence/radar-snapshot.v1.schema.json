@@ -55,7 +55,7 @@
             "$ref": "common.schema.json#/$defs/label"
           },
           "publicUrl": {
-            "$ref": "common.schema.json#/$defs/httpsUri"
+            "$ref": "common.schema.json#/$defs/publicHttpsUri"
           },
           "signals": {
             "type": "array",
@@ -123,7 +123,7 @@
           "$ref": "common.schema.json#/$defs/id"
         },
         "sourceUrl": {
-          "$ref": "common.schema.json#/$defs/httpsUri"
+          "$ref": "common.schema.json#/$defs/publicHttpsUri"
         },
         "observedAt": {
           "$ref": "common.schema.json#/$defs/dateTime"

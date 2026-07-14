@@ -64,10 +64,11 @@
       "format": "uri",
       "maxLength": 2048
     },
-    "httpsUri": {
+    "publicHttpsUri": {
       "type": "string",
       "format": "uri",
-      "pattern": "^https://",
+      "$comment": "Lexical screening only; this is not fetch authorization. Runtime publicUrlPolicy validation is mandatory before every fetch and redirect hop.",
+      "pattern": "^https://(?!(?:[^/?#]*@))(?!(?:[^/?#]*%))(?!(?:(?:[A-Za-z0-9-]+\\.)*localhost)(?::[0-9]{1,5})?(?:[/?#]|$))(?!(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?::[0-9]{1,5})?(?:[/?#]|$))[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+(?::[0-9]{1,5})?(?:[/?#]|$)",
       "maxLength": 2048
     },
     "label": {
