@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, CheckCircle, Circle, Key, Radio, Gamepad2, X, ChevronRight } from "lucide-react";
+import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, CheckCircle, Circle, Key, Gamepad2, X, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
-import {
-  rojoCommands,
-  aiCommands,
-  isOperationUnavailableError,
-} from "../../services/tauriCommands";
+import { aiCommands, isOperationUnavailableError } from "../../services/tauriCommands";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
 
 interface Template {
@@ -34,12 +30,6 @@ type ApiChecklistStatus =
   | "unavailable"
   | "error";
 
-type RojoChecklistStatus =
-  | "checking"
-  | "ready"
-  | "missing"
-  | "unavailable"
-  | "error";
 
 type ApiChecklistState = {
   status: ApiChecklistStatus;
@@ -47,23 +37,12 @@ type ApiChecklistState = {
   provider: string | null;
 };
 
-type RojoChecklistState = {
-  status: RojoChecklistStatus;
-  hint: string;
-};
 
 function unavailableApiChecklistState(): ApiChecklistState {
   return {
     status: "unavailable",
     hint: "Desktop app required to check your AI key.",
     provider: null,
-  };
-}
-
-function unavailableRojoChecklistState(): RojoChecklistState {
-  return {
-    status: "unavailable",
-    hint: "Desktop app required to check Rojo.",
   };
 }
 
@@ -498,14 +477,6 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
         }
       : unavailableApiChecklistState(),
   );
-  const [rojoState, setRojoState] = useState<RojoChecklistState>(() =>
-    desktopRuntime
-      ? {
-          status: "checking",
-          hint: "Checking Rojo in RobloxForge Desktop...",
-        }
-      : unavailableRojoChecklistState(),
-  );
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem("roblox-forge-setup-dismissed") === "true"; } catch { return false; }
   });
@@ -555,42 +526,6 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
         setApiState({ ...failure, provider: null });
       });
 
-    void rojoCommands
-      .checkStatus()
-      .then((status) => {
-        if (cancelled) return;
-        if (!isTauriRuntime()) {
-          setRojoState(unavailableRojoChecklistState());
-          return;
-        }
-        if (status.installed) {
-          setRojoState({
-            status: "ready",
-            hint: status.version ?? "Rojo installed and verified.",
-          });
-        } else {
-          setRojoState({
-            status: "missing",
-            hint:
-              status.install_instructions ??
-              "Rojo is not installed in RobloxForge Desktop.",
-          });
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        if (!isTauriRuntime()) {
-          setRojoState(unavailableRojoChecklistState());
-          return;
-        }
-        setRojoState(
-          checklistFailure(
-            error,
-            "RobloxForge Desktop could not check Rojo status.",
-          ),
-        );
-      });
-
     return () => {
       cancelled = true;
     };
@@ -604,9 +539,8 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
   if (dismissed) return null;
 
   const apiKeyDone = apiState.status === "configured";
-  const rojoDone = rojoState.status === "ready";
   const projectDone = hasProjects;
-  const allDone = apiKeyDone && rojoDone && projectDone;
+  const allDone = apiKeyDone && projectDone;
 
   if (allDone) return null;
 
@@ -620,16 +554,6 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
         apiState.status === "unavailable" || apiState.status === "error",
       action: () => navigate("/settings"),
       actionLabel: "Settings",
-    },
-    {
-      done: rojoDone,
-      icon: Radio,
-      label: "Install Rojo",
-      hint: rojoState.hint,
-      attention:
-        rojoState.status === "unavailable" || rojoState.status === "error",
-      action: () => navigate("/settings"),
-      actionLabel: "Details",
     },
     {
       done: projectDone,
@@ -649,7 +573,7 @@ function SetupChecklist({ hasProjects }: { hasProjects: boolean }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600/30 text-[13px] font-bold text-indigo-300">
-            {doneCount}/3
+            {doneCount}/2
           </div>
           <h3 className="text-[14px] font-bold text-white">Getting Started</h3>
         </div>
