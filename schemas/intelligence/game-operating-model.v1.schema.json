@@ -61,39 +61,11 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "pending-approval", "approved", "superseded"],
+      "enum": ["draft", "pending-approval", "approved", "rejected", "superseded"],
       "maxLength": 24
     },
     "approvalMetadata": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "approvalRequired",
-        "state",
-        "approvedBy",
-        "approvedAt",
-        "decisionEvidenceIds"
-      ],
-      "properties": {
-        "approvalRequired": {
-          "type": "boolean",
-          "const": true
-        },
-        "state": {
-          "type": "string",
-          "enum": ["pending", "approved", "rejected"],
-          "maxLength": 16
-        },
-        "approvedBy": {
-          "$ref": "common.schema.json#/$defs/id"
-        },
-        "approvedAt": {
-          "$ref": "common.schema.json#/$defs/dateTime"
-        },
-        "decisionEvidenceIds": {
-          "$ref": "common.schema.json#/$defs/idArray"
-        }
-      }
+      "$ref": "#/$defs/approvalMetadata"
     },
     "firstSessionPromise": {
       "type": "object",
@@ -488,7 +460,155 @@
       "$ref": "common.schema.json#/$defs/dateTime"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["draft", "pending-approval"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "approvalMetadata": {
+            "$ref": "#/$defs/pendingApprovalMetadata"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["approved", "superseded"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "approvalMetadata": {
+            "$ref": "#/$defs/approvedApprovalMetadata"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "rejected"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "approvalMetadata": {
+            "$ref": "#/$defs/rejectedApprovalMetadata"
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
+    "approvalMetadata": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/pendingApprovalMetadata"
+        },
+        {
+          "$ref": "#/$defs/approvedApprovalMetadata"
+        },
+        {
+          "$ref": "#/$defs/rejectedApprovalMetadata"
+        }
+      ]
+    },
+    "pendingApprovalMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approvalRequired", "state"],
+      "properties": {
+        "approvalRequired": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "const": "pending",
+          "maxLength": 16
+        }
+      }
+    },
+    "approvedApprovalMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approvalRequired",
+        "state",
+        "decidedBy",
+        "decidedAt",
+        "decisionEvidenceIds"
+      ],
+      "properties": {
+        "approvalRequired": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "const": "approved",
+          "maxLength": 16
+        },
+        "decidedBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "decidedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        },
+        "decisionEvidenceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "rejectedApprovalMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approvalRequired",
+        "state",
+        "reason",
+        "decidedBy",
+        "decidedAt",
+        "decisionEvidenceIds"
+      ],
+      "properties": {
+        "approvalRequired": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "const": "rejected",
+          "maxLength": 16
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "decidedBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "decidedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        },
+        "decisionEvidenceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
     "gameLoop": {
       "type": "object",
       "additionalProperties": false,

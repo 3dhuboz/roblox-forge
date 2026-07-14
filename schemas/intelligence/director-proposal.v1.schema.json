@@ -114,6 +114,96 @@
       "maxLength": 24
     },
     "approval": {
+      "$ref": "#/$defs/proposalApproval"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lifecycleStatus": {
+            "enum": ["draft", "pending-approval"]
+          }
+        },
+        "required": ["lifecycleStatus"]
+      },
+      "then": {
+        "properties": {
+          "approval": {
+            "$ref": "#/$defs/pendingProposalApproval"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycleStatus": {
+            "enum": ["approved", "applied"]
+          }
+        },
+        "required": ["lifecycleStatus"]
+      },
+      "then": {
+        "properties": {
+          "approval": {
+            "$ref": "#/$defs/approvedProposalApproval"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycleStatus": {
+            "const": "rejected"
+          }
+        },
+        "required": ["lifecycleStatus"]
+      },
+      "then": {
+        "properties": {
+          "approval": {
+            "$ref": "#/$defs/rejectedProposalApproval"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "proposalApproval": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/pendingProposalApproval"
+        },
+        {
+          "$ref": "#/$defs/approvedProposalApproval"
+        },
+        {
+          "$ref": "#/$defs/rejectedProposalApproval"
+        }
+      ]
+    },
+    "pendingProposalApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "state"],
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "const": "pending",
+          "maxLength": 16
+        }
+      }
+    },
+    "approvedProposalApproval": {
       "type": "object",
       "additionalProperties": false,
       "required": ["required", "state", "decidedBy", "decidedAt"],
@@ -124,7 +214,7 @@
         },
         "state": {
           "type": "string",
-          "enum": ["pending", "approved", "rejected"],
+          "const": "approved",
           "maxLength": 16
         },
         "decidedBy": {
@@ -135,11 +225,31 @@
         }
       }
     },
-    "createdAt": {
-      "$ref": "common.schema.json#/$defs/dateTime"
-    }
-  },
-  "$defs": {
+    "rejectedProposalApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "state", "reason", "decidedBy", "decidedAt"],
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "const": "rejected",
+          "maxLength": 16
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "decidedBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "decidedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        }
+      }
+    },
     "precondition": {
       "type": "object",
       "additionalProperties": false,

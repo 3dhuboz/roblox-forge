@@ -742,6 +742,233 @@ describe("game intelligence JSON contracts", () => {
   });
 
   it.each([
+    {
+      status: "unanswered",
+      briefStatus: "questions-open",
+      answer: { status: "unanswered" },
+    },
+    {
+      status: "answered",
+      briefStatus: "approved",
+      answer: {
+        status: "answered",
+        response: "No. The route remains equally completable.",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+    {
+      status: "deferred",
+      briefStatus: "questions-open",
+      answer: {
+        status: "deferred",
+        reason: "Awaiting a human accessibility review.",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+  ])("accepts an honest Game Brief $status question state", ({ briefStatus, answer }) => {
+    const brief = clone(asJsonObject(validFixture.gameBrief, "gameBrief"));
+    brief.status = briefStatus;
+    asJsonObjects(brief.materialQuestions, "gameBrief.materialQuestions")[0].answer =
+      answer;
+
+    const validator = validate("game-brief.v1.schema.json", brief);
+    expect(validator.errors, formatErrors(validator.errors)).toBeNull();
+  });
+
+  it.each([
+    {
+      status: "draft",
+      approvalMetadata: { approvalRequired: true, state: "pending" },
+    },
+    {
+      status: "pending-approval",
+      approvalMetadata: { approvalRequired: true, state: "pending" },
+    },
+    {
+      status: "approved",
+      approvalMetadata: {
+        approvalRequired: true,
+        state: "approved",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+        decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
+      },
+    },
+    {
+      status: "rejected",
+      approvalMetadata: {
+        approvalRequired: true,
+        state: "rejected",
+        reason: "The model does not yet meet the safety boundary.",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+        decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
+      },
+    },
+    {
+      status: "superseded",
+      approvalMetadata: {
+        approvalRequired: true,
+        state: "approved",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+        decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
+      },
+    },
+  ])(
+    "accepts honest GOM lifecycle $status with approval state $approvalMetadata.state",
+    ({ status, approvalMetadata }) => {
+      const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
+      gom.status = status;
+      gom.approvalMetadata = approvalMetadata;
+
+      const validator = validate("game-operating-model.v1.schema.json", gom);
+      expect(validator.errors, formatErrors(validator.errors)).toBeNull();
+    },
+  );
+
+  it.each([
+    {
+      lifecycleStatus: "draft",
+      approval: { required: true, state: "pending" },
+    },
+    {
+      lifecycleStatus: "pending-approval",
+      approval: { required: true, state: "pending" },
+    },
+    {
+      lifecycleStatus: "approved",
+      approval: {
+        required: true,
+        state: "approved",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+    {
+      lifecycleStatus: "rejected",
+      approval: {
+        required: true,
+        state: "rejected",
+        reason: "The proposal does not meet the safety boundary.",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+    {
+      lifecycleStatus: "applied",
+      approval: {
+        required: true,
+        state: "approved",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+  ])(
+    "accepts honest Director lifecycle $lifecycleStatus with decision $approval.state",
+    ({ lifecycleStatus, approval }) => {
+      const proposal = clone(asJsonObject(validFixture.directorProposal, "proposal"));
+      proposal.lifecycleStatus = lifecycleStatus;
+      proposal.approval = approval;
+
+      const validator = validate("director-proposal.v1.schema.json", proposal);
+      expect(validator.errors, formatErrors(validator.errors)).toBeNull();
+    },
+  );
+
+  it("rejects pending and unanswered states that fabricate decision metadata", () => {
+    const brief = clone(asJsonObject(validFixture.gameBrief, "gameBrief"));
+    brief.status = "questions-open";
+    asJsonObjects(brief.materialQuestions, "materialQuestions")[0].answer = {
+      status: "unanswered",
+      response: "fabricated",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+    };
+    expect(validate("game-brief.v1.schema.json", brief).errors).not.toBeNull();
+
+    const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
+    gom.status = "pending-approval";
+    gom.approvalMetadata = {
+      approvalRequired: true,
+      state: "pending",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+    };
+    expect(validate("game-operating-model.v1.schema.json", gom).errors).not.toBeNull();
+
+    const proposal = clone(asJsonObject(validFixture.directorProposal, "proposal"));
+    proposal.lifecycleStatus = "pending-approval";
+    proposal.approval = {
+      required: true,
+      state: "pending",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+    };
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+  });
+
+  it("rejects decided states missing their required response, reason, or actor", () => {
+    const brief = clone(asJsonObject(validFixture.gameBrief, "gameBrief"));
+    asJsonObjects(brief.materialQuestions, "materialQuestions")[0].answer = {
+      status: "answered",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+    };
+    expect(validate("game-brief.v1.schema.json", brief).errors).not.toBeNull();
+
+    const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
+    gom.status = "rejected";
+    gom.approvalMetadata = {
+      approvalRequired: true,
+      state: "rejected",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+      decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
+    };
+    expect(validate("game-operating-model.v1.schema.json", gom).errors).not.toBeNull();
+
+    const proposal = clone(asJsonObject(validFixture.directorProposal, "proposal"));
+    proposal.lifecycleStatus = "rejected";
+    proposal.approval = {
+      required: true,
+      state: "rejected",
+      decidedBy: "human:steve",
+      decidedAt: "2026-07-14T00:00:00Z",
+    };
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+  });
+
+  it("rejects parent lifecycle and child decision-state mismatches", () => {
+    const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
+    gom.status = "approved";
+    gom.approvalMetadata = { approvalRequired: true, state: "pending" };
+    expect(validate("game-operating-model.v1.schema.json", gom).errors).not.toBeNull();
+
+    const proposal = clone(asJsonObject(validFixture.directorProposal, "proposal"));
+    proposal.lifecycleStatus = "approved";
+    proposal.approval = { required: true, state: "pending" };
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+
+    const brief = clone(asJsonObject(validFixture.gameBrief, "gameBrief"));
+    brief.status = "approved";
+    asJsonObjects(brief.materialQuestions, "materialQuestions")[0].answer = {
+      status: "unanswered",
+    };
+    expect(validate("game-brief.v1.schema.json", brief).errors).not.toBeNull();
+  });
+
+  it("does not retain unused common schemaVersion or generic uri definitions", () => {
+    const commonSchema = asJsonObject(schemas.get("common.schema.json"), "common");
+    const definitions = asJsonObject(commonSchema.$defs, "common.$defs");
+
+    expect(definitions).not.toHaveProperty("schemaVersion");
+    expect(definitions).not.toHaveProperty("uri");
+  });
+
+  it.each([
     "rawIdea",
     "playerFantasy",
     "intendedAchievement",

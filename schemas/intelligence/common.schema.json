@@ -31,11 +31,6 @@
     }
   },
   "$defs": {
-    "schemaVersion": {
-      "type": "string",
-      "const": "1.0.0",
-      "maxLength": 16
-    },
     "id": {
       "type": "string",
       "minLength": 3,
@@ -58,11 +53,6 @@
       "type": "string",
       "format": "date-time",
       "maxLength": 40
-    },
-    "uri": {
-      "type": "string",
-      "format": "uri",
-      "maxLength": 2048
     },
     "publicHttpsUri": {
       "type": "string",

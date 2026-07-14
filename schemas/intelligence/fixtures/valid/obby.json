@@ -73,8 +73,8 @@
         "answer": {
           "status": "answered",
           "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
-          "answeredBy": "human:steve",
-          "answeredAt": "2026-07-14T00:00:00Z"
+          "decidedBy": "human:steve",
+          "decidedAt": "2026-07-14T00:00:00Z"
         }
       }
     ],
@@ -111,8 +111,8 @@
     "approvalMetadata": {
       "approvalRequired": true,
       "state": "approved",
-      "approvedBy": "human:steve",
-      "approvedAt": "2026-07-14T00:00:00Z",
+      "decidedBy": "human:steve",
+      "decidedAt": "2026-07-14T00:00:00Z",
       "decisionEvidenceIds": [
         "evidence:tower-of-hell-public-visits"
       ]
@@ -530,8 +530,8 @@
         "before": {
           "status": "answered",
           "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
-          "answeredBy": "human:steve",
-          "answeredAt": "2026-07-14T00:00:00Z"
+          "decidedBy": "human:steve",
+          "decidedAt": "2026-07-14T00:00:00Z"
         },
         "precondition": {
           "baseRevision": 1,
@@ -541,8 +541,8 @@
         "after": {
           "status": "answered",
           "response": "No. The optional, non-purchasable shard grants cosmetic-progression currency only and cannot change route access, timing, movement, difficulty, or completion.",
-          "answeredBy": "human:steve",
-          "answeredAt": "2026-07-14T00:00:00Z"
+          "decidedBy": "human:steve",
+          "decidedAt": "2026-07-14T00:00:00Z"
         },
         "rationale": "State every prohibited gameplay advantage in the approved answer.",
         "traceIds": [
@@ -556,8 +556,8 @@
           "restoreAnswer": {
             "status": "answered",
             "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
-            "answeredBy": "human:steve",
-            "answeredAt": "2026-07-14T00:00:00Z"
+            "decidedBy": "human:steve",
+            "decidedAt": "2026-07-14T00:00:00Z"
           }
         }
       },
@@ -1405,9 +1405,7 @@
     "lifecycleStatus": "pending-approval",
     "approval": {
       "required": true,
-      "state": "pending",
-      "decidedBy": "human:steve",
-      "decidedAt": "2026-07-14T00:00:00Z"
+      "state": "pending"
     },
     "createdAt": "2026-07-14T00:00:00Z"
   },
