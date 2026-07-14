@@ -4,7 +4,7 @@
 
 **Goal:** Coordinate the Intelligence, Creator, and Roblox Platform lanes into one verified Steve-only RobloxForge private alpha that completes the create, understand, build, Studio-test, private-publish, monitor, and improve loop.
 
-**Architecture:** The program lands shared contracts and truthful runtime gates before parallel feature work. Each lead owns exclusive paths and commits small TDD slices; the Integration Lead reviews contracts, merges seams, runs the full matrix, and preserves release evidence. Reference rights are checked before ingestion, public radar evidence remains separate from private Steve-owned analytics, and the approved design spec plus the three lane plans are normative.
+**Architecture:** The program lands shared contracts and truthful runtime gates before parallel feature work. Each lead owns exclusive paths and commits small TDD slices; the Integration Lead reviews contracts, merges seams, runs the full matrix, and preserves release evidence. Reference rights and separate AI-use authorization are checked before ingestion, public radar evidence remains separate from private Steve-owned analytics, and the approved design spec plus the three lane plans are normative. Copy-enabled permission alone is a manual-template permission, never authority for OpenRouter, Design DNA, retrieval, or ML use.
 
 **Tech Stack:** React 19, TypeScript, Vitest, Playwright, React Three Fiber, Zustand, Rust, Tauri v2, Rojo 7, Roblox Studio MCP, Roblox Studio CLI, Roblox Open Cloud, Cloudflare Workers/D1, Clerk, OpenRouter, Git/GitHub.
 
@@ -104,7 +104,7 @@ Commit: `git add package.json package-lock.json vitest.config.ts src/test src/Ap
 
 - [ ] **Step 1: Dispatch the Intelligence Lead for schema fixtures**
 
-Require failing valid/invalid fixture tests first. The resulting JSON Schemas forbid unknown fields, arbitrary filesystem commands, credentials, competitor revenue estimates, and reference ingestion without an allowed `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision`.
+Require failing valid/invalid fixture tests first. The resulting JSON Schemas forbid unknown fields, arbitrary filesystem commands, credentials, competitor revenue estimates, and AI reference ingestion without an allowed `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, `aiUseAuthorization`, and `aiUseEvidenceRef`. A copy-enabled-only fixture must remain valid for the manual-template lane with `aiUseAuthorization: "not_authorized"` and `aiUseEvidenceRef: null`, but fail every AI-context predicate; entering AI requires `owner_authorized | expressly_ai_licensed | user_authored | public_metadata_only` plus the corresponding immutable evidence.
 
 - [ ] **Step 2: Dispatch the Platform Lead for receipt contracts**
 
@@ -198,7 +198,7 @@ Commit: `git add src-tauri/src src/services src/types && git commit -m "security
 
 - [ ] **Step 1: Write the cross-lane failing journey**
 
-The test submits an Obby idea and a licensed or copy-enabled reference fixture with stored rights evidence, receives a typed brief, shows assumptions/material questions, rejects an invalid or rights-blocked GOM, approves the corrected model, records schema/knowledge versions, and enables Build only after approval. An arbitrary game URL alone must be blocked before any content is fetched or deconstructed.
+The test submits an Obby idea and a Steve-owned or expressly AI-licensed reference fixture with compliant acquisition provenance plus immutable AI-use evidence, receives a typed brief, shows assumptions/material questions, rejects an invalid or rights-blocked GOM, approves the corrected model, records schema/knowledge versions, and enables Build only after approval. Bounded public metadata and Steve-authored abstracts remain permitted inputs; an arbitrary game URL or copy-enabled-only template must be excluded before any AI content is fetched or deconstructed.
 
 - [ ] **Step 2: Run and verify failure**
 
@@ -248,7 +248,7 @@ git show --stat --oneline <commit>
 git diff <commit>^ <commit> --check
 ```
 
-Run its focused tests. Reject out-of-scope shared-file edits, duplicate contract types, fake success states, uncited intelligence, unverified reference rights, private owner metrics entering the corpus/radar, unbounded model/file operations, or undocumented verification gaps.
+Run its focused tests. Reject out-of-scope shared-file edits, duplicate contract types, fake success states, uncited intelligence, unverified reference rights, copy-enabled-only content entering OpenRouter/Design DNA/retrieval/ML, private owner metrics entering the corpus/radar, unbounded model/file operations, or undocumented verification gaps.
 
 - [ ] **Step 3: Integrate shared seams one at a time**
 
@@ -298,7 +298,7 @@ Expected: every command exits `0` and produces no unexplained tracked/generated 
 
 Using Steve's allowlisted account, a credential-vault Open Cloud API key, and an already-created Steve-owned private test universe/place whose relationship and private visibility were verified before upload:
 
-1. create and approve an original Obby from an idea plus a licensed or copy-enabled reference fixture whose `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and allowed `policyDecision` are preserved;
+1. create and approve an original Obby from an idea plus a Steve-owned or expressly AI-licensed reference fixture with compliant acquisition provenance and preserved `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, `aiUseAuthorization`, and `aiUseEvidenceRef`; separately prove a copy-enabled-only template remains available for asset-checked manual import but never enters AI context, while bounded public metadata and Steve-authored abstracts remain permitted AI inputs;
 2. apply one typed visual/Director change and prove undo/redo hashes;
 3. generate the canonical Rojo candidate artifact twice and compare hashes;
 4. run Studio acceptance tests through the explicitly trusted official Studio MCP adapter, or the documented Studio CLI fallback, and preserve the selected-instance/adapter and exact artifact proof;

@@ -4,7 +4,7 @@
 
 **Goal:** Implement the versioned Game Director intelligence that understands a game's intended achievement and operation, safely transforms reference-game patterns into an original Game Operating Model, monitors public monetization signals without fabricating revenue, and proposes evidence-backed improvements.
 
-**Architecture:** JSON Schema 2020-12 is the cross-runtime contract for Game Briefs, Game Operating Models, proposals, provenance, corpus records, reference analysis, radar observations, and recommendations. Cloudflare verifies Steve and brokers OpenRouter; Rust validates reference rights before ingestion, then stages, approves, persists, and hashes typed domain operations. Allowlisted public metadata evidence and private Steve-owned analytics stay in separate namespaces; owner metrics never enter the corpus, radar, or shared model context.
+**Architecture:** JSON Schema 2020-12 is the cross-runtime contract for Game Briefs, Game Operating Models, proposals, provenance, corpus records, reference analysis, radar observations, and recommendations. Cloudflare verifies Steve and brokers OpenRouter; Rust validates both reference rights and separate AI-use authorization before ingestion, then stages, approves, persists, and hashes typed domain operations. Allowlisted public metadata evidence and private Steve-owned analytics stay in separate namespaces; owner metrics never enter the corpus, radar, or shared model context, and copy-enabled permission alone never authorizes OpenRouter, Design DNA, retrieval, or ML use.
 
 **Tech Stack:** JSON Schema 2020-12, TypeScript, Ajv, Rust/serde, Cloudflare Workers/D1, Clerk, OpenRouter, Vitest, Cargo tests.
 
@@ -26,6 +26,7 @@
 - Create: `schemas/intelligence/fixtures/valid/obby.json`
 - Create: `schemas/intelligence/fixtures/invalid/competitor-revenue.json`
 - Create: `schemas/intelligence/fixtures/invalid/unverified-reference-url.json`
+- Create: `schemas/intelligence/fixtures/invalid/copy-enabled-ai-context-without-ai-rights.json`
 - Test: `tests/contracts/intelligence-schemas.test.ts`
 
 - [ ] **Step 1: Write failing schema-conformance tests**
@@ -49,6 +50,12 @@ it("rejects a reference before rights policy allows ingestion", () => {
   const errors = validateFixture("invalid/unverified-reference-url.json");
   expect(errors.some((error) => error.includes("rightsBasis"))).toBe(true);
   expect(errors.some((error) => error.includes("policyDecision"))).toBe(true);
+});
+
+it("rejects copy-enabled permission as AI-use authority", () => {
+  const errors = validateFixture("invalid/copy-enabled-ai-context-without-ai-rights.json");
+  expect(errors.some((error) => error.includes("aiUseAuthorization"))).toBe(true);
+  expect(errors.some((error) => error.includes("aiUseEvidenceRef"))).toBe(true);
 });
 ```
 
@@ -82,7 +89,7 @@ Every object uses `"additionalProperties": false`. The proposal operation union 
 }
 ```
 
-Every operation has one stable dot-qualified `type` matching the definitions above, a typed target ID, `before`/precondition data, `after` data, rationale, GOM trace, risk, affected acceptance-test IDs, and generated inverse data. No proposal schema permits host paths, shell text, credentials, arbitrary commands, or unbounded source content. Every reference/corpus source requires the exact closed fields `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision` with these values:
+Every operation has one stable dot-qualified `type` matching the definitions above, a typed target ID, `before`/precondition data, `after` data, rationale, GOM trace, risk, affected acceptance-test IDs, and generated inverse data. No proposal schema permits host paths, shell text, credentials, arbitrary commands, or unbounded source content. Every reference/corpus source requires the exact closed fields `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, `aiUseAuthorization`, and `aiUseEvidenceRef` with these values:
 
 ```ts
 type ReferenceSourceKind =
@@ -98,9 +105,16 @@ type ReferenceRightsBasis =
   | "public_metadata_only"
   | "user_authored";
 type ReferencePolicyDecision = "allowed" | "needs_review" | "blocked";
+type ReferenceAiUseAuthorization =
+  | "owner_authorized"
+  | "expressly_ai_licensed"
+  | "user_authored"
+  | "public_metadata_only"
+  | "not_authorized";
+type ReferenceAiUseEvidenceRef = string | null;
 ```
 
-`rightsEvidenceRef` is required for every source and points to the immutable provenance record. Only `policyDecision: "allowed"` may enter retrieval or an OpenRouter request. A URL without an allowed decision is an inert identifier: it cannot trigger fetching, gameplay observation, asset/script/UI extraction, or Design DNA generation. The GOM requires schema/generator/knowledge versions, revision/hash, provenance, loops, objectives, runtime rules, scene/system trace, mobile/performance budgets, monetization safety, analytics, and acceptance tests.
+`rightsEvidenceRef` is required for every source and points to the immutable acquisition/provenance record. `aiUseEvidenceRef` is `null` only with `aiUseAuthorization: "not_authorized"`; every other AI-use state requires an immutable evidence record for that exact authorization. Only `policyDecision: "allowed"` plus `owner_authorized | expressly_ai_licensed | user_authored | public_metadata_only` may enter retrieval, Design DNA, OpenRouter context, or any ML operation. `rightsBasis: "copy_enabled"` alone always maps to `aiUseAuthorization: "not_authorized"`: it permits an optional manual template import only after included-asset rights checks. Copy-enabled content may enter AI only when a separate express AI-use license is recorded in `aiUseEvidenceRef` and the state is `expressly_ai_licensed`. A URL without both gates is an inert identifier: it cannot trigger fetching, gameplay observation, asset/script/UI extraction, or Design DNA generation. The GOM requires schema/generator/knowledge versions, revision/hash, provenance, loops, objectives, runtime rules, scene/system trace, mobile/performance budgets, monetization safety, analytics, and acceptance tests.
 
 - [ ] **Step 4: Run and commit**
 
@@ -229,7 +243,7 @@ Commit: `git add src-tauri/src/intelligence src-tauri/tests/game_brief.rs src-ta
 #[test]
 fn modified_record_breaks_manifest_hash() {
     let mut pack = fixture_pack();
-    pack.tamper_record("licensed-obby-template");
+    pack.tamper_record("ai-licensed-obby-template");
     assert!(pack.verify().is_err());
 }
 
@@ -245,6 +259,12 @@ fn retrieval_rejects_unallowed_reference_before_content_ingestion() {
     let result = fixture_index().ingest(unverified_game_url_record());
     assert!(matches!(result, Err(CorpusError::RightsPolicyBlocked)));
 }
+
+#[test]
+fn retrieval_rejects_copy_enabled_only_content() {
+    let result = fixture_index().ingest(copy_enabled_without_ai_license());
+    assert!(matches!(result, Err(CorpusError::AiUseNotAuthorized)));
+}
 ```
 
 - [ ] **Step 2: Verify failure**
@@ -255,11 +275,11 @@ Expected: FAIL before corpus services exist.
 
 - [ ] **Step 3: Encode only rights-approved studies**
 
-Treat rights review as a private-alpha release gate. Do not migrate any of the proposed 36 studies until its provenance record has an allowed `sourceKind`, matching `rightsBasis`, immutable `rightsEvidenceRef`, and `policyDecision: "allowed"`. Start fixtures with Steve-owned, expressly licensed, or copy-enabled templates whose permission evidence and included asset rights were checked; public-metadata records may contain only allowlisted public metadata, and user-authored-abstract records may contain only Steve's own description. Store observation date, sources, confidence, conflicts, permitted stable/volatile fields, reusable abstract patterns, genre-specific patterns, public monetization signals, mobile implications, and anti-patterns. Do not access or store third-party gameplay, maps, code, assets, scripts, names, characters, branded UI, distinctive abilities, audio, or uncited revenue claims for AI use. Roblox's current [Terms of Use](https://en.help.roblox.com/hc/en-us/articles/115004647846-Roblox-Terms-of-Use) restrict using Roblox Virtual Content with ML/AI; Roblox's [copying controls](https://en.help.roblox.com/hc/en-us/articles/203313940-Disallow-Copying-of-Your-Experience) are evidence only when copying was expressly enabled. Generate manifest hashes deterministically.
+Treat rights review as a private-alpha release gate. Do not migrate any of the proposed 36 studies until its provenance record has an allowed `sourceKind`, matching `rightsBasis`, immutable `rightsEvidenceRef`, allowed `policyDecision`, permitted `aiUseAuthorization`, and non-null `aiUseEvidenceRef`. Start content-bearing AI fixtures only with Steve-owned or expressly AI-licensed material and compliant acquisition provenance; public-metadata records may contain only allowlisted public metadata, and user-authored-abstract records may contain only Steve's own description. Copy-enabled-only templates remain outside the corpus and are available solely to the asset-checked manual-template pathway; copying permission is not AI permission. Store observation date, sources, confidence, conflicts, permitted stable/volatile fields, reusable abstract patterns, genre-specific patterns, public monetization signals, mobile implications, and anti-patterns. Do not access or store third-party gameplay, maps, code, assets, scripts, names, characters, branded UI, distinctive abilities, audio, or uncited revenue claims for AI use. Roblox's current [Terms of Use](https://en.help.roblox.com/hc/en-us/articles/115004647846-Roblox-Terms-of-Use) restrict using Roblox Virtual Content with ML/AI; Roblox's [copying controls](https://en.help.roblox.com/hc/en-us/articles/203313940-Disallow-Copying-of-Your-Experience) establish copying state only, never AI-use authorization. Generate manifest hashes deterministically.
 
 - [ ] **Step 4: Implement deterministic retrieval**
 
-Filter to `policyDecision: "allowed"` before ranking by genre/loop/pattern/device fit, evidence confidence, freshness, and source diversity. Return bounded records with citations and rights evidence. Stale volatile fields remain visible as stale rather than silently refreshed; no retrieval path can bypass the pre-ingestion rights gate.
+Filter to `policyDecision: "allowed"` and an AI-authorized state before ranking by genre/loop/pattern/device fit, evidence confidence, freshness, and source diversity. Return bounded records with citations, acquisition provenance, and AI-use evidence. Stale volatile fields remain visible as stale rather than silently refreshed; no retrieval path can bypass either pre-ingestion gate.
 
 - [ ] **Step 5: Run and commit**
 
@@ -297,8 +317,15 @@ fn unlicensed_game_url_is_blocked_before_deconstruction() {
 }
 
 #[test]
-fn transformed_licensed_multi_reference_design_passes() {
-    let result = originality_review(original_licensed_obby_horror_hybrid());
+fn copy_enabled_without_express_ai_license_is_never_deconstructed() {
+    let result = deconstruct_reference(copy_enabled_only_template());
+    assert!(matches!(result, Err(ReferenceError::AiUseNotAuthorized)));
+    assert_eq!(reference_fetch_count(), 0);
+}
+
+#[test]
+fn transformed_ai_licensed_multi_reference_design_passes() {
+    let result = originality_review(original_ai_licensed_obby_horror_hybrid());
     assert_eq!(result.verdict, OriginalityVerdict::Pass);
     assert!(result.corroborating_corpus_ids.len() >= 3);
     assert!(!result.material_mechanical_differences.is_empty());
@@ -313,7 +340,7 @@ Expected: FAIL before reference services exist.
 
 - [ ] **Step 3: Implement the reference pipeline**
 
-Validate `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, and `policyDecision` before resolving or fetching anything. An arbitrary Roblox game URL remains inert and returns `blocked`; originality transformation never cures unauthorized input. For an allowed Steve-owned, expressly licensed, copy-enabled, public-metadata-only, or user-authored-abstract source, ingest only the content permitted by its rights basis, record Steve-selected admired abstract traits, corroborate them against rights-approved corpus records, and transform theme/narrative/characters/names/space/assets/audio/UI/rewards/distinctive abilities. Require one material mechanical/progression difference even for licensed/copy-enabled templates, and return `pass | needs_review | blocked` with reasons and rights evidence.
+Validate `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, `aiUseAuthorization`, and `aiUseEvidenceRef` before resolving or fetching anything. An arbitrary Roblox game URL remains inert and returns `blocked`; originality transformation never cures unauthorized input. For an allowed Steve-owned, expressly AI-licensed, public-metadata-only, or user-authored-abstract source, ingest only the content permitted by both rights gates, record Steve-selected admired abstract traits, corroborate them against AI-authorized corpus records, and transform theme/narrative/characters/names/space/assets/audio/UI/rewards/distinctive abilities. A copy-enabled-only template can be imported manually after per-asset rights checks but cannot be deconstructed, summarized, embedded, sent to OpenRouter, or used for Design DNA/ML; a separate express AI-use license and `aiUseEvidenceRef` are required to change that state. Require one material mechanical/progression difference for every expressly AI-licensed or manual-template output, and return `pass | needs_review | blocked` with reasons and both evidence references.
 
 - [ ] **Step 4: Run and commit**
 
@@ -420,7 +447,7 @@ Expected: FAIL because broker/proposal services are absent.
 
 - [ ] **Step 3: Implement typed request/response flow**
 
-Worker verifies Clerk and Steve allowlist, selects a configured task tier, builds bounded citation-bearing context, calls one hardened OpenRouter client, validates the exact target schema, redacts errors, and returns an immutable provider receipt. Rust validates again, stages the proposal, compares project/base revision/hash on approval, applies transactionally, and records the resulting hash. Provider timeout, malformed output, rejection, cancellation, or stale base leaves project state unchanged.
+Worker verifies Clerk and Steve allowlist, selects a configured task tier, filters every context record through both the rights decision and AI-use authorization, builds bounded citation-bearing context, calls one hardened OpenRouter client, validates the exact target schema, redacts errors, and returns an immutable provider receipt. Copy-enabled-only records never cross the broker boundary. Rust validates again, stages the proposal, compares project/base revision/hash on approval, applies transactionally, and records the resulting hash. Provider timeout, malformed output, rejection, cancellation, or stale base leaves project state unchanged.
 
 - [ ] **Step 4: Run and commit**
 
@@ -475,6 +502,6 @@ cargo test --manifest-path src-tauri/Cargo.toml --test evidence_boundary --test 
 npm run test:run -- tests/intelligence/reference-to-gom.test.ts
 ```
 
-Expected: reference input produces cited Design DNA and an original valid GOM candidate; owner/public evidence produces one bounded recommendation without competitor revenue claims.
+Expected: a Steve-owned or expressly AI-licensed reference with compliant acquisition and AI-use provenance produces cited Design DNA and an original valid GOM candidate; bounded public metadata and Steve-authored abstracts remain permitted, copy-enabled-only input produces no AI context, and owner/public evidence produces one bounded recommendation without competitor revenue claims.
 
 Commit: `git add src-tauri/src/intelligence src-tauri/tests src/intelligence tests/intelligence && git commit -m "feat: recommend evidence-backed game improvements"`

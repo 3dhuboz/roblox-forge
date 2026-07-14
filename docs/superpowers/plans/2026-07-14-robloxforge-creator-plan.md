@@ -4,7 +4,7 @@
 
 **Goal:** Build a truthful Steve-only create-understand-approve workflow, versioned Game Operating Model editor, transactional proposal/undo system, responsive performant R3F builder, and honest test/publish UI with automated frontend proof.
 
-**Architecture:** The approved Game Operating Model is the single persistent source of truth. React feature screens render projections of that model, AI and manual edits both produce typed proposals, and only approved transactions create a new model version; Tauri receipts separately represent candidate-artifact build, official Studio MCP/CLI, publish, and owner-analytics evidence. Reference rights are approved before ingestion, and browser mode may render deterministic previews but can never satisfy an authoritative capability gate.
+**Architecture:** The approved Game Operating Model is the single persistent source of truth. React feature screens render projections of that model, AI and manual edits both produce typed proposals, and only approved transactions create a new model version; Tauri receipts separately represent candidate-artifact build, official Studio MCP/CLI, publish, and owner-analytics evidence. Reference rights and separate AI-use authorization are approved before ingestion; copy-enabled-only templates remain a manual import pathway and never become OpenRouter, Design DNA, retrieval, or ML context. Browser mode may render deterministic previews but can never satisfy an authoritative capability gate.
 
 **Tech Stack:** React 19, TypeScript 5.8, Zustand 5, Tailwind CSS 4, React Router 7, React Three Fiber 9, Three.js, XYFlow 12, Tauri v2, Vitest, React Testing Library, Playwright, axe-core.
 
@@ -333,6 +333,8 @@ export interface ReferenceExperience {
   rightsBasis: "owned" | "expressly_licensed" | "copy_enabled" | "public_metadata_only" | "user_authored";
   rightsEvidenceRef: string;
   policyDecision: "allowed" | "needs_review" | "blocked";
+  aiUseAuthorization: "owner_authorized" | "expressly_ai_licensed" | "user_authored" | "public_metadata_only" | "not_authorized";
+  aiUseEvidenceRef: string | null;
 }
 ```
 
@@ -544,7 +546,7 @@ export interface GameDirectorClient {
 
 - [ ] **Step 5: Implement the create and understand screens**
 
-Create `src/features/create/CreatePage.tsx` with an injected `createProject` action, labelled idea textarea, rights-gated reference list, submit state, and inline receipt failure. `ReferenceExperienceInput` collects `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, optional URL, and Steve-authored admired abstract traits. It never previews or fetches an arbitrary URL and disables `Understand my game` unless every reference is `allowed`; `needs_review` and `blocked` show the policy reason. Create `UnderstandPage.tsx` to render player promise, fantasy, core loops, progression/recovery, direction, assumptions with confidence, material questions, and reference provenance. `ApprovalBar` receives `validation.valid`, unanswered material-question count, reference-policy state, and receipt state; it enables approval only when all four are satisfied.
+Create `src/features/create/CreatePage.tsx` with an injected `createProject` action, labelled idea textarea, rights-gated reference list, submit state, and inline receipt failure. `ReferenceExperienceInput` collects `sourceKind`, `rightsBasis`, `rightsEvidenceRef`, `policyDecision`, `aiUseAuthorization`, `aiUseEvidenceRef`, optional URL, and Steve-authored admired abstract traits. It never previews or fetches an arbitrary URL. Only `allowed` references with a non-`not_authorized` AI-use state and non-null evidence enter `GameDirectorClient.interpret`; copy-enabled-only records are visibly labelled `Manual template only`, remain available after included-asset rights checks, and are excluded from the request. A copy-enabled reference may become AI context only with a separate `expressly_ai_licensed` decision and immutable `aiUseEvidenceRef`. `needs_review` and `blocked` show the policy reason. Create `UnderstandPage.tsx` to render player promise, fantasy, core loops, progression/recovery, direction, assumptions with confidence, material questions, acquisition provenance, and AI-use provenance. `ApprovalBar` receives `validation.valid`, unanswered material-question count, reference-policy state, and receipt state; it enables approval only when all four are satisfied.
 
 Use this approval predicate:
 
@@ -1061,7 +1063,7 @@ Maintain a 44px minimum touch target for primary mobile controls and 12px minimu
 
 - [ ] **Step 4: Add complete Playwright journeys**
 
-`create-to-approved-model.spec.ts` creates an Obby brief from a licensed/copy-enabled fixture with allowed rights evidence, proves an arbitrary URL is blocked before ingestion, answers a material question, approves the model, and reaches Build. `builder-responsive.spec.ts` runs at every configured viewport and asserts the canvas region remains at least 480px wide on laptop and fills narrow mode behind drawers. `browser-preview-truth.spec.ts` asserts Preview-only status and unavailable publish. `keyboard-accessibility.spec.ts` completes create/approve and selects/moves a scene node without pointer input, then runs `axe.run(document)`. `publish-gating.spec.ts` verifies stale artifact hashes and an unverified target/private visibility disable Publish, partial success requires a known place version, and `outcome_unknown` disables retry pending reconciliation.
+`create-to-approved-model.spec.ts` creates an Obby brief from a Steve-owned or expressly AI-licensed fixture with compliant acquisition provenance and AI-use evidence, proves an arbitrary URL is blocked before ingestion, proves a copy-enabled-only fixture stays in the manual-template lane and is absent from the Director request, exercises bounded public metadata and Steve-authored-abstract inputs, answers a material question, approves the model, and reaches Build. `builder-responsive.spec.ts` runs at every configured viewport and asserts the canvas region remains at least 480px wide on laptop and fills narrow mode behind drawers. `browser-preview-truth.spec.ts` asserts Preview-only status and unavailable publish. `keyboard-accessibility.spec.ts` completes create/approve and selects/moves a scene node without pointer input, then runs `axe.run(document)`. `publish-gating.spec.ts` verifies stale artifact hashes and an unverified target/private visibility disable Publish, partial success requires a known place version, and `outcome_unknown` disables retry pending reconciliation.
 
 - [ ] **Step 5: Run the full frontend proof**
 

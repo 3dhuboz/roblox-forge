@@ -4,7 +4,7 @@
 
 **Goal:** Build the secure local platform that contains projects, generates one canonical Roblox candidate artifact, proves it in Studio, publishes it to a verified Steve-owned private place, queries owner analytics, and packages a truthful Windows alpha.
 
-**Architecture:** Tauri Rust is the only privileged boundary. React addresses managed project IDs and receives typed receipts; it never supplies arbitrary filesystem paths or sees Roblox credentials. One pinned Rojo pipeline produces the canonical candidate artifact used by validation, Studio proof, and publishing; Roblox's built-in Studio MCP server is the primary engine-truth adapter, the documented Studio CLI is the fallback, and every privileged operation returns a hash-linked receipt.
+**Architecture:** Tauri Rust is the only privileged boundary. React addresses managed project IDs and receives typed receipts; it never supplies arbitrary filesystem paths or sees Roblox credentials. One pinned Rojo pipeline produces the canonical candidate artifact used by validation, Studio proof, and publishing; Roblox's built-in Studio MCP server is the primary engine-truth adapter, the documented Studio CLI is the fallback, and every privileged operation returns a hash-linked receipt. Platform preserves copy-enabled imports as an asset-checked manual-template pathway, but never promotes copying permission into AI-use authority or forwards such content to OpenRouter, Design DNA, retrieval, or ML.
 
 **Tech Stack:** Rust, Tauri v2, serde, reqwest, keyring/Windows Credential Manager, Tokio, Rojo 7, Roblox Studio MCP, Roblox Studio CLI, Roblox Open Cloud Place Publishing and Analytics Query APIs, TypeScript contract adapters.
 
@@ -296,7 +296,7 @@ Expected: FAIL because partial directories remain visible.
 
 - [ ] **Step 3: Implement stage-validate-rename**
 
-Create projects under `<projectsRoot>/.staging/<operationId>`, copy with quotas and no links, validate the resulting manifest and source tree, then rename atomically to the final managed project ID. Remove staging on error. Reject duplicate project IDs without modifying the existing project.
+Create projects under `<projectsRoot>/.staging/<operationId>`, copy with quotas and no links, validate the resulting manifest and source tree, then rename atomically to the final managed project ID. Remove staging on error. Reject duplicate project IDs without modifying the existing project. An optional third-party `copy_enabled` import must preserve acquisition provenance and included-asset rights checks, persist `aiUseAuthorization: "not_authorized"`, and remain manual-only. Platform cannot mint AI authority; only a separate Intelligence policy record with `aiUseAuthorization: "expressly_ai_licensed"` and immutable `aiUseEvidenceRef` may authorize that content for AI.
 
 - [ ] **Step 4: Run and commit**
 
@@ -471,7 +471,7 @@ pub struct BuildArtifact {
 
 - [ ] **Step 4: Make build, Studio, and publish consume one candidate `BuildArtifact`**
 
-Remove the native-builder-first/publish-with-Rojo split. Unsupported model properties or files fail validation; they are not silently dropped. Convert templates to valid Rojo 7 structure and test their manifest/hash presence in packaged resources. Rojo is a pinned external build dependency and its output is the canonical candidate artifact, not Roblox engine proof; only a matching official Studio MCP or documented Studio CLI receipt can establish authoritative Studio evidence.
+Remove the native-builder-first/publish-with-Rojo split. Unsupported model properties or files fail validation; they are not silently dropped. Convert packaged Steve-owned templates to valid Rojo 7 structure and test their manifest/hash presence in packaged resources. Keep copy-enabled-only third-party templates as optional local manual imports after per-asset rights checks; never package them into the intelligence corpus or send them to any AI context without separate express AI-use evidence. Rojo is a pinned external build dependency and its output is the canonical candidate artifact, not Roblox engine proof; only a matching official Studio MCP or documented Studio CLI receipt can establish authoritative Studio evidence.
 
 - [ ] **Step 5: Run and commit**
 
