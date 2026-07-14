@@ -14,6 +14,8 @@ import { isTauriRuntime } from "../lib/isTauriRuntime";
 
 export type ValidationState = "not_run" | "running" | "failed" | "passed";
 
+let validationEpoch = 0;
+
 interface ProjectStore {
   project: ProjectInfo | null;
   projectState: ProjectState | null;
@@ -42,6 +44,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   fixingIssueId: null,
 
   createProject: async (template, name) => {
+    validationEpoch += 1;
     const isDesktop = isTauriRuntime();
     set({
       project: null,
@@ -105,6 +108,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   validateProject: async () => {
     const { project } = get();
+    const attempt = ++validationEpoch;
+    const projectPath = project?.path ?? null;
+    const isCurrentAttempt = () =>
+      validationEpoch === attempt && get().project?.path === projectPath;
     set({
       validationIssues: [],
       validationState: "running",
@@ -124,6 +131,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
     try {
       const issues = await validationCommands.validateProject(project.path);
+      if (!isCurrentAttempt()) return false;
+
       const errors = issues.filter((i) => i.severity === "error").length;
       if (errors === 0) {
         set({
@@ -144,6 +153,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         return false;
       }
     } catch (e) {
+      if (!isCurrentAttempt()) return false;
+
       const message = e instanceof Error ? e.message : String(e);
       set({
         validationIssues: [],
@@ -159,21 +170,46 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   autoFixIssue: async (issueId: string) => {
     const { project } = get();
     if (!project) return;
-    set({ fixingIssueId: issueId });
+    const projectPath = project.path;
+    const mutationEpoch = ++validationEpoch;
+    const isCurrentMutation = () =>
+      validationEpoch === mutationEpoch && get().project?.path === projectPath;
+    set({
+      fixingIssueId: issueId,
+      validationIssues: [],
+      validationState: "failed",
+      validationError:
+        "Project files are changing. Validate again before publishing.",
+      error: null,
+    });
     try {
       const message = await validationCommands.autoFixIssue(project.path, issueId);
+      if (!isCurrentMutation()) return;
+
       useToastStore.getState().addToast("success", message);
       // Re-validate after fix
       await get().validateProject();
-      await get().refreshProjectState();
+      if (get().project?.path === projectPath) {
+        await get().refreshProjectState();
+      }
     } catch (e) {
-      useToastStore.getState().addToast("error", `Auto-fix failed: ${e}`);
+      if (!isCurrentMutation()) return;
+
+      const message = e instanceof Error ? e.message : String(e);
+      set({
+        validationIssues: [],
+        validationState: "failed",
+        validationError: message,
+        error: message,
+      });
+      useToastStore.getState().addToast("error", `Auto-fix failed: ${message}`);
     } finally {
       set({ fixingIssueId: null });
     }
   },
 
   clearProject: () => {
+    validationEpoch += 1;
     set({
       project: null,
       projectState: null,

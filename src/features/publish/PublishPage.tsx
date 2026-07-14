@@ -51,6 +51,7 @@ export function PublishPage() {
     validationIssues,
     validationState,
     validationError,
+    fixingIssueId,
     validateProject,
   } = useProjectStore();
   const { auth, isConnecting, startLogin, logout, checkAuth } = useAuthStore();
@@ -113,6 +114,7 @@ export function PublishPage() {
       !universeId ||
       !placeId ||
       validationState !== "passed" ||
+      fixingIssueId !== null ||
       validationIssues.some((issue) => issue.severity === "error")
     ) {
       return;
@@ -383,7 +385,11 @@ export function PublishPage() {
                         setStep("validate");
                       }
                     }}
-                    disabled={!canProceedToValidate}
+                    disabled={
+                      !canProceedToValidate ||
+                      validationState === "running" ||
+                      fixingIssueId !== null
+                    }
                     className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Check My Game
@@ -454,6 +460,7 @@ export function PublishPage() {
                     disabled={
                       isPublishing ||
                       validationState !== "passed" ||
+                      fixingIssueId !== null ||
                       validationIssues.some((i) => i.severity === "error")
                     }
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-7 py-3 text-[15px] font-bold text-white shadow-lg shadow-green-600/20 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50"

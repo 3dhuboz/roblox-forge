@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublishPage } from "./PublishPage";
@@ -64,6 +64,28 @@ async function enterPublishIds(): Promise<void> {
 }
 
 describe("PublishPage validation gate", () => {
+  it.each([
+    [
+      "validation is running",
+      { validationState: "running" as const, fixingIssueId: null },
+    ],
+    [
+      "an auto-fix is running",
+      {
+        validationState: "not_run" as const,
+        fixingIssueId: "stale-warning-proof",
+      },
+    ],
+  ])("disables Check My Game while %s", async (_label, gateState) => {
+    useProjectStore.setState(gateState);
+    render(<PublishPage />);
+    await enterPublishIds();
+
+    expect(
+      screen.getByRole("button", { name: "Check My Game" }),
+    ).toBeDisabled();
+  });
+
   it("stays on settings and exposes an alert when validation fails", async () => {
     const validateProject = vi.fn().mockImplementation(async () => {
       useProjectStore.setState({
@@ -130,5 +152,34 @@ describe("PublishPage validation gate", () => {
     expect(
       await screen.findByRole("button", { name: "Publish to Roblox!" }),
     ).toBeDisabled();
+  });
+
+  it("disables publish while an auto-fix mutation is active", async () => {
+    const validateProject = vi.fn().mockImplementation(async () => {
+      useProjectStore.setState({
+        validationIssues: [],
+        validationState: "passed",
+        validationError: null,
+      });
+      return true;
+    });
+    useProjectStore.setState({ validateProject });
+    const publishGame = vi.spyOn(publishCommands, "publishGame");
+    render(<PublishPage />);
+    await enterPublishIds();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Check My Game" }));
+    expect(await screen.findByText("Validation Passed")).toBeInTheDocument();
+
+    act(() => {
+      useProjectStore.setState({ fixingIssueId: "stale-warning-proof" });
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Publish to Roblox!" }),
+    ).toBeDisabled();
+    expect(publishGame).not.toHaveBeenCalled();
   });
 });

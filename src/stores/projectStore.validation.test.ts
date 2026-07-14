@@ -21,6 +21,24 @@ const staleIssue: ValidationIssue = {
   autoFixable: false,
 };
 
+const autoFixableWarning: ValidationIssue = {
+  id: "stale-warning-proof",
+  severity: "warning",
+  message: "This warning was accepted by the last completed validation.",
+  autoFixable: true,
+  fixDescription: "Apply the recommended setting",
+};
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
   useProjectStore.setState(originalProjectStoreState, true);
   useToastStore.setState({ toasts: [] });
@@ -126,6 +144,165 @@ describe("project validation state", () => {
         validationIssues: [issue],
         validationState: "failed",
         validationError: expect.stringMatching(/1 issue/i),
+      }),
+    );
+  });
+
+  it("ignores an older clean result after a newer validation fails", async () => {
+    const olderRun = deferred<ValidationIssue[]>();
+    vi.spyOn(validationCommands, "validateProject")
+      .mockReturnValueOnce(olderRun.promise)
+      .mockRejectedValueOnce(new Error("Newer validation is unavailable."));
+    useProjectStore.setState({
+      project,
+      validationIssues: [],
+      validationState: "not_run",
+      validationError: null,
+    });
+
+    const olderResultPromise = useProjectStore.getState().validateProject();
+    const newerResult = await useProjectStore.getState().validateProject();
+    olderRun.resolve([]);
+    const olderResult = await olderResultPromise;
+
+    expect(newerResult).toBe(false);
+    expect(olderResult).toBe(false);
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        validationIssues: [],
+        validationState: "failed",
+        validationError: "Newer validation is unavailable.",
+      }),
+    );
+    expect(
+      useToastStore.getState().toasts.some((toast) => toast.type === "success"),
+    ).toBe(false);
+  });
+
+  it("ignores an in-flight result after the project is cleared", async () => {
+    const inFlightRun = deferred<ValidationIssue[]>();
+    vi.spyOn(validationCommands, "validateProject").mockReturnValueOnce(
+      inFlightRun.promise,
+    );
+    useProjectStore.setState({
+      project,
+      validationIssues: [],
+      validationState: "not_run",
+      validationError: null,
+    });
+
+    const resultPromise = useProjectStore.getState().validateProject();
+    useProjectStore.getState().clearProject();
+    inFlightRun.resolve([]);
+
+    expect(await resultPromise).toBe(false);
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        project: null,
+        validationIssues: [],
+        validationState: "not_run",
+        validationError: null,
+      }),
+    );
+  });
+
+  it("ignores an in-flight result after creating a replacement project", async () => {
+    const inFlightRun = deferred<ValidationIssue[]>();
+    vi.spyOn(validationCommands, "validateProject").mockReturnValueOnce(
+      inFlightRun.promise,
+    );
+    useProjectStore.setState({
+      project,
+      validationIssues: [],
+      validationState: "not_run",
+      validationError: null,
+    });
+
+    const resultPromise = useProjectStore.getState().validateProject();
+    const created = await useProjectStore
+      .getState()
+      .createProject("obby", "Replacement Validation Contract");
+    const replacementPath = useProjectStore.getState().project?.path;
+    inFlightRun.resolve([]);
+
+    expect(created).toBe(true);
+    expect(replacementPath).toBe(
+      "browser-preview://Replacement_Validation_Contract",
+    );
+    expect(await resultPromise).toBe(false);
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        validationIssues: [],
+        validationState: "not_run",
+        validationError: null,
+      }),
+    );
+  });
+
+  it("invalidates passed proof before an auto-fix and only repasses after fresh validation", async () => {
+    const freshRun = deferred<ValidationIssue[]>();
+    vi.spyOn(validationCommands, "autoFixIssue").mockResolvedValueOnce(
+      "Recommended setting applied.",
+    );
+    const validateProject = vi
+      .spyOn(validationCommands, "validateProject")
+      .mockReturnValueOnce(freshRun.promise);
+    useProjectStore.setState({
+      project,
+      validationIssues: [autoFixableWarning],
+      validationState: "passed",
+      validationError: null,
+    });
+
+    const fixPromise = useProjectStore
+      .getState()
+      .autoFixIssue(autoFixableWarning.id);
+
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        fixingIssueId: autoFixableWarning.id,
+        validationIssues: [],
+        validationState: "failed",
+        validationError: expect.stringMatching(/validate again/i),
+      }),
+    );
+    await vi.waitFor(() => expect(validateProject).toHaveBeenCalledTimes(1));
+    expect(useProjectStore.getState().validationState).toBe("running");
+
+    freshRun.resolve([]);
+    await fixPromise;
+
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        fixingIssueId: null,
+        validationIssues: [],
+        validationState: "passed",
+        validationError: null,
+      }),
+    );
+  });
+
+  it("leaves validation failed with no stale issues when auto-fix fails", async () => {
+    vi.spyOn(validationCommands, "autoFixIssue").mockRejectedValueOnce(
+      new Error("Fix service unavailable."),
+    );
+    const validateProject = vi.spyOn(validationCommands, "validateProject");
+    useProjectStore.setState({
+      project,
+      validationIssues: [autoFixableWarning],
+      validationState: "passed",
+      validationError: null,
+    });
+
+    await useProjectStore.getState().autoFixIssue(autoFixableWarning.id);
+
+    expect(validateProject).not.toHaveBeenCalled();
+    expect(useProjectStore.getState()).toEqual(
+      expect.objectContaining({
+        fixingIssueId: null,
+        validationIssues: [],
+        validationState: "failed",
+        validationError: expect.stringMatching(/fix service unavailable/i),
       }),
     );
   });
