@@ -61,7 +61,7 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "pending-approval", "approved", "rejected", "superseded"],
+      "enum": ["candidate", "invalid", "pending_approval", "approved", "superseded"],
       "maxLength": 24
     },
     "approvalMetadata": {
@@ -465,7 +465,7 @@
       "if": {
         "properties": {
           "status": {
-            "enum": ["draft", "pending-approval"]
+            "enum": ["candidate", "invalid", "pending_approval"]
           }
         },
         "required": ["status"]
@@ -494,23 +494,6 @@
           }
         }
       }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "rejected"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "approvalMetadata": {
-            "$ref": "#/$defs/rejectedApprovalMetadata"
-          }
-        }
-      }
     }
   ],
   "$defs": {
@@ -521,9 +504,6 @@
         },
         {
           "$ref": "#/$defs/approvedApprovalMetadata"
-        },
-        {
-          "$ref": "#/$defs/rejectedApprovalMetadata"
         }
       ]
     },
@@ -562,41 +542,6 @@
           "type": "string",
           "const": "approved",
           "maxLength": 16
-        },
-        "decidedBy": {
-          "$ref": "common.schema.json#/$defs/id"
-        },
-        "decidedAt": {
-          "$ref": "common.schema.json#/$defs/dateTime"
-        },
-        "decisionEvidenceIds": {
-          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
-        }
-      }
-    },
-    "rejectedApprovalMetadata": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "approvalRequired",
-        "state",
-        "reason",
-        "decidedBy",
-        "decidedAt",
-        "decisionEvidenceIds"
-      ],
-      "properties": {
-        "approvalRequired": {
-          "type": "boolean",
-          "const": true
-        },
-        "state": {
-          "type": "string",
-          "const": "rejected",
-          "maxLength": 16
-        },
-        "reason": {
-          "$ref": "common.schema.json#/$defs/text"
         },
         "decidedBy": {
           "$ref": "common.schema.json#/$defs/id"

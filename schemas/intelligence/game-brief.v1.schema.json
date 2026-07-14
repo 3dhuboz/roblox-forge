@@ -44,7 +44,7 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "questions-open", "approved", "superseded"],
+      "enum": ["draft", "needs_answers", "valid", "approved"],
       "maxLength": 24
     },
     "rawIdea": {
@@ -256,7 +256,7 @@
       "if": {
         "properties": {
           "status": {
-            "enum": ["approved", "superseded"]
+            "enum": ["valid", "approved"]
           }
         },
         "required": ["status"]
@@ -277,7 +277,7 @@
       "if": {
         "properties": {
           "status": {
-            "const": "questions-open"
+            "const": "needs_answers"
           }
         },
         "required": ["status"]

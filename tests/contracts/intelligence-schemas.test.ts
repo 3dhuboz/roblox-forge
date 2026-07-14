@@ -772,7 +772,7 @@ describe("game intelligence JSON contracts", () => {
   it.each([
     {
       status: "unanswered",
-      briefStatus: "questions-open",
+      briefStatus: "needs_answers",
       answer: { status: "unanswered" },
     },
     {
@@ -787,10 +787,20 @@ describe("game intelligence JSON contracts", () => {
     },
     {
       status: "deferred",
-      briefStatus: "questions-open",
+      briefStatus: "needs_answers",
       answer: {
         status: "deferred",
         reason: "Awaiting a human accessibility review.",
+        decidedBy: "human:steve",
+        decidedAt: "2026-07-14T00:00:00Z",
+      },
+    },
+    {
+      status: "answered-valid",
+      briefStatus: "valid",
+      answer: {
+        status: "answered",
+        response: "The material question is resolved before approval.",
         decidedBy: "human:steve",
         decidedAt: "2026-07-14T00:00:00Z",
       },
@@ -807,11 +817,15 @@ describe("game intelligence JSON contracts", () => {
 
   it.each([
     {
-      status: "draft",
+      status: "candidate",
       approvalMetadata: { approvalRequired: true, state: "pending" },
     },
     {
-      status: "pending-approval",
+      status: "invalid",
+      approvalMetadata: { approvalRequired: true, state: "pending" },
+    },
+    {
+      status: "pending_approval",
       approvalMetadata: { approvalRequired: true, state: "pending" },
     },
     {
@@ -819,17 +833,6 @@ describe("game intelligence JSON contracts", () => {
       approvalMetadata: {
         approvalRequired: true,
         state: "approved",
-        decidedBy: "human:steve",
-        decidedAt: "2026-07-14T00:00:00Z",
-        decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
-      },
-    },
-    {
-      status: "rejected",
-      approvalMetadata: {
-        approvalRequired: true,
-        state: "rejected",
-        reason: "The model does not yet meet the safety boundary.",
         decidedBy: "human:steve",
         decidedAt: "2026-07-14T00:00:00Z",
         decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
@@ -908,7 +911,7 @@ describe("game intelligence JSON contracts", () => {
 
   it("rejects pending and unanswered states that fabricate decision metadata", () => {
     const brief = clone(asJsonObject(validFixture.gameBrief, "gameBrief"));
-    brief.status = "questions-open";
+    brief.status = "needs_answers";
     asJsonObjects(brief.materialQuestions, "materialQuestions")[0].answer = {
       status: "unanswered",
       response: "fabricated",
@@ -918,7 +921,7 @@ describe("game intelligence JSON contracts", () => {
     expect(validate("game-brief.v1.schema.json", brief).errors).not.toBeNull();
 
     const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
-    gom.status = "pending-approval";
+    gom.status = "pending_approval";
     gom.approvalMetadata = {
       approvalRequired: true,
       state: "pending",
@@ -948,11 +951,10 @@ describe("game intelligence JSON contracts", () => {
     expect(validate("game-brief.v1.schema.json", brief).errors).not.toBeNull();
 
     const gom = clone(asJsonObject(validFixture.gameOperatingModel, "gom"));
-    gom.status = "rejected";
+    gom.status = "approved";
     gom.approvalMetadata = {
       approvalRequired: true,
-      state: "rejected",
-      decidedBy: "human:steve",
+      state: "approved",
       decidedAt: "2026-07-14T00:00:00Z",
       decisionEvidenceIds: ["evidence:tower-of-hell-public-visits"],
     };
@@ -994,6 +996,35 @@ describe("game intelligence JSON contracts", () => {
 
     expect(definitions).not.toHaveProperty("schemaVersion");
     expect(definitions).not.toHaveProperty("uri");
+  });
+
+  it("uses the exact committed Brief and GOM lifecycle literals", () => {
+    const briefSchema = asJsonObject(
+      schemas.get("game-brief.v1.schema.json"),
+      "game brief schema",
+    );
+    const briefProperties = asJsonObject(briefSchema.properties, "brief properties");
+    expect(asJsonObject(briefProperties.status, "brief status").enum).toEqual([
+      "draft",
+      "needs_answers",
+      "valid",
+      "approved",
+    ]);
+
+    const gomSchema = asJsonObject(
+      schemas.get("game-operating-model.v1.schema.json"),
+      "GOM schema",
+    );
+    const gomProperties = asJsonObject(gomSchema.properties, "GOM properties");
+    expect(asJsonObject(gomProperties.status, "GOM status").enum).toEqual([
+      "candidate",
+      "invalid",
+      "pending_approval",
+      "approved",
+      "superseded",
+    ]);
+    const gomDefinitions = asJsonObject(gomSchema.$defs, "GOM definitions");
+    expect(gomDefinitions).not.toHaveProperty("rejectedApprovalMetadata");
   });
 
   it.each([
