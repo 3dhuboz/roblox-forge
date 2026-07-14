@@ -22,6 +22,11 @@ interface OperationMutationCase {
   readonly mutate: (operation: JsonRecord) => void;
 }
 
+interface OperationChainCase {
+  readonly label: string;
+  readonly operations: (proposal: JsonRecord) => JsonRecord[];
+}
+
 const fixture = JSON.parse(
   readFileSync(
     join(
@@ -51,8 +56,13 @@ function records(value: unknown, label: string): JsonRecord[] {
   return value as JsonRecord[];
 }
 
-function clonedDocuments(): { gom: JsonRecord; proposal: JsonRecord } {
+function clonedDocuments(): {
+  brief: JsonRecord;
+  gom: JsonRecord;
+  proposal: JsonRecord;
+} {
   return {
+    brief: structuredClone(record(fixture.gameBrief, "gameBrief")),
     gom: structuredClone(record(fixture.gameOperatingModel, "gameOperatingModel")),
     proposal: structuredClone(record(fixture.directorProposal, "directorProposal")),
   };
@@ -93,6 +103,114 @@ function operationOf(proposal: JsonRecord, type: string): JsonRecord {
   }
   return operation;
 }
+
+function chainedUpdatePair(
+  proposal: JsonRecord,
+  type: string,
+  inverseKey: string,
+): JsonRecord[] {
+  const first = structuredClone(operationOf(proposal, type));
+  const second = structuredClone(first);
+  second.id = `${String(first.id)}-chain`;
+  second.before = structuredClone(first.after);
+  record(second.inverse, `${type}.inverse`)[inverseKey] =
+    structuredClone(first.after);
+  return [first, second];
+}
+
+const OPERATION_CHAIN_CASES: readonly OperationChainCase[] = [
+  {
+    label: "Brief field",
+    operations: (proposal) => {
+      const first = structuredClone(operationOf(proposal, "brief.set_field"));
+      const second = structuredClone(first);
+      second.id = `${String(first.id)}-chain`;
+      second.before = structuredClone(first.after);
+      record(second.inverse, "brief.inverse").restoreValue =
+        record(first.after, "brief.after").value;
+      return [first, second];
+    },
+  },
+  {
+    label: "material question",
+    operations: (proposal) => {
+      const first = structuredClone(operationOf(proposal, "question.answer"));
+      const second = structuredClone(first);
+      second.id = `${String(first.id)}-chain`;
+      second.before = structuredClone(first.after);
+      record(second.inverse, "question.inverse").restoreAnswer =
+        structuredClone(first.after);
+      return [first, second];
+    },
+  },
+  {
+    label: "scene collection",
+    operations: (proposal) => {
+      const types = new Set(["scene.add", "scene.update", "scene.remove"]);
+      const operations = records(proposal.operations, "operations")
+        .filter((operation) => types.has(String(operation.type)))
+        .map((operation) => structuredClone(operation));
+      record(operationOf({ operations }, "scene.remove").inverse, "scene.remove.inverse")
+        .restoreIndex = 0;
+      return operations;
+    },
+  },
+  {
+    label: "objective collection",
+    operations: (proposal) => {
+      const types = new Set([
+        "objective.add",
+        "objective.update",
+        "objective.remove",
+      ]);
+      const operations = records(proposal.operations, "operations")
+        .filter((operation) => types.has(String(operation.type)))
+        .map((operation) => structuredClone(operation));
+      record(
+        operationOf({ operations }, "objective.remove").inverse,
+        "objective.remove.inverse",
+      ).restoreIndex = 1;
+      return operations;
+    },
+  },
+  {
+    label: "progression",
+    operations: (proposal) =>
+      chainedUpdatePair(
+        proposal,
+        "progression.update",
+        "restoreProgression",
+      ),
+  },
+  {
+    label: "economy",
+    operations: (proposal) =>
+      chainedUpdatePair(proposal, "economy.update", "restoreEconomy"),
+  },
+  {
+    label: "runtime rule",
+    operations: (proposal) =>
+      chainedUpdatePair(
+        proposal,
+        "runtime_rule.update",
+        "restoreRuntimeRule",
+      ),
+  },
+  {
+    label: "feedback",
+    operations: (proposal) =>
+      chainedUpdatePair(proposal, "feedback.update", "restoreFeedback"),
+  },
+  {
+    label: "acceptance test",
+    operations: (proposal) =>
+      chainedUpdatePair(
+        proposal,
+        "acceptance_test.update",
+        "restoreAcceptanceTest",
+      ),
+  },
+];
 
 function expectIssue(
   result: SemanticValidationResult,
@@ -225,12 +343,12 @@ const OPERATION_MUTATIONS: readonly OperationMutationCase[] = [
 
 describe("intelligence semantic validation", () => {
   it("rejects duplicate IDs in a declared GOM collection", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     const objectives = records(gom.objectives, "gameOperatingModel.objectives");
     objectives.push(structuredClone(objectives[0]));
     gom.objectives = objectives;
 
-    const result = validateIntelligenceSemantics(gom, proposal);
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
 
     expect(result.valid).toBe(false);
     expect(result.issues).toEqual(
@@ -243,11 +361,11 @@ describe("intelligence semantic validation", () => {
   it.each(GOM_ID_COLLECTIONS)(
     "rejects duplicate IDs in $label",
     ({ segments }) => {
-      const { gom, proposal } = clonedDocuments();
+      const { brief, gom, proposal } = clonedDocuments();
       const collection = collectionAt(gom, segments);
       collection.push(structuredClone(collection[0]));
 
-      const result = validateIntelligenceSemantics(gom, proposal);
+      const result = validateIntelligenceSemantics(brief, gom, proposal);
       const collectionPath = `/gameOperatingModel/${segments.join("/")}`;
 
       expect(result.valid).toBe(false);
@@ -263,11 +381,11 @@ describe("intelligence semantic validation", () => {
   );
 
   it("reports every duplicate occurrence instead of collapsing duplicate IDs", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     const objectives = collectionAt(gom, ["objectives"]);
     objectives.push(structuredClone(objectives[0]), structuredClone(objectives[0]));
 
-    const result = validateIntelligenceSemantics(gom, proposal);
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
 
     expect(
       result.issues.filter(
@@ -279,11 +397,11 @@ describe("intelligence semantic validation", () => {
   });
 
   it("rejects duplicate Director operation IDs", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     const operations = records(proposal.operations, "directorProposal.operations");
     operations[1].id = operations[0].id;
 
-    const result = validateIntelligenceSemantics(gom, proposal);
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
 
     expect(result.issues).toEqual(
       expect.arrayContaining([
@@ -296,11 +414,11 @@ describe("intelligence semantic validation", () => {
   });
 
   it("rejects a Director operation whose inverse does not restore before", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     const operation = records(proposal.operations, "directorProposal.operations")[0];
     record(operation.inverse, "operation.inverse").restoreValue = "not the before value";
 
-    const result = validateIntelligenceSemantics(gom, proposal);
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
 
     expect(result.valid).toBe(false);
     expect(result.issues).toEqual(
@@ -310,20 +428,24 @@ describe("intelligence semantic validation", () => {
     );
   });
 
-  it("accepts the coherent GOM and Director proposal", () => {
-    const { gom, proposal } = clonedDocuments();
+  it("accepts the coherent Brief, GOM, and Director proposal", () => {
+    const { brief, gom, proposal } = clonedDocuments();
 
-    expect(validateIntelligenceSemantics(gom, proposal)).toEqual({
+    expect(validateIntelligenceSemantics(brief, gom, proposal)).toEqual({
       valid: true,
       issues: [],
     });
   });
 
   it("returns structured issues for non-record inputs", () => {
-    const result = validateIntelligenceSemantics(null, []);
+    const result = validateIntelligenceSemantics(null, [], undefined);
 
     expect(result.issues).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          code: "invalid_document",
+          path: "/gameBrief",
+        }),
         expect.objectContaining({
           code: "invalid_document",
           path: "/gameOperatingModel",
@@ -337,12 +459,12 @@ describe("intelligence semantic validation", () => {
   });
 
   it("requires proposal model identity, revision, and hash to match the GOM", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     proposal.baseModelId = "gom:wrong-model";
     proposal.baseModelRevision = 999;
     proposal.baseModelHash = `sha256:${"f".repeat(64)}`;
 
-    const result = validateIntelligenceSemantics(gom, proposal);
+    const result = validateIntelligenceSemantics(brief, gom, proposal);
 
     expect(result.issues.filter((issue) => issue.code === "model_mismatch")).toHaveLength(
       3,
@@ -352,11 +474,11 @@ describe("intelligence semantic validation", () => {
   it.each(OPERATION_MUTATIONS)(
     "rejects a non-reversible $type operation",
     ({ type, expectedCode, mutate }) => {
-      const { gom, proposal } = clonedDocuments();
+      const { brief, gom, proposal } = clonedDocuments();
       mutate(operationOf(proposal, type));
 
       expectIssue(
-        validateIntelligenceSemantics(gom, proposal),
+        validateIntelligenceSemantics(brief, gom, proposal),
         expectedCode,
         type,
       );
@@ -373,7 +495,11 @@ describe("intelligence semantic validation", () => {
       const payloadOperation = operationOf(payloadMismatch.proposal, type);
       record(payloadOperation[addedKey], addedKey).traceIds = ["trace:mismatch"];
       expectIssue(
-        validateIntelligenceSemantics(payloadMismatch.gom, payloadMismatch.proposal),
+        validateIntelligenceSemantics(
+          payloadMismatch.brief,
+          payloadMismatch.gom,
+          payloadMismatch.proposal,
+        ),
         "payload_mismatch",
         type,
       );
@@ -383,7 +509,11 @@ describe("intelligence semantic validation", () => {
       record(inverseOperation.inverse, "operation.inverse")[inverseKey] =
         "entity:mismatch";
       expectIssue(
-        validateIntelligenceSemantics(inverseMismatch.gom, inverseMismatch.proposal),
+        validateIntelligenceSemantics(
+          inverseMismatch.brief,
+          inverseMismatch.gom,
+          inverseMismatch.proposal,
+        ),
         "inverse_mismatch",
         type,
       );
@@ -404,7 +534,11 @@ describe("intelligence semantic validation", () => {
       const targetMismatch = clonedDocuments();
       operationOf(targetMismatch.proposal, type)[targetKey] = "entity:mismatch";
       expectIssue(
-        validateIntelligenceSemantics(targetMismatch.gom, targetMismatch.proposal),
+        validateIntelligenceSemantics(
+          targetMismatch.brief,
+          targetMismatch.gom,
+          targetMismatch.proposal,
+        ),
         "target_mismatch",
         type,
       );
@@ -416,7 +550,11 @@ describe("intelligence semantic validation", () => {
         inverseKey,
       ).traceIds = ["trace:mismatch"];
       expectIssue(
-        validateIntelligenceSemantics(inverseMismatch.gom, inverseMismatch.proposal),
+        validateIntelligenceSemantics(
+          inverseMismatch.brief,
+          inverseMismatch.gom,
+          inverseMismatch.proposal,
+        ),
         "inverse_mismatch",
         type,
       );
@@ -429,7 +567,7 @@ describe("intelligence semantic validation", () => {
   ])(
     "enforces target, absent after-state, and exact inverse restoration for %s",
     (type, targetKey, inverseKey) => {
-      const { gom, proposal } = clonedDocuments();
+      const { brief, gom, proposal } = clonedDocuments();
       const operation = operationOf(proposal, type);
       operation[targetKey] = "entity:mismatch";
       record(operation.after, "operation.after").absent = false;
@@ -438,7 +576,7 @@ describe("intelligence semantic validation", () => {
         inverseKey,
       ).traceIds = ["trace:mismatch"];
 
-      const result = validateIntelligenceSemantics(gom, proposal);
+      const result = validateIntelligenceSemantics(brief, gom, proposal);
       expectIssue(result, "target_mismatch", type);
       expectIssue(result, "payload_mismatch", type);
       expectIssue(result, "inverse_mismatch", type);
@@ -446,15 +584,151 @@ describe("intelligence semantic validation", () => {
   );
 
   it("uses structural equality rather than object-key serialization order", () => {
-    const { gom, proposal } = clonedDocuments();
+    const { brief, gom, proposal } = clonedDocuments();
     const operation = operationOf(proposal, "scene.update");
     const before = record(operation.before, "operation.before");
     record(operation.inverse, "operation.inverse").restoreScene =
       Object.fromEntries(Object.entries(before).reverse());
 
-    expect(validateIntelligenceSemantics(gom, proposal)).toEqual({
+    expect(validateIntelligenceSemantics(brief, gom, proposal)).toEqual({
       valid: true,
       issues: [],
     });
+  });
+
+  it("rejects an update whose declared before value is fabricated", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "scene.update");
+    const fabricatedBefore = structuredClone(record(operation.before, "before"));
+    fabricatedBefore.purpose = "A fabricated current purpose";
+    operation.before = fabricatedBefore;
+    record(operation.inverse, "inverse").restoreScene =
+      structuredClone(fabricatedBefore);
+    proposal.operations = [operation];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "payload_mismatch",
+      "scene.update",
+    );
+  });
+
+  it("rejects an add whose ID already exists in the evolving collection", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "scene.add");
+    const existingScene = structuredClone(records(gom.sceneNodes, "sceneNodes")[0]);
+    operation.addedScene = structuredClone(existingScene);
+    operation.after = structuredClone(existingScene);
+    record(operation.inverse, "inverse").removeSceneId = existingScene.id;
+    proposal.operations = [operation];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "duplicate_id",
+      "scene.add",
+    );
+  });
+
+  it("uses restoreIndex to undo a middle removal without changing array order", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "scene.remove");
+    const originalScene = structuredClone(records(gom.sceneNodes, "sceneNodes")[0]);
+    const precedingScene = structuredClone(originalScene);
+    precedingScene.id = "element:preceding-scene";
+    const followingScene = structuredClone(originalScene);
+    followingScene.id = "element:following-scene";
+    gom.sceneNodes = [precedingScene, originalScene, followingScene];
+    operation.targetSceneId = originalScene.id;
+    operation.before = structuredClone(originalScene);
+    const inverse = record(operation.inverse, "inverse");
+    inverse.restoreScene = structuredClone(originalScene);
+    inverse.restoreIndex = 1;
+    proposal.operations = [operation];
+
+    expect(validateIntelligenceSemantics(brief, gom, proposal)).toEqual({
+      valid: true,
+      issues: [],
+    });
+  });
+
+  it("rejects an update whose target is absent from the evolving collection", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "runtime_rule.update");
+    const missingId = "rule:not-in-the-model";
+    operation.targetRuntimeRuleId = missingId;
+    record(operation.before, "before").id = missingId;
+    record(operation.after, "after").id = missingId;
+    record(
+      record(operation.inverse, "inverse").restoreRuntimeRule,
+      "restoreRuntimeRule",
+    ).id = missingId;
+    proposal.operations = [operation];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "target_mismatch",
+      "runtime_rule.update",
+    );
+  });
+
+  it("rejects a question operation for a question outside the Game Brief", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "question.answer");
+    operation.targetQuestionId = "question:not-in-the-brief";
+    proposal.operations = [operation];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "target_mismatch",
+      "question.answer",
+    );
+  });
+
+  it("rejects a duplicate ID produced only after an earlier chained add", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const first = structuredClone(operationOf(proposal, "scene.add"));
+    const second = structuredClone(first);
+    second.id = `${String(first.id)}-chain`;
+    proposal.operations = [first, second];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "duplicate_id",
+      "scene.add",
+    );
+  });
+
+  it.each(OPERATION_CHAIN_CASES)(
+    "applies chained $label operations against the prior operation's result",
+    ({ operations }) => {
+      const { brief, gom, proposal } = clonedDocuments();
+      proposal.operations = operations(proposal);
+
+      expect(validateIntelligenceSemantics(brief, gom, proposal)).toEqual({
+        valid: true,
+        issues: [],
+      });
+    },
+  );
+
+  it("rejects a restoreIndex that cannot reproduce the original array order", () => {
+    const { brief, gom, proposal } = clonedDocuments();
+    const operation = operationOf(proposal, "scene.remove");
+    const originalScene = structuredClone(records(gom.sceneNodes, "sceneNodes")[0]);
+    const precedingScene = structuredClone(originalScene);
+    precedingScene.id = "element:preceding-scene";
+    gom.sceneNodes = [precedingScene, originalScene];
+    operation.targetSceneId = originalScene.id;
+    operation.before = structuredClone(originalScene);
+    const inverse = record(operation.inverse, "inverse");
+    inverse.restoreScene = structuredClone(originalScene);
+    inverse.restoreIndex = 0;
+    proposal.operations = [operation];
+
+    expectIssue(
+      validateIntelligenceSemantics(brief, gom, proposal),
+      "inverse_mismatch",
+      "scene.remove",
+    );
   });
 });

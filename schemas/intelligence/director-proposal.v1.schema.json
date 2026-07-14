@@ -409,6 +409,21 @@
         }
       }
     },
+    "restoreRemovedSceneInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreScene", "restoreIndex"],
+      "properties": {
+        "restoreScene": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "restoreIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63
+        }
+      }
+    },
     "removeObjectiveInverse": {
       "type": "object",
       "additionalProperties": false,
@@ -426,6 +441,21 @@
       "properties": {
         "restoreObjective": {
           "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        }
+      }
+    },
+    "restoreRemovedObjectiveInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreObjective", "restoreIndex"],
+      "properties": {
+        "restoreObjective": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "restoreIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63
         }
       }
     },
@@ -1010,7 +1040,7 @@
           "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
         },
         "inverse": {
-          "$ref": "#/$defs/restoreSceneInverse"
+          "$ref": "#/$defs/restoreRemovedSceneInverse"
         }
       }
     },
@@ -1172,7 +1202,7 @@
           "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
         },
         "inverse": {
-          "$ref": "#/$defs/restoreObjectiveInverse"
+          "$ref": "#/$defs/restoreRemovedObjectiveInverse"
         }
       }
     },

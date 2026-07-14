@@ -730,6 +730,34 @@ describe("game intelligence JSON contracts", () => {
     }
   });
 
+  it.each([
+    ["scene.remove", 0],
+    ["objective.remove", 1],
+  ])("requires a bounded restoreIndex for %s", (type, restoreIndex) => {
+    const proposal = clone(validFixture.directorProposal) as JsonObject;
+    const operation = asJsonObjects(
+      proposal.operations,
+      "directorProposal.operations",
+    ).find((candidate) => candidate.type === type);
+    if (!operation) {
+      throw new Error(`Missing ${type} fixture operation`);
+    }
+    const inverse = asJsonObject(operation.inverse, `${type}.inverse`);
+    inverse.restoreIndex = restoreIndex;
+
+    const valid = validate("director-proposal.v1.schema.json", proposal);
+    expect(valid.errors, formatErrors(valid.errors)).toBeNull();
+
+    delete inverse.restoreIndex;
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+
+    inverse.restoreIndex = -1;
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+
+    inverse.restoreIndex = 64;
+    expect(validate("director-proposal.v1.schema.json", proposal).errors).not.toBeNull();
+  });
+
   it("documents the mandatory post-Ajv Director semantic invariant layer", () => {
     const proposalSchema = asJsonObject(
       schemas.get("director-proposal.v1.schema.json"),

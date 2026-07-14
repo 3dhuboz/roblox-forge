@@ -731,7 +731,8 @@
               "trace:gom-checkpoint-two",
               "trace:signal-bloom-origin"
             ]
-          }
+          },
+          "restoreIndex": 0
         }
       },
       {
@@ -961,7 +962,8 @@
               "trace:gom-checkpoint-two",
               "trace:signal-bloom-origin"
             ]
-          }
+          },
+          "restoreIndex": 1
         }
       },
       {
