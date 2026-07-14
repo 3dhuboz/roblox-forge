@@ -44,7 +44,12 @@ type ApiAuthorityState = {
   recoveryAction: string | null;
 };
 
-type RojoAuthorityStatus = "idle" | "checking" | "ready" | "unavailable" | "error";
+type RojoAuthorityStatus =
+  | "idle"
+  | "checking"
+  | "ready"
+  | "unavailable"
+  | "error";
 
 type RojoAuthorityState = {
   status: RojoAuthorityStatus;
@@ -98,7 +103,9 @@ function safeDisplayMessage(
     /(?:bearer|password|secret|token|api[_ -]?key)\s*[:=]\s*\S+/i.test(
       trimmed,
     ) ||
-    sensitiveValues.some((value) => value.length > 0 && trimmed.includes(value));
+    sensitiveValues.some(
+      (value) => value.length > 0 && trimmed.includes(value),
+    );
   if (!trimmed || containsCredential) return fallbackMessage;
   return [...trimmed].slice(0, 256).join("");
 }
@@ -157,8 +164,8 @@ export function SettingsPage() {
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
   const [rojoLoading, setRojoLoading] = useState(false);
   const [rojoExpanded, setRojoExpanded] = useState(false);
-  const [rojoAuthority, setRojoAuthority] = useState<RojoAuthorityState>(() =>
-    ({ status: "idle", message: null, recoveryAction: null }),
+  const [rojoAuthority, setRojoAuthority] = useState<RojoAuthorityState>(
+    () => ({ status: "idle", message: null, recoveryAction: null }),
   );
   const mountedRef = useRef(false);
   const apiAttemptIdRef = useRef(0);
@@ -202,10 +209,7 @@ export function SettingsPage() {
     setRojoLoading(true);
     try {
       const status = await rojoCommands.checkStatus();
-      if (
-        !mountedRef.current ||
-        attemptId !== rojoAttemptIdRef.current
-      ) {
+      if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -219,10 +223,7 @@ export function SettingsPage() {
         recoveryAction: null,
       });
     } catch (error) {
-      if (
-        !mountedRef.current ||
-        attemptId !== rojoAttemptIdRef.current
-      ) {
+      if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -252,10 +253,7 @@ export function SettingsPage() {
       void aiCommands
         .checkApiKey()
         .then((provider) => {
-          if (
-            !mountedRef.current ||
-            attemptId !== apiAttemptIdRef.current
-          ) {
+          if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
             return;
           }
           if (!isTauriRuntime()) {
@@ -281,10 +279,7 @@ export function SettingsPage() {
           }
         })
         .catch((error: unknown) => {
-          if (
-            !mountedRef.current ||
-            attemptId !== apiAttemptIdRef.current
-          ) {
+          if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
             return;
           }
           if (!isTauriRuntime()) {
@@ -300,7 +295,6 @@ export function SettingsPage() {
             provider: null,
           });
         });
-
     }
 
     return () => {
@@ -325,9 +319,18 @@ export function SettingsPage() {
       showRojoRuntimeUnavailable();
       return;
     }
-    setRojoAuthority({ status: "checking", message: null, recoveryAction: null });
+    setRojoAuthority({
+      status: "checking",
+      message: null,
+      recoveryAction: null,
+    });
     void refreshRojoStatus();
-  }, [desktopRuntime, rojoExpanded, refreshRojoStatus, showRojoRuntimeUnavailable]);
+  }, [
+    desktopRuntime,
+    rojoExpanded,
+    refreshRojoStatus,
+    showRojoRuntimeUnavailable,
+  ]);
 
   const runRojoAction = useCallback(
     async (action: () => Promise<unknown>) => {
@@ -346,10 +349,7 @@ export function SettingsPage() {
       setRojoLoading(true);
       try {
         await action();
-        if (
-          !mountedRef.current ||
-          attemptId !== rojoAttemptIdRef.current
-        ) {
+        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -358,10 +358,7 @@ export function SettingsPage() {
         }
 
         const status = await rojoCommands.checkStatus();
-        if (
-          !mountedRef.current ||
-          attemptId !== rojoAttemptIdRef.current
-        ) {
+        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -375,10 +372,7 @@ export function SettingsPage() {
           recoveryAction: null,
         });
       } catch (error) {
-        if (
-          !mountedRef.current ||
-          attemptId !== rojoAttemptIdRef.current
-        ) {
+        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -437,10 +431,7 @@ export function SettingsPage() {
     });
     try {
       await aiCommands.setApiKey(trimmedKey);
-      if (
-        !mountedRef.current ||
-        attemptId !== apiAttemptIdRef.current
-      ) {
+      if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -457,18 +448,12 @@ export function SettingsPage() {
       setSaved(true);
       savedTimerRef.current = setTimeout(() => {
         savedTimerRef.current = null;
-        if (
-          mountedRef.current &&
-          attemptId === apiAttemptIdRef.current
-        ) {
+        if (mountedRef.current && attemptId === apiAttemptIdRef.current) {
           setSaved(false);
         }
       }, 3000);
     } catch (error) {
-      if (
-        !mountedRef.current ||
-        attemptId !== apiAttemptIdRef.current
-      ) {
+      if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -507,7 +492,9 @@ export function SettingsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Settings</h1>
-            <p className="text-sm text-gray-400">Customize how RobloxForge works for you</p>
+            <p className="text-sm text-gray-400">
+              Customize how RobloxForge works for you
+            </p>
           </div>
         </div>
       </div>
@@ -562,7 +549,9 @@ export function SettingsPage() {
                           : "border-gray-800/60 bg-gray-800/40 hover:border-gray-700"
                       }`}
                     >
-                      <p className="text-[13px] font-bold text-white">{desc.title}</p>
+                      <p className="text-[13px] font-bold text-white">
+                        {desc.title}
+                      </p>
                       <p className="mt-0.5 text-xs text-gray-500">
                         {desc.subtitle}
                       </p>
@@ -775,98 +764,127 @@ export function SettingsPage() {
               </button>
             </div>
             <p className="mt-2 text-[13px] text-gray-400">
-              Not needed to create, preview, publish, or monitor your game. Open this only if you want live synchronization with Roblox Studio.
+              Not needed to create, preview, publish, or monitor your game. Open
+              this only if you want live synchronization with Roblox Studio.
             </p>
 
             {rojoExpanded && (
               <div id="advanced-studio-sync-content">
                 <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-gray-500">Rojo live synchronization</p>
+                  <p className="text-xs text-gray-500">
+                    Rojo live synchronization
+                  </p>
                   <button
                     type="button"
                     aria-label="Refresh Rojo status"
                     onClick={refreshRojoStatus}
-                    disabled={!desktopRuntime || rojoLoading || rojoAuthority.status === "unavailable"}
+                    disabled={
+                      !desktopRuntime ||
+                      rojoLoading ||
+                      rojoAuthority.status === "unavailable"
+                    }
                     className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <RotateCcw size={14} className={rojoLoading ? "animate-spin" : undefined} />
+                    <RotateCcw
+                      size={14}
+                      className={rojoLoading ? "animate-spin" : undefined}
+                    />
                   </button>
                 </div>
 
                 {rojoAuthority.status === "error" ||
-            rojoAuthority.status === "unavailable" ? (
-              <div
-                className="mt-3 rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400"
-                role={rojoAuthority.status === "unavailable" ? "status" : "alert"}
-              >
-                <p>{rojoAuthority.message}</p>
-                {rojoAuthority.recoveryAction && (
-                  <p className="mt-1 text-red-200">
-                    {rojoAuthority.recoveryAction}
-                  </p>
-                )}
-              </div>
-            ) : rojoAuthority.status === "ready" && rojoStatus ? (
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3">
-                  <div>
-                    <p className="text-[13px] font-semibold text-gray-200">Rojo Installed</p>
-                    <p className="text-xs text-gray-500">
-                      {rojoStatus.installed
-                        ? rojoStatus.version ?? "Yes"
-                        : "Not found on PATH"}
-                    </p>
+                rojoAuthority.status === "unavailable" ? (
+                  <div
+                    className="mt-3 rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400"
+                    role={
+                      rojoAuthority.status === "unavailable"
+                        ? "status"
+                        : "alert"
+                    }
+                  >
+                    <p>{rojoAuthority.message}</p>
+                    {rojoAuthority.recoveryAction && (
+                      <p className="mt-1 text-red-200">
+                        {rojoAuthority.recoveryAction}
+                      </p>
+                    )}
                   </div>
-                  <div className={`h-2.5 w-2.5 rounded-full ${rojoStatus.installed ? "bg-green-400" : "bg-red-400"}`} />
-                </div>
-
-                {rojoStatus.installed ? (
-                  <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3.5">
-                    <div>
-                      <p className="text-[13px] font-semibold text-gray-200">
-                        {rojoStatus.serving ? "Serving" : "Not serving"}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {rojoStatus.serving
-                          ? `Port ${rojoStatus.serve_port ?? "34872"} — open Studio with Rojo plugin`
-                          : "Start to sync changes to Studio"}
-                      </p>
+                ) : rojoAuthority.status === "ready" && rojoStatus ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3">
+                      <div>
+                        <p className="text-[13px] font-semibold text-gray-200">
+                          Rojo Installed
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {rojoStatus.installed
+                            ? (rojoStatus.version ?? "Yes")
+                            : "Not found on PATH"}
+                        </p>
+                      </div>
+                      <div
+                        className={`h-2.5 w-2.5 rounded-full ${rojoStatus.installed ? "bg-green-400" : "bg-red-400"}`}
+                      />
                     </div>
-                    <button
-                      onClick={rojoStatus.serving ? handleStopServe : handleStartServe}
-                      disabled={rojoLoading}
-                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold ${
-                        rojoStatus.serving
-                          ? "bg-red-950/30 text-red-300 hover:bg-red-950/50"
-                          : "bg-indigo-600 text-white hover:bg-indigo-500"
-                      } disabled:opacity-50`}
-                    >
-                      {rojoLoading ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : rojoStatus.serving ? (
-                        <Square size={14} />
-                      ) : (
-                        <Play size={14} />
-                      )}
-                      {rojoStatus.serving ? "Stop" : "Start Sync to Studio"}
-                    </button>
+
+                    {rojoStatus.installed ? (
+                      <div className="flex items-center justify-between rounded-xl bg-gray-800/50 px-4 py-3.5">
+                        <div>
+                          <p className="text-[13px] font-semibold text-gray-200">
+                            {rojoStatus.serving ? "Serving" : "Not serving"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {rojoStatus.serving
+                              ? `Port ${rojoStatus.serve_port ?? "34872"} — open Studio with Rojo plugin`
+                              : "Start to sync changes to Studio"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={
+                            rojoStatus.serving
+                              ? handleStopServe
+                              : handleStartServe
+                          }
+                          disabled={rojoLoading}
+                          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold ${
+                            rojoStatus.serving
+                              ? "bg-red-950/30 text-red-300 hover:bg-red-950/50"
+                              : "bg-indigo-600 text-white hover:bg-indigo-500"
+                          } disabled:opacity-50`}
+                        >
+                          {rojoLoading ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : rojoStatus.serving ? (
+                            <Square size={14} />
+                          ) : (
+                            <Play size={14} />
+                          )}
+                          {rojoStatus.serving ? "Stop" : "Start Sync to Studio"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400"
+                        role="status"
+                      >
+                        <p>
+                          Rojo is not installed. That is fine unless you choose
+                          live Studio sync.
+                        </p>
+                        <pre className="mt-2 text-xs text-gray-400 whitespace-pre-wrap">
+                          {rojoStatus.install_instructions}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400" role="status">
-                    <p>Rojo is not installed. That is fine unless you choose live Studio sync.</p>
-                    <pre className="mt-2 text-xs text-gray-400 whitespace-pre-wrap">
-                      {rojoStatus.install_instructions}
-                    </pre>
+                  <div
+                    className="mt-4 flex items-center gap-2 text-[13px] text-gray-500"
+                    role="status"
+                  >
+                    <Loader2 size={14} className="animate-spin" /> Checking
+                    Rojo...
                   </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className="mt-4 flex items-center gap-2 text-[13px] text-gray-500"
-                role="status"
-              >
-                <Loader2 size={14} className="animate-spin" /> Checking Rojo...
-              </div>
                 )}
               </div>
             )}
@@ -922,9 +940,7 @@ export function SettingsPage() {
           <div className="rounded-2xl border border-red-900/40 bg-red-950/10 p-6">
             <div className="flex items-center gap-2.5">
               <RotateCcw size={20} className="text-red-400" />
-              <h3 className="text-[15px] font-bold text-red-300">
-                Start Over
-              </h3>
+              <h3 className="text-[15px] font-bold text-red-300">Start Over</h3>
             </div>
             <p className="mt-2 text-[13px] text-gray-400">
               This resets your profile and takes you back to the intro screens.
@@ -932,7 +948,9 @@ export function SettingsPage() {
             </p>
             {showResetConfirm ? (
               <div className="mt-4 flex items-center gap-3">
-                <p className="text-[13px] font-medium text-red-300">Are you sure?</p>
+                <p className="text-[13px] font-medium text-red-300">
+                  Are you sure?
+                </p>
                 <button
                   onClick={handleReset}
                   className="rounded-xl bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-500"
@@ -965,15 +983,21 @@ export function SettingsPage() {
             <div className="mt-3 space-y-1.5 text-[13px] text-gray-400">
               <p>
                 Version:{" "}
-                <span className="font-medium text-gray-300">0.1.0 (Early Access)</span>
+                <span className="font-medium text-gray-300">
+                  0.1.0 (Early Access)
+                </span>
               </p>
               <p>
                 AI:{" "}
-                <span className="font-medium text-gray-300">Claude Sonnet 4</span>
+                <span className="font-medium text-gray-300">
+                  Claude Sonnet 4
+                </span>
               </p>
               <p>
                 Powered by:{" "}
-                <span className="font-medium text-gray-300">Rojo + Roblox Open Cloud</span>
+                <span className="font-medium text-gray-300">
+                  Rojo + Roblox Open Cloud
+                </span>
               </p>
             </div>
             <div className="mt-4 flex gap-2">
