@@ -197,6 +197,11 @@ export function SettingsPage() {
   }, []);
 
   const refreshRojoStatus = useCallback(async () => {
+    if (!isTauriRuntime()) {
+      rojoGenerationRef.current += 1;
+      showRojoRuntimeUnavailable();
+      return;
+    }
     if (
       !desktopRuntime ||
       !studioSyncExpandedRef.current ||
@@ -311,7 +316,6 @@ export function SettingsPage() {
 
   }, [
     desktopRuntime,
-    refreshRojoStatus,
     showApiRuntimeUnavailable,
     updateProfile,
   ]);
@@ -345,6 +349,11 @@ export function SettingsPage() {
 
   const runRojoAction = useCallback(
     async (action: () => Promise<unknown>) => {
+      if (!isTauriRuntime()) {
+        rojoGenerationRef.current += 1;
+        showRojoRuntimeUnavailable();
+        return;
+      }
       if (
         !desktopRuntime ||
         !studioSyncExpandedRef.current ||
@@ -765,8 +774,7 @@ export function SettingsPage() {
                 aria-label={`${rojoExpanded ? "Hide" : "Show"} Advanced Studio Sync`}
                 aria-controls="advanced-studio-sync-content"
                 onClick={() => {
-                  setRojoExpanded((expanded) => {
-                    const next = !expanded;
+                  const next = !studioSyncExpandedRef.current;
                     studioSyncExpandedRef.current = next;
                     rojoGenerationRef.current += 1;
                     if (!next) {
@@ -774,8 +782,7 @@ export function SettingsPage() {
                       setRojoLoading(false);
                       setRojoAuthority({ status: "idle", message: null, recoveryAction: null });
                     }
-                    return next;
-                  });
+                  setRojoExpanded(next);
                 }}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-gray-800"
               >
