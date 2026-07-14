@@ -1,67 +1,83 @@
 {
-  "sentinel": "RF_SENTINEL_NEVER_LEAK_7A9C",
+  "sentinel": "RF_CREDENTIAL_VALUE_7A9C",
   "redacted": "[REDACTED]",
   "truncated": "[TRUNCATED]",
   "vectors": [
     {
       "name": "roblox cookie",
-      "input": "Cookie: .ROBLOSECURITY=RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "Cookie: .ROBLOSECURITY=RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "api key header",
-      "input": "x-api-key: RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "x-api-key: RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "authorization header",
-      "input": "Authorization: Basic RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "Authorization: Basic RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "bearer credential",
-      "input": "Bearer RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "Bearer RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "OpenAI style key",
-      "input": "sk-RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "sk-RF_CREDENTIAL_VALUE_7A9C"
+    },
+    {
+      "name": "Clerk live secret key",
+      "input": "sk_live_RF_CREDENTIAL_VALUE_7A9C"
+    },
+    {
+      "name": "Clerk test secret key",
+      "input": "sk_test_RF_CREDENTIAL_VALUE_7A9C"
+    },
+    {
+      "name": "Resend API key",
+      "input": "re_RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "Stripe publishable key",
-      "input": "pk_live_RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "pk_live_RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "root env path",
-      "input": "/root/.env/RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "/root/.env/RF_CREDENTIAL_VALUE_7A9C"
+    },
+    {
+      "name": "workspace env path",
+      "input": "/workspace/roblox-forge/RF_CREDENTIAL_VALUE_7A9C/.env"
     },
     {
       "name": "home path",
-      "input": "/home/steve/RF_SENTINEL_NEVER_LEAK_7A9C/.env"
+      "input": "/home/steve/RF_CREDENTIAL_VALUE_7A9C/.env"
     },
     {
       "name": "Users path",
-      "input": "/Users/Steve/RF_SENTINEL_NEVER_LEAK_7A9C/.env"
+      "input": "/Users/Steve/RF_CREDENTIAL_VALUE_7A9C/.env"
     },
     {
       "name": "Windows drive path",
-      "input": "C:\\Users\\Steve\\RF_SENTINEL_NEVER_LEAK_7A9C\\.env"
+      "input": "C:\\Users\\Steve\\RF_CREDENTIAL_VALUE_7A9C\\.env"
     },
     {
       "name": "Windows UNC path",
-      "input": "\\\\server\\share\\RF_SENTINEL_NEVER_LEAK_7A9C\\.env"
+      "input": "\\\\server\\share\\RF_CREDENTIAL_VALUE_7A9C\\.env"
     },
     {
       "name": "response body",
-      "input": "response body: {\"value\":\"RF_SENTINEL_NEVER_LEAK_7A9C\"}"
+      "input": "response body: {\"value\":\"RF_CREDENTIAL_VALUE_7A9C\"}"
     },
     {
       "name": "password assignment",
-      "input": "password=RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "password=RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "secret assignment",
-      "input": "secret=RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "secret=RF_CREDENTIAL_VALUE_7A9C"
     },
     {
       "name": "token assignment",
-      "input": "token=RF_SENTINEL_NEVER_LEAK_7A9C"
+      "input": "token=RF_CREDENTIAL_VALUE_7A9C"
     }
   ],
   "safeStrings": [

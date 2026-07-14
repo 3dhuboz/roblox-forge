@@ -59,6 +59,7 @@ export const MAX_VALUE_STRING_LENGTH = 256;
 const BROWSER_MESSAGE_PREFIX = "[Browser preview] ";
 const REDACTED_TEXT = "[REDACTED]";
 const TRUNCATED_VALUE = "[TRUNCATED]";
+const PROTOTYPE_CONTROL_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
 export function createBrowserReceipt<T = unknown>(
   input: BrowserReceiptInput<T>,
@@ -187,15 +188,20 @@ function sanitizeValue(value: unknown, depth: number, seen: WeakSet<object>): un
     return sanitized;
   }
 
-  const sanitized: Record<string, unknown> = {};
+  const sanitized = Object.create(null) as Record<string, unknown>;
   Object.entries(value)
     .slice(0, MAX_VALUE_OBJECT_ENTRIES)
     .forEach(([key, item], index) => {
-      let safeKey = sanitizeText(key, MAX_VALUE_KEY_LENGTH);
+      const prototypeControlKey = PROTOTYPE_CONTROL_KEYS.has(key.toLowerCase());
+      let safeKey = prototypeControlKey
+        ? REDACTED_TEXT
+        : sanitizeText(key, MAX_VALUE_KEY_LENGTH);
       if (Object.prototype.hasOwnProperty.call(sanitized, safeKey)) {
         safeKey = [...`${safeKey}#${index}`].slice(0, MAX_VALUE_KEY_LENGTH).join("");
       }
-      sanitized[safeKey] = sanitizeValue(item, depth + 1, seen);
+      sanitized[safeKey] = prototypeControlKey
+        ? REDACTED_TEXT
+        : sanitizeValue(item, depth + 1, seen);
     });
   seen.delete(value);
   return sanitized;
@@ -217,10 +223,13 @@ function isUnsafeText(value: string): boolean {
     "response body",
     "response_body",
     "sk-",
+    "sk_live_",
+    "sk_test_",
     "sk-or-",
     "pk_live_",
-    "rf_sentinel_never_leak",
   ].some((marker) => lower.includes(marker));
+
+  const resendCredential = /(?:^|[^a-z0-9_])re_[a-z0-9_-]{8,}/i.test(value);
 
   const windowsDrive = /[a-z]:[\\/]/i.test(value);
   const windowsUnc = value.includes("\\\\");
@@ -228,12 +237,13 @@ function isUnsafeText(value: string): boolean {
     "/root/",
     "/users/",
     "/home/",
+    "/workspace/",
     "/etc/",
     "/var/",
     "/tmp/",
   ].some((prefix) => lower.includes(prefix));
 
-  return unsafeMarker || windowsDrive || windowsUnc || unixHostPath;
+  return unsafeMarker || resendCredential || windowsDrive || windowsUnc || unixHostPath;
 }
 
 function createUuidV4(): string {

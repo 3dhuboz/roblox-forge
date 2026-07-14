@@ -123,24 +123,30 @@ fn authoritative_success_requires_valid_typed_evidence() {
 
 #[test]
 fn state_specific_evidence_cannot_promote_failed_simulated_or_unavailable() {
-    let attempt = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH)).unwrap();
-    let failed = attempt.failed(
-        "Upload failed",
-        Vec::<String>::new(),
-        FailureRetrySafety::NotRetryable,
-    );
-    let partial = attempt.partial_success(
-        PartialSuccessEvidence::new("place-version:42")
-            .unwrap()
-            .with_artifact_hash(ARTIFACT_HASH)
-            .unwrap(),
-        "Upload succeeded; metadata failed",
-        Vec::<String>::new(),
-    );
-    let simulated = attempt
+    let failed = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH))
+        .unwrap()
+        .failed(
+            "Upload failed",
+            Vec::<String>::new(),
+            FailureRetrySafety::NotRetryable,
+        );
+    let partial = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH))
+        .unwrap()
+        .partial_success(
+            PartialSuccessEvidence::new("place-version:42")
+                .unwrap()
+                .with_artifact_hash(ARTIFACT_HASH)
+                .unwrap(),
+            "Upload succeeded; metadata failed",
+            Vec::<String>::new(),
+        );
+    let simulated = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH))
+        .unwrap()
         .simulated("Browser preview", Vec::<String>::new())
         .with_value(json!({ "claimedSuccess": true }));
-    let unavailable = attempt.unavailable("Desktop unavailable", Vec::<String>::new());
+    let unavailable = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH))
+        .unwrap()
+        .unavailable("Desktop unavailable", Vec::<String>::new());
 
     assert_eq!(failed.retry_safety(), RetrySafety::NotRetryable);
     assert!(failed.artifact_hash().is_none());
@@ -284,7 +290,7 @@ fn text_and_recursive_value_bounds_match_the_shared_fixture() {
             "long": long,
             "array": many,
             "deep": deep,
-            fixture.vectors[0].input.clone(): fixture.sentinel,
+            fixture.vectors[0].input.clone(): fixture.vectors[0].input.clone(),
         }));
 
     assert!(receipt.message().chars().count() <= MAX_MESSAGE_LENGTH);

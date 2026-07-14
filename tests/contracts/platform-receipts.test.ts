@@ -190,7 +190,7 @@ describe("browser operation receipt boundary", () => {
         long,
         array: Array.from({ length: MAX_VALUE_ARRAY_ITEMS + 5 }, (_, index) => index),
         deep: { a: { b: { c: { d: { e: fixture.sentinel } } } } },
-        [fixture.vectors[0].input]: fixture.sentinel,
+        [fixture.vectors[0].input]: fixture.vectors[0].input,
       },
     });
     const serializedValue = JSON.stringify(receipt.value);
@@ -209,6 +209,49 @@ describe("browser operation receipt boundary", () => {
     expect(serializedValue).not.toContain(fixture.sentinel);
     assertValueBounds(receipt.value, 0);
     expect(isAuthoritativeSuccess(receipt)).toBe(false);
+  });
+
+  it("removes prototype-control keys without inheriting attacker data", () => {
+    const hostile = Object.create({ inheritedPollution: fixture.sentinel }) as Record<
+      string,
+      unknown
+    >;
+    Object.defineProperties(hostile, {
+      __proto__: {
+        enumerable: true,
+        value: { prototypePollution: fixture.sentinel },
+      },
+      prototype: {
+        enumerable: true,
+        value: fixture.sentinel,
+      },
+      constructor: {
+        enumerable: true,
+        value: fixture.sentinel,
+      },
+      safe: {
+        enumerable: true,
+        value: "preserved",
+      },
+    });
+
+    const receipt = createBrowserReceipt({
+      ...common,
+      state: "simulated",
+      value: { nested: hostile },
+    });
+    const value = receipt.value as { nested: Record<string, unknown> };
+    const serialized = JSON.stringify(value);
+
+    expect(Object.getPrototypeOf(value)).toBeNull();
+    expect(Object.getPrototypeOf(value.nested)).toBeNull();
+    expect(Object.prototype.hasOwnProperty.call(value.nested, "__proto__")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(value.nested, "prototype")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(value.nested, "constructor")).toBe(false);
+    expect(value.nested.safe).toBe("preserved");
+    expect(serialized).not.toContain(fixture.sentinel);
+    expect(({} as Record<string, unknown>).prototypePollution).toBeUndefined();
+    expect(({} as Record<string, unknown>).inheritedPollution).toBeUndefined();
   });
 
   it("preserves safe strings and keeps the success guard display-only", () => {

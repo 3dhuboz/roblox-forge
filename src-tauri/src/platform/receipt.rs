@@ -222,6 +222,30 @@ impl PartialSuccessEvidence {
 /// let receipt = attempt.simulated("Preview", Vec::<String>::new());
 /// let _receipt = receipt.with_external_resource_id("place-version:42");
 /// ```
+///
+/// A terminal result consumes its attempt, so the same operation cannot emit a
+/// conflicting terminal result or return to a running state:
+///
+/// ```compile_fail
+/// use roblox_forge_lib::platform::receipt::{FailureRetrySafety, OperationAttempt};
+///
+/// let attempt = OperationAttempt::new("publish", "correlation-1", None).unwrap();
+/// let _failed = attempt.failed(
+///     "Publish failed",
+///     Vec::<String>::new(),
+///     FailureRetrySafety::NotRetryable,
+/// );
+/// let _running_after_terminal = attempt.running("Running again", Vec::<String>::new());
+/// ```
+///
+/// Attempts cannot be cloned to bypass terminal ownership:
+///
+/// ```compile_fail
+/// use roblox_forge_lib::platform::receipt::OperationAttempt;
+///
+/// let attempt = OperationAttempt::new("publish", "correlation-1", None).unwrap();
+/// let _duplicate = attempt.clone();
+/// ```
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationReceipt {
@@ -381,7 +405,7 @@ impl OperationAttempt {
     }
 
     pub fn succeeded(
-        &self,
+        self,
         evidence: SuccessEvidence,
         message: impl AsRef<str>,
         diagnostics: Vec<String>,
@@ -399,7 +423,7 @@ impl OperationAttempt {
     }
 
     pub fn failed(
-        &self,
+        self,
         message: impl AsRef<str>,
         diagnostics: Vec<String>,
         retry_safety: FailureRetrySafety,
@@ -416,11 +440,7 @@ impl OperationAttempt {
         )
     }
 
-    pub fn cancelled(
-        &self,
-        message: impl AsRef<str>,
-        diagnostics: Vec<String>,
-    ) -> OperationReceipt {
+    pub fn cancelled(self, message: impl AsRef<str>, diagnostics: Vec<String>) -> OperationReceipt {
         self.receipt(
             OperationState::Cancelled,
             true,
@@ -434,7 +454,7 @@ impl OperationAttempt {
     }
 
     pub fn partial_success(
-        &self,
+        self,
         evidence: PartialSuccessEvidence,
         message: impl AsRef<str>,
         diagnostics: Vec<String>,
@@ -452,7 +472,7 @@ impl OperationAttempt {
     }
 
     pub fn unavailable(
-        &self,
+        self,
         message: impl AsRef<str>,
         diagnostics: Vec<String>,
     ) -> OperationReceipt {
@@ -468,11 +488,7 @@ impl OperationAttempt {
         )
     }
 
-    pub fn simulated(
-        &self,
-        message: impl AsRef<str>,
-        diagnostics: Vec<String>,
-    ) -> OperationReceipt {
+    pub fn simulated(self, message: impl AsRef<str>, diagnostics: Vec<String>) -> OperationReceipt {
         self.receipt(
             OperationState::Simulated,
             true,
@@ -626,14 +642,31 @@ fn is_unsafe_text(value: &str) -> bool {
         "response body",
         "response_body",
         "sk-",
+        "sk_live_",
+        "sk_test_",
         "sk-or-",
         "pk_live_",
-        "rf_sentinel_never_leak",
     ]
     .iter()
     .any(|marker| lower.contains(marker));
 
-    secret_or_body || contains_absolute_host_path(value, &lower)
+    secret_or_body
+        || contains_resend_credential(&lower)
+        || contains_absolute_host_path(value, &lower)
+}
+
+fn contains_resend_credential(lower: &str) -> bool {
+    let bytes = lower.as_bytes();
+    lower.match_indices("re_").any(|(index, _)| {
+        let has_token_boundary =
+            index == 0 || (!bytes[index - 1].is_ascii_alphanumeric() && bytes[index - 1] != b'_');
+        let credential_length = bytes[index + 3..]
+            .iter()
+            .take_while(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+            .count();
+
+        has_token_boundary && credential_length >= 8
+    })
 }
 
 fn contains_absolute_host_path(value: &str, lower: &str) -> bool {
@@ -642,9 +675,17 @@ fn contains_absolute_host_path(value: &str, lower: &str) -> bool {
         window[0].is_ascii_alphabetic() && window[1] == b':' && matches!(window[2], b'\\' | b'/')
     });
     let windows_unc = value.contains("\\\\");
-    let unix_host_path = ["/root/", "/users/", "/home/", "/etc/", "/var/", "/tmp/"]
-        .iter()
-        .any(|prefix| lower.contains(prefix));
+    let unix_host_path = [
+        "/root/",
+        "/users/",
+        "/home/",
+        "/workspace/",
+        "/etc/",
+        "/var/",
+        "/tmp/",
+    ]
+    .iter()
+    .any(|prefix| lower.contains(prefix));
 
     windows_drive || windows_unc || unix_host_path
 }
