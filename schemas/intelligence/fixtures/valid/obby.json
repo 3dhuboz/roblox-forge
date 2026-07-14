@@ -1,0 +1,1750 @@
+{
+  "common": {
+    "schemaVersion": "1.0.0",
+    "id": "common:signal-bloom-obby",
+    "provenanceId": "provenance:signal-bloom-public-research",
+    "evidenceIds": [
+      "evidence:tower-of-hell-public-visits"
+    ],
+    "traceIds": [
+      "trace:signal-bloom-origin"
+    ]
+  },
+  "gameBrief": {
+    "schemaVersion": "1.0.0",
+    "id": "brief:signal-bloom-obby",
+    "revision": 1,
+    "hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "status": "approved",
+    "rawIdea": "Create an original all-ages obby set across floating signal gardens. Players read a short pulse, choose the matching safe route, and may collect an optional non-purchasable signal shard without changing the required path.",
+    "intendedAchievement": {
+      "statement": "Deliver a readable mobile-first obby slice whose route-reading mechanic is original, fair, and server-authoritative.",
+      "observableOutcome": "A new player can read the pulse, complete checkpoint two, and understand that its optional shard is not required or sold."
+    },
+    "playerFantasy": "Become a nimble signal gardener who reads living light and crosses floating islands by choosing the safe bloom path.",
+    "genre": {
+      "primary": "Obstacle Course",
+      "secondary": [
+        "Route Reading"
+      ]
+    },
+    "audience": {
+      "ageBand": "all-ages",
+      "experienceLevel": "mixed",
+      "socialMode": "solo",
+      "sessionIntent": "Complete a short readable route and improve through immediate, low-friction retries."
+    },
+    "platformConstraints": [
+      {
+        "id": "constraint:signal-bloom-mobile",
+        "platform": "mobile",
+        "requirement": "The complete checkpoint-two route, feedback, and optional shard must remain usable on a small touch screen at the declared performance budget.",
+        "priority": "required"
+      }
+    ],
+    "inputConstraints": [
+      {
+        "id": "input:signal-bloom-touch",
+        "input": "touch",
+        "requirement": "Traversal requires only the standard movement control and one context action, with no precision multi-touch gesture.",
+        "required": true
+      }
+    ],
+    "referenceInputs": [
+      {
+        "referenceAnalysisId": "referenceanalysis:signal-bloom-obby",
+        "purpose": "Use only the abstract pattern of a clearly ordered obstacle sequence as an originality-safe structural reference.",
+        "allowedUse": "structural-patterns-only"
+      }
+    ],
+    "assumptions": [
+      {
+        "id": "assumption:signal-pulse-readable",
+        "statement": "Players can understand a pulse-selected safe route when shape, motion, text, and sound reinforce the cue.",
+        "impact": "medium",
+        "validationPlan": "Run the checkpoint acceptance test on touch devices and review completion telemetry without collecting personal data."
+      }
+    ],
+    "materialQuestions": [
+      {
+        "id": "question:signal-shard-required",
+        "question": "May the checkpoint-two signal shard affect route access, timing, movement, or difficulty?",
+        "materialImpact": "A gameplay advantage would violate the approved optional-reward and monetization-safety boundaries.",
+        "answer": {
+          "status": "answered",
+          "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
+          "answeredBy": "human:steve",
+          "answeredAt": "2026-07-14T00:00:00Z"
+        }
+      }
+    ],
+    "successConstraints": [
+      {
+        "id": "success:checkpoint-two-readable",
+        "statement": "Checkpoint two remains completable whether the player collects or ignores the optional shard.",
+        "measure": "Validated checkpoint completions across both shard choices",
+        "threshold": "Both collect and ignore paths pass the acceptance test",
+        "priority": "must"
+      }
+    ],
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z",
+    "updatedAt": "2026-07-14T00:00:00Z"
+  },
+  "gameOperatingModel": {
+    "schemaVersion": "1.0.0",
+    "generatorVersion": "1.0.0",
+    "knowledgeVersion": "1.0.0",
+    "id": "gom:signal-bloom-obby",
+    "briefId": "brief:signal-bloom-obby",
+    "revision": 1,
+    "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "status": "approved",
+    "approvalMetadata": {
+      "approvalRequired": true,
+      "state": "approved",
+      "approvedBy": "human:steve",
+      "approvedAt": "2026-07-14T00:00:00Z",
+      "decisionEvidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ]
+    },
+    "firstSessionPromise": {
+      "statement": "Within eight minutes, the player reads a bloom pulse, crosses the indicated route, and completes checkpoint two with or without its optional shard.",
+      "targetMinutes": 8,
+      "successSignal": "analytics:checkpoint-two-completed is emitted after server validation",
+      "traceIds": [
+        "trace:gom-checkpoint-two",
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "loops": {
+      "second": {
+        "id": "loop:signal-bloom-second",
+        "cadence": "second",
+        "playerAction": "Read the pulse, steer, jump, and correct position on the revealed safe route.",
+        "systemResponse": "Render color-independent route cues and server-confirmed checkpoint state without moving the player.",
+        "reward": "Immediate clarity, landing feedback, and safe forward motion.",
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      },
+      "minute": {
+        "id": "loop:signal-bloom-minute",
+        "cadence": "minute",
+        "playerAction": "Attempt the checkpoint route, learn from a fall, and retry from the checkpoint entry.",
+        "systemResponse": "Restore the player quickly, repeat the route cue, and preserve a fair unchanged obstacle state.",
+        "reward": "Checkpoint progress and optional signal-shard collection.",
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      },
+      "session": {
+        "id": "loop:signal-bloom-session",
+        "cadence": "session",
+        "playerAction": "Complete the bloom route and decide whether to explore for the optional shard.",
+        "systemResponse": "Persist validated cosmetic currency and report aggregate route-completion signals.",
+        "reward": "A completed route plus cosmetic-progression currency when the shard is collected.",
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      },
+      "day": {
+        "id": "loop:signal-bloom-day",
+        "cadence": "day",
+        "playerAction": "Return to practice the readable route and save signal shards for cosmetic palettes.",
+        "systemResponse": "Offer the same fair course rules and retain only server-validated cosmetic progress.",
+        "reward": "Mastery and optional visual self-expression without gameplay power.",
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      }
+    },
+    "objectives": [
+      {
+        "id": "objective:signal-bloom-checkpoint-two",
+        "title": "Cross Checkpoint Two",
+        "description": "Follow the original pulse-selected route to the checkpoint exit; the nearby signal shard is optional.",
+        "success": {
+          "condition": "The server validates that the player entered checkpoint two, traversed its legal route, and touched the exit.",
+          "observableSignal": "analytics:checkpoint-two-completed"
+        },
+        "failure": {
+          "condition": "The player falls out of bounds or contacts a route tile that is unsafe for the active pulse.",
+          "consequence": "No progress or currency is granted and the player returns to the checkpoint entry."
+        },
+        "recovery": {
+          "trigger": "A checkpoint-two failure is validated by the server.",
+          "playerAction": "Retry after rereading the pulse cue.",
+          "systemSupport": "Respawn at the entry, replay the shape and sound cue, and apply no currency penalty."
+        },
+        "dependencyIds": [],
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "progression": {
+      "id": "progression:signal-bloom-route",
+      "model": "linear",
+      "stages": [
+        {
+          "id": "stage:signal-bloom-checkpoint-two",
+          "name": "Checkpoint Two",
+          "unlockCondition": "Enter checkpoint two through the server-authorized course sequence.",
+          "reward": "Unlock the next route and retain any server-validated optional signal shard.",
+          "traceIds": [
+            "trace:gom-checkpoint-two"
+          ]
+        }
+      ],
+      "resetPolicy": "Failures reset only the active checkpoint attempt; validated cosmetic currency persists and never buys route progress.",
+      "traceIds": [
+        "trace:gom-checkpoint-two"
+      ]
+    },
+    "economy": {
+      "id": "economy:signal-shards",
+      "currency": {
+        "id": "currency:signal-shard",
+        "name": "Signal Shards",
+        "cap": 9999,
+        "displayPrecision": 0
+      },
+      "sources": [
+        {
+          "id": "source:checkpoint-two-shard",
+          "name": "Optional Route Shard",
+          "minimumAmount": 1,
+          "maximumAmount": 1,
+          "cadence": "Once per server-authorized checkpoint-two pickup per session",
+          "traceIds": [
+            "trace:gom-checkpoint-two"
+          ]
+        }
+      ],
+      "sinks": [
+        {
+          "id": "sink:trail-palette",
+          "name": "Trail Palette Unlock",
+          "minimumCost": 5,
+          "maximumCost": 100,
+          "purpose": "Unlock an optional visual trail palette that never changes access, timing, movement, or difficulty.",
+          "traceIds": [
+            "trace:signal-bloom-origin"
+          ]
+        }
+      ],
+      "safeguards": [
+        {
+          "id": "safeguard:server-currency-authority",
+          "rule": "Only the server grants or spends integer shards, rejects duplicate pickup claims, enforces the cap, and never converts shards into gameplay power.",
+          "traceIds": [
+            "trace:gom-checkpoint-two"
+          ]
+        }
+      ],
+      "traceIds": [
+        "trace:gom-checkpoint-two",
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "runtimeRules": [
+      {
+        "id": "rule:checkpoint-two-authority",
+        "name": "Checkpoint Two Authority",
+        "trigger": "A client reports a shard interaction, route contact, fall, or checkpoint exit.",
+        "authority": "server",
+        "clientBehavior": "Render replicated cues and send bounded interaction intents; never write checkpoint progress, route safety, analytics, or currency.",
+        "serverBehavior": "Select the safe route, validate checkpoint order and spatial contact, grant a shard once, persist progress, and emit completion analytics.",
+        "antiExploit": {
+          "validation": "Reject intents outside the active checkpoint, legal contact volume, checkpoint order, shard availability, or plausible server-observed movement window.",
+          "rateLimitPerMinute": 120,
+          "violationResponse": "Drop invalid intents, withhold progress and currency, record a safety event, and escalate repeated abuse for review."
+        },
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      },
+      {
+        "id": "rule:route-cue-presentation",
+        "name": "Route Cue Presentation",
+        "trigger": "The server replicates a new checkpoint-two pulse state or the player changes an accessibility preference.",
+        "authority": "client",
+        "clientBehavior": "Present the replicated route through shape, restrained motion, text, and sound while respecting reduced motion.",
+        "serverBehavior": "Replicate only an allowed pulse-state enum and ignore client attempts to select or complete a route.",
+        "antiExploit": {
+          "validation": "Accept only allowlisted accessibility preference values; pulse selection and completion remain server-owned.",
+          "rateLimitPerMinute": 30,
+          "violationResponse": "Ignore malformed preference updates and retain the last valid accessible presentation."
+        },
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      }
+    ],
+    "sceneNodes": [
+      {
+        "id": "element:signal-bloom-checkpoint-two",
+        "name": "Signal Bloom Checkpoint Two",
+        "purpose": "Provide a short pulse-reading traversal route with one clearly optional, non-purchasable shard beside the critical path.",
+        "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+        "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+        "systemIds": [
+          "system:signal-bloom-course",
+          "system:signal-bloom-presentation"
+        ],
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "systems": [
+      {
+        "id": "system:signal-bloom-course",
+        "name": "Signal Bloom Course Authority",
+        "responsibility": "Own route selection, legal checkpoint state, shard grants, persistence, and validated completion analytics.",
+        "authority": "server",
+        "dependencyIds": [],
+        "sceneIds": [
+          "element:signal-bloom-checkpoint-two"
+        ],
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      },
+      {
+        "id": "system:signal-bloom-presentation",
+        "name": "Signal Bloom Accessible Presentation",
+        "responsibility": "Render server-selected route cues and feedback across visual, text, audio, and reduced-motion modes.",
+        "authority": "client",
+        "dependencyIds": [
+          "system:signal-bloom-course"
+        ],
+        "sceneIds": [
+          "element:signal-bloom-checkpoint-two"
+        ],
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "feedback": [
+      {
+        "id": "feedback:signal-route-pulse",
+        "trigger": "Checkpoint two reveals its server-selected safe route or validates completion.",
+        "channel": "visual",
+        "message": "Show the safe route with a distinct flower shape, high-contrast outline, restrained pulse, and explicit Optional Shard label.",
+        "accessibilityFallback": "Pair the cue with a short directional tone and text route label; use a static outline when reduced motion is enabled.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "accessibility": {
+      "colorIndependent": true,
+      "subtitles": true,
+      "reducedMotion": true,
+      "minimumTouchTargetPx": 44,
+      "notes": [
+        "Every color cue also uses a distinct shape, text label, and high-contrast outline."
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "mobileInputBudget": {
+      "maxSimultaneousActions": 2,
+      "maxPrimaryControls": 2,
+      "minimumTouchTargetPx": 44,
+      "supportedInputs": [
+        "touch"
+      ],
+      "notes": [
+        "Use standard thumb movement plus one context action; jumping remains the platform control."
+      ],
+      "traceIds": [
+        "trace:gom-checkpoint-two"
+      ]
+    },
+    "budgets": {
+      "performance": {
+        "targetFps": 60,
+        "minimumFps": 30,
+        "maxClientMemoryMb": 512,
+        "maxDrawCalls": 500,
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      },
+      "replication": {
+        "maxReliableEventsPerSecond": 20,
+        "maxPayloadBytes": 512,
+        "serverAuthorityPercent": 100,
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      },
+      "streaming": {
+        "enabled": true,
+        "minimumRadiusStuds": 64,
+        "targetRadiusStuds": 256,
+        "maxWarmupSeconds": 5,
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      }
+    },
+    "monetizationSafety": {
+      "policy": "player-value-without-pay-to-win",
+      "allowedOffers": [
+        {
+          "id": "offer:signal-trail-palette",
+          "type": "cosmetic",
+          "playerValue": "An optional trail palette offers visual self-expression around already-earned route progress.",
+          "safetyConstraint": "The offer cannot alter access, checkpoint progress, obstacle timing, movement, difficulty, route cues, or shard earnings.",
+          "traceIds": [
+            "trace:signal-bloom-origin"
+          ]
+        }
+      ],
+      "prohibitedPractices": [
+        "pay-to-win",
+        "child-directed-pressure"
+      ],
+      "purchaseFriction": {
+        "confirmationRequired": true,
+        "cooldownSeconds": 5,
+        "parentalDisclosure": true
+      },
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "analyticsEventContracts": [
+      {
+        "id": "analytics:checkpoint-two-completed",
+        "name": "checkpoint_two_completed",
+        "trigger": "The server validates the legal checkpoint-two route and exit.",
+        "fields": [
+          {
+            "name": "shardCollected",
+            "type": "boolean",
+            "required": true
+          }
+        ],
+        "privacyClass": "product",
+        "retentionDays": 30,
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ]
+      }
+    ],
+    "acceptanceTests": [
+      {
+        "id": "acceptance:checkpoint-two-signal-shard",
+        "title": "Optional shard leaves the route completable",
+        "given": "A player reaches checkpoint two with the existing server-authorized route available.",
+        "when": "The player collects or ignores the optional signal shard and then traverses the legal route.",
+        "then": "The same route remains completable, completion analytics record the shard choice, and no paid or mandatory advantage is introduced.",
+        "observableSignals": [
+          "analytics:checkpoint-two-completed"
+        ],
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:gom-checkpoint-two",
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z",
+    "updatedAt": "2026-07-14T00:00:00Z"
+  },
+  "directorProposal": {
+    "schemaVersion": "1.0.0",
+    "generatorVersion": "1.0.0",
+    "knowledgeVersion": "1.0.0",
+    "id": "proposal:signal-bloom-shard-checkpoint",
+    "baseModelId": "gom:signal-bloom-obby",
+    "baseModelRevision": 1,
+    "baseModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "provenanceId": "provenance:signal-bloom-public-research",
+    "evidenceIds": [
+      "evidence:tower-of-hell-public-visits"
+    ],
+    "summary": "Exercise five bounded Director operations for the original Signal Bloom Obby while preserving human approval and model traceability.",
+    "operations": [
+      {
+        "id": "operation:brief-clarify-signal-shard",
+        "type": "brief.set_field",
+        "targetBriefId": "brief:signal-bloom-obby",
+        "field": "rawIdea",
+        "before": {
+          "value": "Create an original all-ages obby set across floating signal gardens. Players read a short pulse, choose the matching safe route, and may collect an optional non-purchasable signal shard without changing the required path."
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The approved brief still describes the optional checkpoint-two signal shard."
+        },
+        "after": {
+          "value": "Create an original all-ages mobile Obby across floating signal gardens, where players read a pulse, choose a safe bloom route, and may collect one optional non-purchasable shard."
+        },
+        "rationale": "Make the mobile-first route-reading loop and optional reward explicit without changing the approved concept.",
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreValue": "Create an original all-ages obby set across floating signal gardens. Players read a short pulse, choose the matching safe route, and may collect an optional non-purchasable signal shard without changing the required path."
+        }
+      },
+      {
+        "id": "operation:answer-signal-shard-boundary",
+        "type": "question.answer",
+        "targetQuestionId": "question:signal-shard-required",
+        "before": {
+          "status": "answered",
+          "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
+          "answeredBy": "human:steve",
+          "answeredAt": "2026-07-14T00:00:00Z"
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The material question remains answered in the approved brief."
+        },
+        "after": {
+          "status": "answered",
+          "response": "No. The optional, non-purchasable shard grants cosmetic-progression currency only and cannot change route access, timing, movement, difficulty, or completion.",
+          "answeredBy": "human:steve",
+          "answeredAt": "2026-07-14T00:00:00Z"
+        },
+        "rationale": "State every prohibited gameplay advantage in the approved answer.",
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreAnswer": {
+            "status": "answered",
+            "response": "No. The shard is optional, non-purchasable, cosmetic-progression currency and never changes route completion.",
+            "answeredBy": "human:steve",
+            "answeredAt": "2026-07-14T00:00:00Z"
+          }
+        }
+      },
+      {
+        "id": "operation:add-signal-bloom-practice-island",
+        "type": "scene.add",
+        "addedScene": {
+          "id": "element:signal-bloom-practice-island",
+          "name": "Signal Bloom Practice Island",
+          "purpose": "Teach the pulse-to-route cue on a short original garden crossing before checkpoint two.",
+          "entryCondition": "The server confirms the player completed the opening movement check.",
+          "exitCondition": "The server validates one legal practice crossing without requiring a shard.",
+          "systemIds": [
+            "system:signal-bloom-course",
+            "system:signal-bloom-presentation"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "before": {
+          "absent": true
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "No scene uses the practice-island element identifier."
+        },
+        "after": {
+          "id": "element:signal-bloom-practice-island",
+          "name": "Signal Bloom Practice Island",
+          "purpose": "Teach the pulse-to-route cue on a short original garden crossing before checkpoint two.",
+          "entryCondition": "The server confirms the player completed the opening movement check.",
+          "exitCondition": "The server validates one legal practice crossing without requiring a shard.",
+          "systemIds": [
+            "system:signal-bloom-course",
+            "system:signal-bloom-presentation"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Introduce the original route cue before the assessed checkpoint without adding power or purchase pressure.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "medium",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "removeSceneId": "element:signal-bloom-practice-island"
+        }
+      },
+      {
+        "id": "operation:update-checkpoint-two-cue",
+        "type": "scene.update",
+        "targetSceneId": "element:signal-bloom-checkpoint-two",
+        "before": {
+          "id": "element:signal-bloom-checkpoint-two",
+          "name": "Signal Bloom Checkpoint Two",
+          "purpose": "Provide a short pulse-reading traversal route with one clearly optional, non-purchasable shard beside the critical path.",
+          "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+          "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+          "systemIds": [
+            "system:signal-bloom-course",
+            "system:signal-bloom-presentation"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "Checkpoint two still uses both course authority and accessible presentation systems."
+        },
+        "after": {
+          "id": "element:signal-bloom-checkpoint-two",
+          "name": "Signal Bloom Checkpoint Two",
+          "purpose": "Test the original pulse-reading route with one clearly optional, non-purchasable shard beside the safe path.",
+          "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+          "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+          "systemIds": [
+            "system:signal-bloom-course",
+            "system:signal-bloom-presentation"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Clarify that checkpoint two assesses the original route cue and keeps the shard off the required path.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreScene": {
+            "id": "element:signal-bloom-checkpoint-two",
+            "name": "Signal Bloom Checkpoint Two",
+            "purpose": "Provide a short pulse-reading traversal route with one clearly optional, non-purchasable shard beside the critical path.",
+            "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+            "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+            "systemIds": [
+              "system:signal-bloom-course",
+              "system:signal-bloom-presentation"
+            ],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:remove-checkpoint-two-scene",
+        "type": "scene.remove",
+        "targetSceneId": "element:signal-bloom-checkpoint-two",
+        "before": {
+          "id": "element:signal-bloom-checkpoint-two",
+          "name": "Signal Bloom Checkpoint Two",
+          "purpose": "Test the original pulse-reading route with one clearly optional, non-purchasable shard beside the safe path.",
+          "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+          "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+          "systemIds": [
+            "system:signal-bloom-course",
+            "system:signal-bloom-presentation"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "Checkpoint two remains present with the immediately preceding scene update applied."
+        },
+        "after": {
+          "absent": true
+        },
+        "rationale": "Provide a reversible typed removal example for human review without exposing executable or source payloads.",
+        "traceIds": [
+          "trace:gom-checkpoint-two"
+        ],
+        "risk": "high",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreScene": {
+            "id": "element:signal-bloom-checkpoint-two",
+            "name": "Signal Bloom Checkpoint Two",
+            "purpose": "Test the original pulse-reading route with one clearly optional, non-purchasable shard beside the safe path.",
+            "entryCondition": "The server confirms the player arrived through the authorized course sequence.",
+            "exitCondition": "The server validates the legal route and checkpoint exit, regardless of whether the shard was collected.",
+            "systemIds": [
+              "system:signal-bloom-course",
+              "system:signal-bloom-presentation"
+            ],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:add-practice-route-objective",
+        "type": "objective.add",
+        "addedObjective": {
+          "id": "objective:signal-bloom-practice-route",
+          "title": "Read the Practice Pulse",
+          "description": "Read one accessible pulse cue and cross a short original practice route before checkpoint two.",
+          "success": {
+            "condition": "The server validates that the player followed the legal practice route and touched its exit.",
+            "observableSignal": "analytics:checkpoint-two-completed"
+          },
+          "failure": {
+            "condition": "The player falls or contacts a route tile that is unsafe for the active practice pulse.",
+            "consequence": "No progress or currency is granted and the player returns to the practice entry."
+          },
+          "recovery": {
+            "trigger": "A practice-route failure is validated by the server.",
+            "playerAction": "Retry after rereading the shape, text, and sound cue.",
+            "systemSupport": "Respawn at the practice entry, replay the accessible cue, and apply no currency penalty."
+          },
+          "dependencyIds": [],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "before": {
+          "absent": true
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "No objective uses the signal-bloom practice-route identifier in the approved model."
+        },
+        "after": {
+          "id": "objective:signal-bloom-practice-route",
+          "title": "Read the Practice Pulse",
+          "description": "Read one accessible pulse cue and cross a short original practice route before checkpoint two.",
+          "success": {
+            "condition": "The server validates that the player followed the legal practice route and touched its exit.",
+            "observableSignal": "analytics:checkpoint-two-completed"
+          },
+          "failure": {
+            "condition": "The player falls or contacts a route tile that is unsafe for the active practice pulse.",
+            "consequence": "No progress or currency is granted and the player returns to the practice entry."
+          },
+          "recovery": {
+            "trigger": "A practice-route failure is validated by the server.",
+            "playerAction": "Retry after rereading the shape, text, and sound cue.",
+            "systemSupport": "Respawn at the practice entry, replay the accessible cue, and apply no currency penalty."
+          },
+          "dependencyIds": [],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Define a reversible onboarding objective that introduces the approved route-reading interaction without adding purchases or power.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "medium",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "removeObjectiveId": "objective:signal-bloom-practice-route"
+        }
+      },
+      {
+        "id": "operation:update-checkpoint-two-objective",
+        "type": "objective.update",
+        "targetObjectiveId": "objective:signal-bloom-checkpoint-two",
+        "before": {
+          "id": "objective:signal-bloom-checkpoint-two",
+          "title": "Cross Checkpoint Two",
+          "description": "Follow the original pulse-selected route to the checkpoint exit; the nearby signal shard is optional.",
+          "success": {
+            "condition": "The server validates that the player entered checkpoint two, traversed its legal route, and touched the exit.",
+            "observableSignal": "analytics:checkpoint-two-completed"
+          },
+          "failure": {
+            "condition": "The player falls out of bounds or contacts a route tile that is unsafe for the active pulse.",
+            "consequence": "No progress or currency is granted and the player returns to the checkpoint entry."
+          },
+          "recovery": {
+            "trigger": "A checkpoint-two failure is validated by the server.",
+            "playerAction": "Retry after rereading the pulse cue.",
+            "systemSupport": "Respawn at the entry, replay the shape and sound cue, and apply no currency penalty."
+          },
+          "dependencyIds": [],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The checkpoint-two objective retains its approved success, failure, and no-penalty recovery contract."
+        },
+        "after": {
+          "id": "objective:signal-bloom-checkpoint-two",
+          "title": "Cross Checkpoint Two",
+          "description": "Follow the server-selected pulse route to the checkpoint exit; the labelled signal shard remains optional and off the required path.",
+          "success": {
+            "condition": "The server validates that the player entered checkpoint two, traversed its legal route, and touched the exit whether the shard was collected or ignored.",
+            "observableSignal": "analytics:checkpoint-two-completed"
+          },
+          "failure": {
+            "condition": "The player falls out of bounds or contacts a route tile that is unsafe for the active pulse.",
+            "consequence": "No progress or currency is granted and the player returns to the checkpoint entry."
+          },
+          "recovery": {
+            "trigger": "A checkpoint-two failure is validated by the server.",
+            "playerAction": "Retry after rereading the shape, text, and sound pulse cue.",
+            "systemSupport": "Respawn at the entry, replay all accessible cue channels, and apply no currency penalty."
+          },
+          "dependencyIds": [],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Clarify optional-shard choice and accessible recovery while retaining the same server-authoritative completion rule.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreObjective": {
+            "id": "objective:signal-bloom-checkpoint-two",
+            "title": "Cross Checkpoint Two",
+            "description": "Follow the original pulse-selected route to the checkpoint exit; the nearby signal shard is optional.",
+            "success": {
+              "condition": "The server validates that the player entered checkpoint two, traversed its legal route, and touched the exit.",
+              "observableSignal": "analytics:checkpoint-two-completed"
+            },
+            "failure": {
+              "condition": "The player falls out of bounds or contacts a route tile that is unsafe for the active pulse.",
+              "consequence": "No progress or currency is granted and the player returns to the checkpoint entry."
+            },
+            "recovery": {
+              "trigger": "A checkpoint-two failure is validated by the server.",
+              "playerAction": "Retry after rereading the pulse cue.",
+              "systemSupport": "Respawn at the entry, replay the shape and sound cue, and apply no currency penalty."
+            },
+            "dependencyIds": [],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:remove-practice-route-objective",
+        "type": "objective.remove",
+        "targetObjectiveId": "objective:signal-bloom-practice-route",
+        "before": {
+          "id": "objective:signal-bloom-practice-route",
+          "title": "Read the Practice Pulse",
+          "description": "Read one accessible pulse cue and cross a short original practice route before checkpoint two.",
+          "success": {
+            "condition": "The server validates that the player followed the legal practice route and touched its exit.",
+            "observableSignal": "analytics:checkpoint-two-completed"
+          },
+          "failure": {
+            "condition": "The player falls or contacts a route tile that is unsafe for the active practice pulse.",
+            "consequence": "No progress or currency is granted and the player returns to the practice entry."
+          },
+          "recovery": {
+            "trigger": "A practice-route failure is validated by the server.",
+            "playerAction": "Retry after rereading the shape, text, and sound cue.",
+            "systemSupport": "Respawn at the practice entry, replay the accessible cue, and apply no currency penalty."
+          },
+          "dependencyIds": [],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The practice-route objective exists from the immediately preceding objective-add operation and remains unreferenced by required progression."
+        },
+        "after": {
+          "absent": true
+        },
+        "rationale": "Provide a reversible typed objective-removal variant without weakening the approved checkpoint-two objective or acceptance contract.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "medium",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreObjective": {
+            "id": "objective:signal-bloom-practice-route",
+            "title": "Read the Practice Pulse",
+            "description": "Read one accessible pulse cue and cross a short original practice route before checkpoint two.",
+            "success": {
+              "condition": "The server validates that the player followed the legal practice route and touched its exit.",
+              "observableSignal": "analytics:checkpoint-two-completed"
+            },
+            "failure": {
+              "condition": "The player falls or contacts a route tile that is unsafe for the active practice pulse.",
+              "consequence": "No progress or currency is granted and the player returns to the practice entry."
+            },
+            "recovery": {
+              "trigger": "A practice-route failure is validated by the server.",
+              "playerAction": "Retry after rereading the shape, text, and sound cue.",
+              "systemSupport": "Respawn at the practice entry, replay the accessible cue, and apply no currency penalty."
+            },
+            "dependencyIds": [],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:update-signal-route-progression",
+        "type": "progression.update",
+        "targetProgressionId": "progression:signal-bloom-route",
+        "before": {
+          "id": "progression:signal-bloom-route",
+          "model": "linear",
+          "stages": [
+            {
+              "id": "stage:signal-bloom-checkpoint-two",
+              "name": "Checkpoint Two",
+              "unlockCondition": "Enter checkpoint two through the server-authorized course sequence.",
+              "reward": "Unlock the next route and retain any server-validated optional signal shard.",
+              "traceIds": [
+                "trace:gom-checkpoint-two"
+              ]
+            }
+          ],
+          "resetPolicy": "Failures reset only the active checkpoint attempt; validated cosmetic currency persists and never buys route progress.",
+          "traceIds": [
+            "trace:gom-checkpoint-two"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The approved route progression remains linear and cosmetic currency cannot buy route progress."
+        },
+        "after": {
+          "id": "progression:signal-bloom-route",
+          "model": "linear",
+          "stages": [
+            {
+              "id": "stage:signal-bloom-checkpoint-two",
+              "name": "Checkpoint Two",
+              "unlockCondition": "Enter checkpoint two through the server-authorized course sequence.",
+              "reward": "Unlock the next route and retain a server-validated optional signal shard only when it was collected; ignoring it never blocks progress.",
+              "traceIds": [
+                "trace:gom-checkpoint-two",
+                "trace:signal-bloom-origin"
+              ]
+            }
+          ],
+          "resetPolicy": "Failures reset only the active checkpoint attempt; validated cosmetic currency persists, ignoring a shard never blocks progress, and currency never buys route progress.",
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Make the optional-shard branch explicit in progression without changing the linear route, recovery cost, or monetization boundary.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreProgression": {
+            "id": "progression:signal-bloom-route",
+            "model": "linear",
+            "stages": [
+              {
+                "id": "stage:signal-bloom-checkpoint-two",
+                "name": "Checkpoint Two",
+                "unlockCondition": "Enter checkpoint two through the server-authorized course sequence.",
+                "reward": "Unlock the next route and retain any server-validated optional signal shard.",
+                "traceIds": [
+                  "trace:gom-checkpoint-two"
+                ]
+              }
+            ],
+            "resetPolicy": "Failures reset only the active checkpoint attempt; validated cosmetic currency persists and never buys route progress.",
+            "traceIds": [
+              "trace:gom-checkpoint-two"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:update-signal-shard-economy",
+        "type": "economy.update",
+        "targetEconomyId": "economy:signal-shards",
+        "before": {
+          "id": "economy:signal-shards",
+          "currency": {
+            "id": "currency:signal-shard",
+            "name": "Signal Shards",
+            "cap": 9999,
+            "displayPrecision": 0
+          },
+          "sources": [
+            {
+              "id": "source:checkpoint-two-shard",
+              "name": "Optional Route Shard",
+              "minimumAmount": 1,
+              "maximumAmount": 1,
+              "cadence": "Once per server-authorized checkpoint-two pickup per session",
+              "traceIds": [
+                "trace:gom-checkpoint-two"
+              ]
+            }
+          ],
+          "sinks": [
+            {
+              "id": "sink:trail-palette",
+              "name": "Trail Palette Unlock",
+              "minimumCost": 5,
+              "maximumCost": 100,
+              "purpose": "Unlock an optional visual trail palette that never changes access, timing, movement, or difficulty.",
+              "traceIds": [
+                "trace:signal-bloom-origin"
+              ]
+            }
+          ],
+          "safeguards": [
+            {
+              "id": "safeguard:server-currency-authority",
+              "rule": "Only the server grants or spends integer shards, rejects duplicate pickup claims, enforces the cap, and never converts shards into gameplay power.",
+              "traceIds": [
+                "trace:gom-checkpoint-two"
+              ]
+            }
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "Signal shards remain server-authoritative, optional, integer-valued, and restricted to cosmetic progression."
+        },
+        "after": {
+          "id": "economy:signal-shards",
+          "currency": {
+            "id": "currency:signal-shard",
+            "name": "Signal Shards",
+            "cap": 9999,
+            "displayPrecision": 0
+          },
+          "sources": [
+            {
+              "id": "source:checkpoint-two-shard",
+              "name": "Optional Route Shard",
+              "minimumAmount": 1,
+              "maximumAmount": 1,
+              "cadence": "Once per server-authorized checkpoint-two pickup per session",
+              "traceIds": [
+                "trace:gom-checkpoint-two"
+              ]
+            }
+          ],
+          "sinks": [
+            {
+              "id": "sink:trail-palette",
+              "name": "Trail Palette Unlock",
+              "minimumCost": 5,
+              "maximumCost": 100,
+              "purpose": "Unlock an optional visual trail palette that never changes access, timing, movement, difficulty, or route cues.",
+              "traceIds": [
+                "trace:signal-bloom-origin"
+              ]
+            }
+          ],
+          "safeguards": [
+            {
+              "id": "safeguard:server-currency-authority",
+              "rule": "Only the server grants or spends integer shards, rejects duplicate pickup claims, enforces the cap, and never converts shards into gameplay power.",
+              "traceIds": [
+                "trace:gom-checkpoint-two"
+              ]
+            },
+            {
+              "id": "safeguard:optional-shard-disclosure",
+              "rule": "Every shard source and sink is labelled optional and non-purchasable at the checkpoint, and ignoring a shard never blocks progression.",
+              "traceIds": [
+                "trace:gom-checkpoint-two",
+                "trace:signal-bloom-origin"
+              ]
+            }
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Add a model-level disclosure safeguard so cosmetic currency cannot be mistaken for required or purchasable route progress.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreEconomy": {
+            "id": "economy:signal-shards",
+            "currency": {
+              "id": "currency:signal-shard",
+              "name": "Signal Shards",
+              "cap": 9999,
+              "displayPrecision": 0
+            },
+            "sources": [
+              {
+                "id": "source:checkpoint-two-shard",
+                "name": "Optional Route Shard",
+                "minimumAmount": 1,
+                "maximumAmount": 1,
+                "cadence": "Once per server-authorized checkpoint-two pickup per session",
+                "traceIds": [
+                  "trace:gom-checkpoint-two"
+                ]
+              }
+            ],
+            "sinks": [
+              {
+                "id": "sink:trail-palette",
+                "name": "Trail Palette Unlock",
+                "minimumCost": 5,
+                "maximumCost": 100,
+                "purpose": "Unlock an optional visual trail palette that never changes access, timing, movement, or difficulty.",
+                "traceIds": [
+                  "trace:signal-bloom-origin"
+                ]
+              }
+            ],
+            "safeguards": [
+              {
+                "id": "safeguard:server-currency-authority",
+                "rule": "Only the server grants or spends integer shards, rejects duplicate pickup claims, enforces the cap, and never converts shards into gameplay power.",
+                "traceIds": [
+                  "trace:gom-checkpoint-two"
+                ]
+              }
+            ],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:update-checkpoint-authority-rule",
+        "type": "runtime_rule.update",
+        "targetRuntimeRuleId": "rule:checkpoint-two-authority",
+        "before": {
+          "id": "rule:checkpoint-two-authority",
+          "name": "Checkpoint Two Authority",
+          "trigger": "A client reports a shard interaction, route contact, fall, or checkpoint exit.",
+          "authority": "server",
+          "clientBehavior": "Render replicated cues and send bounded interaction intents; never write checkpoint progress, route safety, analytics, or currency.",
+          "serverBehavior": "Select the safe route, validate checkpoint order and spatial contact, grant a shard once, persist progress, and emit completion analytics.",
+          "antiExploit": {
+            "validation": "Reject intents outside the active checkpoint, legal contact volume, checkpoint order, shard availability, or plausible server-observed movement window.",
+            "rateLimitPerMinute": 120,
+            "violationResponse": "Drop invalid intents, withhold progress and currency, record a safety event, and escalate repeated abuse for review."
+          },
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "Checkpoint-two route, shard, progress, and analytics authority remains exclusively server-owned."
+        },
+        "after": {
+          "id": "rule:checkpoint-two-authority",
+          "name": "Checkpoint Two Authority",
+          "trigger": "A client reports a shard interaction, route contact, fall, or checkpoint exit.",
+          "authority": "server",
+          "clientBehavior": "Render replicated cues and send bounded interaction intents with a server-issued checkpoint token; never write progress, safety, analytics, or currency.",
+          "serverBehavior": "Select the safe route, issue a short-lived checkpoint token, validate order and spatial contact, grant a shard once, persist progress, and emit completion analytics.",
+          "antiExploit": {
+            "validation": "Reject missing, expired, replayed, out-of-order, out-of-volume, duplicate-shard, or implausible movement intents for the active checkpoint token.",
+            "rateLimitPerMinute": 90,
+            "violationResponse": "Drop the intent, preserve the last valid state, withhold progress and currency, record a bounded safety event, and require a fresh checkpoint token after repeated abuse."
+          },
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Make replay protection and recovery behavior explicit without transferring any route or currency authority to the client.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "medium",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreRuntimeRule": {
+            "id": "rule:checkpoint-two-authority",
+            "name": "Checkpoint Two Authority",
+            "trigger": "A client reports a shard interaction, route contact, fall, or checkpoint exit.",
+            "authority": "server",
+            "clientBehavior": "Render replicated cues and send bounded interaction intents; never write checkpoint progress, route safety, analytics, or currency.",
+            "serverBehavior": "Select the safe route, validate checkpoint order and spatial contact, grant a shard once, persist progress, and emit completion analytics.",
+            "antiExploit": {
+              "validation": "Reject intents outside the active checkpoint, legal contact volume, checkpoint order, shard availability, or plausible server-observed movement window.",
+              "rateLimitPerMinute": 120,
+              "violationResponse": "Drop invalid intents, withhold progress and currency, record a safety event, and escalate repeated abuse for review."
+            },
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:update-route-pulse-feedback",
+        "type": "feedback.update",
+        "targetFeedbackId": "feedback:signal-route-pulse",
+        "before": {
+          "id": "feedback:signal-route-pulse",
+          "trigger": "Checkpoint two reveals its server-selected safe route or validates completion.",
+          "channel": "visual",
+          "message": "Show the safe route with a distinct flower shape, high-contrast outline, restrained pulse, and explicit Optional Shard label.",
+          "accessibilityFallback": "Pair the cue with a short directional tone and text route label; use a static outline when reduced motion is enabled.",
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The safe-route cue remains color-independent and the optional shard is explicitly labelled."
+        },
+        "after": {
+          "id": "feedback:signal-route-pulse",
+          "trigger": "Checkpoint two reveals its server-selected safe route, validates completion, or rejects an unsafe route contact.",
+          "channel": "visual",
+          "message": "Show the safe route with a distinct flower shape, high-contrast outline, restrained pulse, explicit Optional Shard label, and a brief non-punitive retry marker after unsafe contact.",
+          "accessibilityFallback": "Pair route and retry states with distinct directional tones and text labels; use static outlined shapes and no camera shake when reduced motion is enabled.",
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Give failure an informative, accessible retry cue while preserving the same route rule and optional reward boundary.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreFeedback": {
+            "id": "feedback:signal-route-pulse",
+            "trigger": "Checkpoint two reveals its server-selected safe route or validates completion.",
+            "channel": "visual",
+            "message": "Show the safe route with a distinct flower shape, high-contrast outline, restrained pulse, and explicit Optional Shard label.",
+            "accessibilityFallback": "Pair the cue with a short directional tone and text route label; use a static outline when reduced motion is enabled.",
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      },
+      {
+        "id": "operation:update-checkpoint-acceptance-test",
+        "type": "acceptance_test.update",
+        "targetAcceptanceTestId": "acceptance:checkpoint-two-signal-shard",
+        "before": {
+          "id": "acceptance:checkpoint-two-signal-shard",
+          "title": "Optional shard leaves the route completable",
+          "given": "A player reaches checkpoint two with the existing server-authorized route available.",
+          "when": "The player collects or ignores the optional signal shard and then traverses the legal route.",
+          "then": "The same route remains completable, completion analytics record the shard choice, and no paid or mandatory advantage is introduced.",
+          "observableSignals": [
+            "analytics:checkpoint-two-completed"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "precondition": {
+          "baseRevision": 1,
+          "expectedModelHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "assertion": "The acceptance test still proves both shard choices use the same completable server-authorized route."
+        },
+        "after": {
+          "id": "acceptance:checkpoint-two-signal-shard",
+          "title": "Optional shard leaves the accessible route completable",
+          "given": "A touch player reaches checkpoint two with the server-authorized route available and reduced motion either enabled or disabled.",
+          "when": "The player collects or ignores the optional signal shard, receives the corresponding accessible cues, and traverses the legal route.",
+          "then": "Both shard choices complete the same route, completion analytics record the choice, retry feedback remains informative, and no purchase or gameplay advantage is introduced.",
+          "observableSignals": [
+            "analytics:checkpoint-two-completed"
+          ],
+          "traceIds": [
+            "trace:gom-checkpoint-two",
+            "trace:signal-bloom-origin"
+          ]
+        },
+        "rationale": "Extend authoritative proof to touch input, reduced-motion presentation, retry feedback, and both optional-shard choices.",
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low",
+        "affectedAcceptanceTestIds": [
+          "acceptance:checkpoint-two-signal-shard"
+        ],
+        "inverse": {
+          "restoreAcceptanceTest": {
+            "id": "acceptance:checkpoint-two-signal-shard",
+            "title": "Optional shard leaves the route completable",
+            "given": "A player reaches checkpoint two with the existing server-authorized route available.",
+            "when": "The player collects or ignores the optional signal shard and then traverses the legal route.",
+            "then": "The same route remains completable, completion analytics record the shard choice, and no paid or mandatory advantage is introduced.",
+            "observableSignals": [
+              "analytics:checkpoint-two-completed"
+            ],
+            "traceIds": [
+              "trace:gom-checkpoint-two",
+              "trace:signal-bloom-origin"
+            ]
+          }
+        }
+      }
+    ],
+    "proposalHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "lifecycleStatus": "pending-approval",
+    "approval": {
+      "required": true,
+      "state": "pending",
+      "decidedBy": "human:steve",
+      "decidedAt": "2026-07-14T00:00:00Z"
+    },
+    "createdAt": "2026-07-14T00:00:00Z"
+  },
+  "provenance": {
+    "schemaVersion": "1.0.0",
+    "id": "provenance:signal-bloom-public-research",
+    "recordType": "public-research",
+    "actor": {
+      "type": "system",
+      "id": "system:robloxforge-public-scout",
+      "displayName": "RobloxForge Public Scout"
+    },
+    "sourceIds": [
+      "corpus:tower-of-hell-public-page"
+    ],
+    "evidenceIds": [
+      "evidence:tower-of-hell-public-visits"
+    ],
+    "traceIds": [
+      "trace:signal-bloom-origin"
+    ],
+    "transformations": [
+      {
+        "id": "transformation:signal-bloom-route",
+        "description": "Transform a general escalating obstacle-course structure into floating gardens whose safe routes are revealed by original color pulses.",
+        "sourceEvidenceIds": [
+          "evidence:tower-of-hell-public-visits"
+        ],
+        "originalitySafeguard": "Use original code, geometry, names, art, audio, interface, checkpoint rules, and pulse-routing mechanics; do not copy source expression."
+      }
+    ],
+    "createdAt": "2026-07-14T00:00:00Z"
+  },
+  "corpusRecord": {
+    "schemaVersion": "1.0.0",
+    "id": "corpus:tower-of-hell-public-page",
+    "subject": "Tower of Hell public Roblox game page",
+    "source": {
+      "url": "https://www.roblox.com/games/1962086868/Tower-of-Hell",
+      "title": "Tower of Hell",
+      "publisher": "Roblox"
+    },
+    "observedAt": "2026-07-14T00:00:00Z",
+    "observations": [
+      {
+        "id": "evidence:tower-of-hell-public-visits",
+        "claim": "The public game page presents an obstacle-course experience and exposes a public visits signal.",
+        "evidenceKind": "paraphrase",
+        "evidenceText": "The publicly accessible Roblox listing identifies the experience and displays visits among its public-facing game information.",
+        "publicMetric": "visits",
+        "confidence": 0.8,
+        "tags": [
+          "obby",
+          "public-page",
+          "visits"
+        ]
+      }
+    ],
+    "inferences": [
+      {
+        "id": "inference:obby-visibility",
+        "statement": "A clearly legible obstacle-course loop is suitable for an originality-safe structural study.",
+        "basedOnObservationIds": [
+          "evidence:tower-of-hell-public-visits"
+        ],
+        "confidence": 0.65,
+        "limitations": "The public page does not establish private retention, conversion, revenue, or player-level behavior."
+      }
+    ],
+    "patterns": [
+      {
+        "id": "pattern:progressive-obstacle-sequence",
+        "name": "Progressive obstacle sequence",
+        "description": "A sequence of increasingly demanding traversal challenges gives players a clear forward goal.",
+        "evidenceIds": [
+          "evidence:tower-of-hell-public-visits"
+        ]
+      }
+    ],
+    "tags": [
+      "obby",
+      "public-research"
+    ],
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    }
+  },
+  "referenceAnalysis": {
+    "schemaVersion": "1.0.0",
+    "id": "referenceanalysis:signal-bloom-obby",
+    "sourceGame": {
+      "name": "Tower of Hell",
+      "publicUrl": "https://www.roblox.com/games/1962086868/Tower-of-Hell"
+    },
+    "corpusRecordIds": [
+      "corpus:tower-of-hell-public-page"
+    ],
+    "adaptablePatterns": [
+      {
+        "id": "pattern:progressive-obstacle-sequence",
+        "name": "Progressive obstacle sequence",
+        "structuralObservation": "The public listing supports studying a broadly familiar obstacle-course progression structure.",
+        "adaptationRule": "Retain only the abstract idea of ordered traversal challenges and rebuild every expressive and mechanical detail for Signal Bloom Obby.",
+        "sourceEvidenceIds": [
+          "evidence:tower-of-hell-public-visits"
+        ]
+      }
+    ],
+    "protectedExpression": [
+      {
+        "id": "protected:tower-of-hell-branding",
+        "category": "branding",
+        "description": "The source game's name, presentation, distinctive assets, layouts, and identity remain protected expression.",
+        "doNotCopy": "Do not reuse the name, branding, map layouts, assets, code, audio, interface, or other distinctive source expression.",
+        "sourceEvidenceIds": [
+          "evidence:tower-of-hell-public-visits"
+        ]
+      }
+    ],
+    "transformations": [
+      {
+        "id": "transformation:signal-bloom-route",
+        "sourcePatternId": "pattern:progressive-obstacle-sequence",
+        "originalFormSummary": "A linear sequence of traversal obstacles communicates escalating progress.",
+        "transformedConcept": "Signal Bloom Obby uses original floating garden islands where timed color pulses reveal one of several short safe routes.",
+        "originalityMechanism": "The setting, branching pulse-reading mechanic, geometry, progression, art direction, checkpoints, code, and feedback are independently designed.",
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ],
+        "risk": "low"
+      }
+    ],
+    "originalityRisks": [
+      {
+        "id": "risk:source-expression-overlap",
+        "description": "A generic obby can drift toward recognizable source presentation if reference details are copied.",
+        "severity": "medium",
+        "mitigation": "Review all geometry, names, assets, interface, audio, and mechanics against the protected-expression list before approval.",
+        "status": "mitigated"
+      }
+    ],
+    "replicationDecision": {
+      "status": "allowed",
+      "rationale": "Only the abstract progression pattern is adapted, with explicit safeguards and an independently designed pulse-routing mechanic.",
+      "blockedPatternIds": []
+    },
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z"
+  },
+  "radarSnapshot": {
+    "schemaVersion": "1.0.0",
+    "id": "radar:obby-public-2026-07-14",
+    "asOf": "2026-07-14T00:00:00Z",
+    "expiresAt": "2026-07-21T00:00:00Z",
+    "corpusRecordIds": [
+      "corpus:tower-of-hell-public-page"
+    ],
+    "entries": [
+      {
+        "id": "radarentry:tower-of-hell",
+        "gameLabel": "Tower of Hell",
+        "publicUrl": "https://www.roblox.com/games/1962086868/Tower-of-Hell",
+        "signals": [
+          {
+            "id": "publicsignal:tower-of-hell-visits",
+            "metric": "visits",
+            "ordinalBand": "high",
+            "evidenceId": "evidence:tower-of-hell-public-visits",
+            "sourceUrl": "https://www.roblox.com/games/1962086868/Tower-of-Hell",
+            "observedAt": "2026-07-14T00:00:00Z",
+            "expiresAt": "2026-07-21T00:00:00Z",
+            "confidence": 0.8
+          }
+        ],
+        "ordinalScores": [
+          {
+            "dimension": "visibility",
+            "score": 4,
+            "evidenceIds": [
+              "evidence:tower-of-hell-public-visits"
+            ],
+            "confidence": 0.7,
+            "asOf": "2026-07-14T00:00:00Z"
+          }
+        ],
+        "patternTags": [
+          "obby",
+          "progression"
+        ]
+      }
+    ],
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z"
+  },
+  "monetizationOpportunitySignal": {
+    "schemaVersion": "1.0.0",
+    "id": "monetizationsignal:signal-bloom-cosmetics",
+    "radarSnapshotId": "radar:obby-public-2026-07-14",
+    "opportunityKind": "cosmetic-expression",
+    "title": "Optional Signal Bloom trail palettes",
+    "hypothesis": "Optional trail palettes tied to collected signal shards may support player self-expression without changing obstacle access, timing, or difficulty.",
+    "publicSignals": [
+      {
+        "id": "publicsignal:tower-of-hell-visits",
+        "metric": "visits",
+        "ordinalBand": "high",
+        "evidenceId": "evidence:tower-of-hell-public-visits",
+        "sourceUrl": "https://www.roblox.com/games/1962086868/Tower-of-Hell",
+        "observedAt": "2026-07-14T00:00:00Z",
+        "expiresAt": "2026-07-21T00:00:00Z",
+        "confidence": 0.8
+      }
+    ],
+    "ordinalScores": {
+      "demandFit": 4,
+      "differentiationSpace": 3,
+      "implementationFeasibility": 4,
+      "overall": 4,
+      "confidence": 0.65,
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "asOf": "2026-07-14T00:00:00Z"
+    },
+    "constraints": [
+      {
+        "id": "constraint:cosmetic-only",
+        "rule": "Any trail palette must remain optional and cosmetic, with no effect on access, checkpoint progress, obstacle timing, movement, or difficulty.",
+        "traceIds": [
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "expiresAt": "2026-07-21T00:00:00Z",
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z"
+  },
+  "recommendation": {
+    "schemaVersion": "1.0.0",
+    "id": "recommendation:signal-bloom-shard-checkpoint",
+    "gomId": "gom:signal-bloom-obby",
+    "gomRevision": 1,
+    "targetElementIds": [
+      "element:signal-bloom-checkpoint-two"
+    ],
+    "evidenceIds": [
+      "evidence:tower-of-hell-public-visits"
+    ],
+    "proposalId": "proposal:signal-bloom-shard-checkpoint",
+    "improvement": {
+      "title": "Add one optional signal shard at checkpoint two",
+      "description": "Offer a single optional shard beside the existing checkpoint-two route to test whether a small exploration cue improves route comprehension.",
+      "boundedChange": "Add exactly one non-blocking signal shard pickup beside checkpoint two; do not alter any other checkpoint, route, obstacle, reward, publication setting, or approval state.",
+      "traceIds": [
+        "trace:gom-checkpoint-two",
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "expectedObservableSignals": [
+      {
+        "id": "observable:checkpoint-two-completion",
+        "analyticsEventId": "analytics:checkpoint-two-completed",
+        "measure": "Checkpoint-two completion after shard exposure",
+        "direction": "increase",
+        "windowDays": 14
+      }
+    ],
+    "risk": {
+      "level": "low",
+      "description": "The shard could distract players from the safe route or be mistaken for a required purchase.",
+      "mitigations": [
+        "Keep the shard off the critical path",
+        "Label the shard as optional and non-purchasable"
+      ]
+    },
+    "acceptanceTests": [
+      {
+        "id": "acceptance:checkpoint-two-signal-shard",
+        "title": "Optional shard leaves the route completable",
+        "given": "A player reaches checkpoint two with the existing route available.",
+        "when": "The player collects or ignores the optional signal shard.",
+        "then": "The same checkpoint route remains completable and no paid or mandatory advantage is introduced.",
+        "observableSignals": [
+          "analytics:checkpoint-two-completed"
+        ],
+        "traceIds": [
+          "trace:gom-checkpoint-two",
+          "trace:signal-bloom-origin"
+        ]
+      }
+    ],
+    "approvalPolicy": {
+      "decision": "human-required",
+      "publication": "human-controlled",
+      "executionMode": "proposal-only"
+    },
+    "status": "proposed",
+    "provenance": {
+      "provenanceId": "provenance:signal-bloom-public-research",
+      "evidenceIds": [
+        "evidence:tower-of-hell-public-visits"
+      ],
+      "traceIds": [
+        "trace:gom-checkpoint-two",
+        "trace:signal-bloom-origin"
+      ]
+    },
+    "createdAt": "2026-07-14T00:00:00Z"
+  }
+}

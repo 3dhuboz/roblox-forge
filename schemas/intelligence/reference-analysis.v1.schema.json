@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/reference-analysis.v1.schema.json",
+  "title": "RobloxForge Reference Analysis v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "sourceGame",
+    "corpusRecordIds",
+    "adaptablePatterns",
+    "protectedExpression",
+    "transformations",
+    "originalityRisks",
+    "replicationDecision",
+    "provenance",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "sourceGame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "publicUrl"],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/label"
+        },
+        "publicUrl": {
+          "$ref": "common.schema.json#/$defs/uri"
+        }
+      }
+    },
+    "corpusRecordIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "adaptablePatterns": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "structuralObservation",
+          "adaptationRule",
+          "sourceEvidenceIds"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "name": {
+            "$ref": "common.schema.json#/$defs/label"
+          },
+          "structuralObservation": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "adaptationRule": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "sourceEvidenceIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          }
+        }
+      }
+    },
+    "protectedExpression": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "description",
+          "doNotCopy",
+          "sourceEvidenceIds"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "code",
+              "assets",
+              "maps",
+              "branding",
+              "characters",
+              "audio",
+              "ui",
+              "distinctive-abilities"
+            ],
+            "maxLength": 32
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "doNotCopy": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "sourceEvidenceIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          }
+        }
+      }
+    },
+    "transformations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sourcePatternId",
+          "originalFormSummary",
+          "transformedConcept",
+          "originalityMechanism",
+          "traceIds",
+          "risk"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "sourcePatternId": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "originalFormSummary": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "transformedConcept": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "originalityMechanism": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "traceIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          },
+          "risk": {
+            "$ref": "common.schema.json#/$defs/risk"
+          }
+        }
+      }
+    },
+    "originalityRisks": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description", "severity", "mitigation", "status"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "severity": {
+            "$ref": "common.schema.json#/$defs/risk"
+          },
+          "mitigation": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "mitigated", "blocked"],
+            "maxLength": 16
+          }
+        }
+      }
+    },
+    "replicationDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "rationale", "blockedPatternIds"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["allowed", "needs-review", "blocked"],
+          "maxLength": 16
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "blockedPatternIds": {
+          "$ref": "common.schema.json#/$defs/idArray"
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  }
+}

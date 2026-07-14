@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/corpus-record.v1.schema.json",
+  "title": "RobloxForge Public Corpus Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "subject",
+    "source",
+    "observedAt",
+    "observations",
+    "inferences",
+    "patterns",
+    "tags",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "subject": {
+      "$ref": "common.schema.json#/$defs/shortText"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "publisher"],
+      "properties": {
+        "url": {
+          "$ref": "common.schema.json#/$defs/uri"
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        },
+        "publisher": {
+          "$ref": "common.schema.json#/$defs/label"
+        }
+      }
+    },
+    "observedAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "claim",
+          "evidenceKind",
+          "evidenceText",
+          "confidence",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "claim": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "evidenceKind": {
+            "type": "string",
+            "enum": ["excerpt", "paraphrase"],
+            "maxLength": 16
+          },
+          "evidenceText": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "publicMetric": {
+            "type": "string",
+            "enum": [
+              "visits",
+              "favorites",
+              "ccu",
+              "update-cadence",
+              "discovery-position",
+              "public-rating"
+            ],
+            "maxLength": 32
+          },
+          "confidence": {
+            "$ref": "common.schema.json#/$defs/confidence"
+          },
+          "tags": {
+            "$ref": "common.schema.json#/$defs/labelArray"
+          }
+        }
+      }
+    },
+    "inferences": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement",
+          "basedOnObservationIds",
+          "confidence",
+          "limitations"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "statement": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "basedOnObservationIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          },
+          "confidence": {
+            "$ref": "common.schema.json#/$defs/confidence"
+          },
+          "limitations": {
+            "$ref": "common.schema.json#/$defs/text"
+          }
+        }
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "description", "evidenceIds"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "name": {
+            "$ref": "common.schema.json#/$defs/label"
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "evidenceIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          }
+        }
+      }
+    },
+    "tags": {
+      "$ref": "common.schema.json#/$defs/labelArray"
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    }
+  }
+}

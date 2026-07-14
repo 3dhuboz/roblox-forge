@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/game-brief.v1.schema.json",
+  "title": "RobloxForge Game Brief v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "revision",
+    "hash",
+    "status",
+    "rawIdea",
+    "intendedAchievement",
+    "playerFantasy",
+    "genre",
+    "audience",
+    "platformConstraints",
+    "inputConstraints",
+    "referenceInputs",
+    "assumptions",
+    "materialQuestions",
+    "successConstraints",
+    "provenance",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "questions-open", "approved", "superseded"],
+      "maxLength": 24
+    },
+    "rawIdea": {
+      "$ref": "common.schema.json#/$defs/longText"
+    },
+    "intendedAchievement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "observableOutcome"],
+      "properties": {
+        "statement": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "observableOutcome": {
+          "$ref": "common.schema.json#/$defs/text"
+        }
+      }
+    },
+    "playerFantasy": {
+      "$ref": "common.schema.json#/$defs/text"
+    },
+    "genre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary"],
+      "properties": {
+        "primary": {
+          "$ref": "common.schema.json#/$defs/label"
+        },
+        "secondary": {
+          "$ref": "common.schema.json#/$defs/labelArray"
+        }
+      }
+    },
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ageBand", "experienceLevel", "socialMode", "sessionIntent"],
+      "properties": {
+        "ageBand": {
+          "type": "string",
+          "enum": ["all-ages", "9-plus", "13-plus", "17-plus"],
+          "maxLength": 16
+        },
+        "experienceLevel": {
+          "type": "string",
+          "enum": ["new", "mixed", "experienced"],
+          "maxLength": 16
+        },
+        "socialMode": {
+          "type": "string",
+          "enum": ["solo", "cooperative", "competitive", "mixed"],
+          "maxLength": 16
+        },
+        "sessionIntent": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        }
+      }
+    },
+    "platformConstraints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "platform", "requirement", "priority"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "platform": {
+            "type": "string",
+            "enum": ["desktop", "mobile", "tablet", "console"],
+            "maxLength": 16
+          },
+          "requirement": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["required", "preferred"],
+            "maxLength": 16
+          }
+        }
+      }
+    },
+    "inputConstraints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "input", "requirement", "required"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "input": {
+            "type": "string",
+            "enum": ["keyboard-mouse", "touch", "gamepad"],
+            "maxLength": 24
+          },
+          "requirement": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "referenceInputs": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["referenceAnalysisId", "purpose", "allowedUse"],
+        "properties": {
+          "referenceAnalysisId": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "purpose": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "allowedUse": {
+            "type": "string",
+            "const": "structural-patterns-only",
+            "maxLength": 32
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "impact", "validationPlan"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "statement": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "impact": {
+            "$ref": "common.schema.json#/$defs/risk"
+          },
+          "validationPlan": {
+            "$ref": "common.schema.json#/$defs/text"
+          }
+        }
+      }
+    },
+    "materialQuestions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "question", "materialImpact", "answer"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "question": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "materialImpact": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "answer": {
+            "$ref": "#/$defs/questionAnswer"
+          }
+        }
+      }
+    },
+    "successConstraints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "measure", "threshold", "priority"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "statement": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "measure": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          },
+          "threshold": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["must", "should", "could"],
+            "maxLength": 16
+          }
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  },
+  "$defs": {
+    "questionAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "response", "answeredBy", "answeredAt"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["unanswered", "answered", "deferred"],
+          "maxLength": 16
+        },
+        "response": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "answeredBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "answeredAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        }
+      }
+    }
+  }
+}

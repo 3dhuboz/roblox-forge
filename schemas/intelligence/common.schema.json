@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/common.schema.json",
+  "title": "RobloxForge Intelligence Common Document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "provenanceId",
+    "evidenceIds",
+    "traceIds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "provenanceId": {
+      "$ref": "#/$defs/id"
+    },
+    "evidenceIds": {
+      "$ref": "#/$defs/idArray"
+    },
+    "traceIds": {
+      "$ref": "#/$defs/nonEmptyIdArray"
+    }
+  },
+  "$defs": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 96,
+      "pattern": "^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9._-]*)+$"
+    },
+    "hash": {
+      "type": "string",
+      "minLength": 71,
+      "maxLength": 71,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 48,
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "uri": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "shortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "longText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "maxLength": 16
+    },
+    "ordinalBand": {
+      "type": "string",
+      "enum": ["very-low", "low", "medium", "high", "very-high"],
+      "maxLength": 16
+    },
+    "idArray": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "labelArray": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/label"
+      }
+    },
+    "provenanceLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceId", "evidenceIds", "traceIds"],
+      "properties": {
+        "provenanceId": {
+          "$ref": "#/$defs/id"
+        },
+        "evidenceIds": {
+          "$ref": "#/$defs/idArray"
+        },
+        "traceIds": {
+          "$ref": "#/$defs/nonEmptyIdArray"
+        }
+      }
+    }
+  }
+}

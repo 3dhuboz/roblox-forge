@@ -1,0 +1,1000 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/director-proposal.v1.schema.json",
+  "title": "RobloxForge Director Proposal v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatorVersion",
+    "knowledgeVersion",
+    "id",
+    "baseModelId",
+    "baseModelRevision",
+    "baseModelHash",
+    "provenanceId",
+    "evidenceIds",
+    "summary",
+    "operations",
+    "proposalHash",
+    "lifecycleStatus",
+    "approval",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "generatorVersion": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "knowledgeVersion": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "baseModelId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "baseModelRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "baseModelHash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "provenanceId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "evidenceIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "summary": {
+      "$ref": "common.schema.json#/$defs/text"
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/briefSetFieldOperation"
+          },
+          {
+            "$ref": "#/$defs/questionAnswerOperation"
+          },
+          {
+            "$ref": "#/$defs/sceneAddOperation"
+          },
+          {
+            "$ref": "#/$defs/sceneUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/sceneRemoveOperation"
+          },
+          {
+            "$ref": "#/$defs/objectiveAddOperation"
+          },
+          {
+            "$ref": "#/$defs/objectiveUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/objectiveRemoveOperation"
+          },
+          {
+            "$ref": "#/$defs/progressionUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/economyUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/runtimeRuleUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/feedbackUpdateOperation"
+          },
+          {
+            "$ref": "#/$defs/acceptanceTestUpdateOperation"
+          }
+        ]
+      }
+    },
+    "proposalHash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "lifecycleStatus": {
+      "type": "string",
+      "enum": ["draft", "pending-approval", "approved", "rejected", "applied"],
+      "maxLength": 24
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "state", "decidedBy", "decidedAt"],
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 16
+        },
+        "decidedBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "decidedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        }
+      }
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  },
+  "$defs": {
+    "precondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseRevision", "expectedModelHash", "assertion"],
+      "properties": {
+        "baseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "expectedModelHash": {
+          "$ref": "common.schema.json#/$defs/hash"
+        },
+        "assertion": {
+          "$ref": "common.schema.json#/$defs/text"
+        }
+      }
+    },
+    "briefFieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "common.schema.json#/$defs/text"
+        }
+      }
+    },
+    "briefFieldInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreValue"],
+      "properties": {
+        "restoreValue": {
+          "$ref": "common.schema.json#/$defs/text"
+        }
+      }
+    },
+    "questionAnswerInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreAnswer"],
+      "properties": {
+        "restoreAnswer": {
+          "$ref": "game-brief.v1.schema.json#/$defs/questionAnswer"
+        }
+      }
+    },
+    "absentState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["absent"],
+      "properties": {
+        "absent": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "removeSceneInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["removeSceneId"],
+      "properties": {
+        "removeSceneId": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      }
+    },
+    "restoreSceneInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreScene"],
+      "properties": {
+        "restoreScene": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        }
+      }
+    },
+    "removeObjectiveInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["removeObjectiveId"],
+      "properties": {
+        "removeObjectiveId": {
+          "$ref": "common.schema.json#/$defs/id"
+        }
+      }
+    },
+    "restoreObjectiveInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreObjective"],
+      "properties": {
+        "restoreObjective": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        }
+      }
+    },
+    "restoreProgressionInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreProgression"],
+      "properties": {
+        "restoreProgression": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/progression"
+        }
+      }
+    },
+    "restoreEconomyInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreEconomy"],
+      "properties": {
+        "restoreEconomy": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/economy"
+        }
+      }
+    },
+    "restoreRuntimeRuleInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreRuntimeRule"],
+      "properties": {
+        "restoreRuntimeRule": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/runtimeRule"
+        }
+      }
+    },
+    "restoreFeedbackInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreFeedback"],
+      "properties": {
+        "restoreFeedback": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/feedback"
+        }
+      }
+    },
+    "restoreAcceptanceTestInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreAcceptanceTest"],
+      "properties": {
+        "restoreAcceptanceTest": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/acceptanceTest"
+        }
+      }
+    },
+    "briefSetFieldOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetBriefId",
+        "field",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "brief.set_field",
+          "maxLength": 32
+        },
+        "targetBriefId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "field": {
+          "type": "string",
+          "enum": ["rawIdea", "intendedAchievement", "playerFantasy", "genre", "audience"],
+          "maxLength": 32
+        },
+        "before": {
+          "$ref": "#/$defs/briefFieldState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/briefFieldState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/briefFieldInverse"
+        }
+      }
+    },
+    "questionAnswerOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetQuestionId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "question.answer",
+          "maxLength": 32
+        },
+        "targetQuestionId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-brief.v1.schema.json#/$defs/questionAnswer"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-brief.v1.schema.json#/$defs/questionAnswer"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/questionAnswerInverse"
+        }
+      }
+    },
+    "sceneAddOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "addedScene",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "scene.add",
+          "maxLength": 32
+        },
+        "addedScene": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "before": {
+          "$ref": "#/$defs/absentState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/removeSceneInverse"
+        }
+      }
+    },
+    "sceneUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetSceneId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "scene.update",
+          "maxLength": 32
+        },
+        "targetSceneId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreSceneInverse"
+        }
+      }
+    },
+    "sceneRemoveOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetSceneId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "scene.remove",
+          "maxLength": 32
+        },
+        "targetSceneId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/sceneNode"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/absentState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreSceneInverse"
+        }
+      }
+    },
+    "objectiveAddOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "addedObjective",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "objective.add",
+          "maxLength": 32
+        },
+        "addedObjective": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "before": {
+          "$ref": "#/$defs/absentState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/removeObjectiveInverse"
+        }
+      }
+    },
+    "objectiveUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetObjectiveId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "objective.update",
+          "maxLength": 32
+        },
+        "targetObjectiveId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreObjectiveInverse"
+        }
+      }
+    },
+    "objectiveRemoveOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetObjectiveId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "objective.remove",
+          "maxLength": 32
+        },
+        "targetObjectiveId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/objective"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/absentState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreObjectiveInverse"
+        }
+      }
+    },
+    "progressionUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetProgressionId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "progression.update",
+          "maxLength": 32
+        },
+        "targetProgressionId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/progression"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/progression"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreProgressionInverse"
+        }
+      }
+    },
+    "economyUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetEconomyId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "economy.update",
+          "maxLength": 32
+        },
+        "targetEconomyId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/economy"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/economy"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreEconomyInverse"
+        }
+      }
+    },
+    "runtimeRuleUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetRuntimeRuleId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "runtime_rule.update",
+          "maxLength": 32
+        },
+        "targetRuntimeRuleId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/runtimeRule"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/runtimeRule"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreRuntimeRuleInverse"
+        }
+      }
+    },
+    "feedbackUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetFeedbackId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "feedback.update",
+          "maxLength": 32
+        },
+        "targetFeedbackId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/feedback"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/feedback"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreFeedbackInverse"
+        }
+      }
+    },
+    "acceptanceTestUpdateOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetAcceptanceTestId",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "acceptance_test.update",
+          "maxLength": 32
+        },
+        "targetAcceptanceTestId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "before": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/acceptanceTest"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "game-operating-model.v1.schema.json#/$defs/acceptanceTest"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/restoreAcceptanceTestInverse"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/monetization-opportunity-signal.v1.schema.json",
+  "title": "RobloxForge Public Monetization Opportunity Signal v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "radarSnapshotId",
+    "opportunityKind",
+    "title",
+    "hypothesis",
+    "publicSignals",
+    "ordinalScores",
+    "constraints",
+    "expiresAt",
+    "provenance",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "radarSnapshotId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "opportunityKind": {
+      "type": "string",
+      "enum": [
+        "cosmetic-expression",
+        "optional-convenience",
+        "private-server",
+        "seasonal-collection"
+      ],
+      "maxLength": 32
+    },
+    "title": {
+      "$ref": "common.schema.json#/$defs/shortText"
+    },
+    "hypothesis": {
+      "$ref": "common.schema.json#/$defs/text"
+    },
+    "publicSignals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "radar-snapshot.v1.schema.json#/$defs/publicSignal"
+      }
+    },
+    "ordinalScores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "demandFit",
+        "differentiationSpace",
+        "implementationFeasibility",
+        "overall",
+        "confidence",
+        "evidenceIds",
+        "asOf"
+      ],
+      "properties": {
+        "demandFit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "differentiationSpace": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "implementationFeasibility": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "overall": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/confidence"
+        },
+        "evidenceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "asOf": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "rule", "traceIds"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "rule": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "traceIds": {
+            "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+          }
+        }
+      }
+    },
+    "expiresAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  }
+}

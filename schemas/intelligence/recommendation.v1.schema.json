@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/recommendation.v1.schema.json",
+  "title": "RobloxForge Bounded Recommendation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "gomId",
+    "gomRevision",
+    "targetElementIds",
+    "evidenceIds",
+    "proposalId",
+    "improvement",
+    "expectedObservableSignals",
+    "risk",
+    "acceptanceTests",
+    "approvalPolicy",
+    "status",
+    "provenance",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "gomId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "gomRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "targetElementIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "evidenceIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "proposalId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "improvement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "boundedChange", "traceIds"],
+      "properties": {
+        "title": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "boundedChange": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "expectedObservableSignals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "analyticsEventId", "measure", "direction", "windowDays"],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "analyticsEventId": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "measure": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["increase", "decrease", "remain-stable"],
+            "maxLength": 16
+          },
+          "windowDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          }
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "description", "mitigations"],
+      "properties": {
+        "level": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "description": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "mitigations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          }
+        }
+      }
+    },
+    "acceptanceTests": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "game-operating-model.v1.schema.json#/$defs/acceptanceTest"
+      }
+    },
+    "approvalPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "publication", "executionMode"],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "const": "human-required",
+          "maxLength": 24
+        },
+        "publication": {
+          "type": "string",
+          "const": "human-controlled",
+          "maxLength": 24
+        },
+        "executionMode": {
+          "type": "string",
+          "const": "proposal-only",
+          "maxLength": 24
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "accepted", "rejected", "superseded"],
+      "maxLength": 16
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  }
+}

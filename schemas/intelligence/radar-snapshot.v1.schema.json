@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/radar-snapshot.v1.schema.json",
+  "title": "RobloxForge Public Radar Snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "asOf",
+    "expiresAt",
+    "corpusRecordIds",
+    "entries",
+    "provenance",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "asOf": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "expiresAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "corpusRecordIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "gameLabel",
+          "publicUrl",
+          "signals",
+          "ordinalScores",
+          "patternTags"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "gameLabel": {
+            "$ref": "common.schema.json#/$defs/label"
+          },
+          "publicUrl": {
+            "$ref": "common.schema.json#/$defs/uri"
+          },
+          "signals": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 24,
+            "items": {
+              "$ref": "#/$defs/publicSignal"
+            }
+          },
+          "ordinalScores": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/$defs/ordinalScore"
+            }
+          },
+          "patternTags": {
+            "$ref": "common.schema.json#/$defs/labelArray"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  },
+  "$defs": {
+    "publicSignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "metric",
+        "ordinalBand",
+        "evidenceId",
+        "sourceUrl",
+        "observedAt",
+        "expiresAt",
+        "confidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "metric": {
+          "type": "string",
+          "enum": [
+            "visits",
+            "favorites",
+            "ccu",
+            "update-cadence",
+            "discovery-position",
+            "public-rating"
+          ],
+          "maxLength": 32
+        },
+        "ordinalBand": {
+          "$ref": "common.schema.json#/$defs/ordinalBand"
+        },
+        "evidenceId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "sourceUrl": {
+          "$ref": "common.schema.json#/$defs/uri"
+        },
+        "observedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        },
+        "expiresAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/confidence"
+        }
+      }
+    },
+    "ordinalScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "score", "evidenceIds", "confidence", "asOf"],
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "enum": ["visibility", "momentum", "recency", "retention-pattern"],
+          "maxLength": 32
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "evidenceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/confidence"
+        },
+        "asOf": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        }
+      }
+    }
+  }
+}

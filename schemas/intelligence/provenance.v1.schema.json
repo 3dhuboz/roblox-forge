@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/provenance.v1.schema.json",
+  "title": "RobloxForge Intelligence Provenance v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "recordType",
+    "actor",
+    "sourceIds",
+    "evidenceIds",
+    "traceIds",
+    "transformations",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "recordType": {
+      "type": "string",
+      "enum": [
+        "human-input",
+        "public-research",
+        "director-generation",
+        "originality-transformation"
+      ],
+      "maxLength": 32
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "displayName"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["human", "system"],
+          "maxLength": 16
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "displayName": {
+          "$ref": "common.schema.json#/$defs/label"
+        }
+      }
+    },
+    "sourceIds": {
+      "$ref": "common.schema.json#/$defs/idArray"
+    },
+    "evidenceIds": {
+      "$ref": "common.schema.json#/$defs/idArray"
+    },
+    "traceIds": {
+      "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+    },
+    "transformations": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "sourceEvidenceIds",
+          "originalitySafeguard"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/id"
+          },
+          "description": {
+            "$ref": "common.schema.json#/$defs/text"
+          },
+          "sourceEvidenceIds": {
+            "$ref": "common.schema.json#/$defs/idArray"
+          },
+          "originalitySafeguard": {
+            "$ref": "common.schema.json#/$defs/text"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  }
+}

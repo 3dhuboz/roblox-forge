@@ -1,0 +1,1057 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.robloxforge.dev/intelligence/game-operating-model.v1.schema.json",
+  "title": "RobloxForge Game Operating Model v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatorVersion",
+    "knowledgeVersion",
+    "id",
+    "briefId",
+    "revision",
+    "hash",
+    "status",
+    "approvalMetadata",
+    "firstSessionPromise",
+    "loops",
+    "objectives",
+    "progression",
+    "economy",
+    "runtimeRules",
+    "sceneNodes",
+    "systems",
+    "feedback",
+    "accessibility",
+    "mobileInputBudget",
+    "budgets",
+    "monetizationSafety",
+    "analyticsEventContracts",
+    "acceptanceTests",
+    "provenance",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "maxLength": 16
+    },
+    "generatorVersion": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "knowledgeVersion": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "briefId": {
+      "$ref": "common.schema.json#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "hash": {
+      "$ref": "common.schema.json#/$defs/hash"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "pending-approval", "approved", "superseded"],
+      "maxLength": 24
+    },
+    "approvalMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approvalRequired",
+        "state",
+        "approvedBy",
+        "approvedAt",
+        "decisionEvidenceIds"
+      ],
+      "properties": {
+        "approvalRequired": {
+          "type": "boolean",
+          "const": true
+        },
+        "state": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 16
+        },
+        "approvedBy": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "approvedAt": {
+          "$ref": "common.schema.json#/$defs/dateTime"
+        },
+        "decisionEvidenceIds": {
+          "$ref": "common.schema.json#/$defs/idArray"
+        }
+      }
+    },
+    "firstSessionPromise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "targetMinutes", "successSignal", "traceIds"],
+      "properties": {
+        "statement": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "targetMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "successSignal": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "loops": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["second", "minute", "session", "day"],
+      "properties": {
+        "second": {
+          "$ref": "#/$defs/gameLoop"
+        },
+        "minute": {
+          "$ref": "#/$defs/gameLoop"
+        },
+        "session": {
+          "$ref": "#/$defs/gameLoop"
+        },
+        "day": {
+          "$ref": "#/$defs/gameLoop"
+        }
+      }
+    },
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 48,
+      "items": {
+        "$ref": "#/$defs/objective"
+      }
+    },
+    "progression": {
+      "$ref": "#/$defs/progression"
+    },
+    "economy": {
+      "$ref": "#/$defs/economy"
+    },
+    "runtimeRules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/runtimeRule"
+      }
+    },
+    "sceneNodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/sceneNode"
+      }
+    },
+    "systems": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/system"
+      }
+    },
+    "feedback": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/feedback"
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "colorIndependent",
+        "subtitles",
+        "reducedMotion",
+        "minimumTouchTargetPx",
+        "notes",
+        "traceIds"
+      ],
+      "properties": {
+        "colorIndependent": {
+          "type": "boolean"
+        },
+        "subtitles": {
+          "type": "boolean"
+        },
+        "reducedMotion": {
+          "type": "boolean"
+        },
+        "minimumTouchTargetPx": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 96
+        },
+        "notes": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "mobileInputBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxSimultaneousActions",
+        "maxPrimaryControls",
+        "minimumTouchTargetPx",
+        "supportedInputs",
+        "notes",
+        "traceIds"
+      ],
+      "properties": {
+        "maxSimultaneousActions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "maxPrimaryControls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "minimumTouchTargetPx": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 96
+        },
+        "supportedInputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["keyboard-mouse", "touch", "gamepad"],
+            "maxLength": 24
+          }
+        },
+        "notes": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["performance", "replication", "streaming"],
+      "properties": {
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "targetFps",
+            "minimumFps",
+            "maxClientMemoryMb",
+            "maxDrawCalls",
+            "traceIds"
+          ],
+          "properties": {
+            "targetFps": {
+              "type": "integer",
+              "minimum": 30,
+              "maximum": 240
+            },
+            "minimumFps": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 120
+            },
+            "maxClientMemoryMb": {
+              "type": "integer",
+              "minimum": 128,
+              "maximum": 4096
+            },
+            "maxDrawCalls": {
+              "type": "integer",
+              "minimum": 50,
+              "maximum": 5000
+            },
+            "traceIds": {
+              "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+            }
+          }
+        },
+        "replication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maxReliableEventsPerSecond",
+            "maxPayloadBytes",
+            "serverAuthorityPercent",
+            "traceIds"
+          ],
+          "properties": {
+            "maxReliableEventsPerSecond": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 120
+            },
+            "maxPayloadBytes": {
+              "type": "integer",
+              "minimum": 64,
+              "maximum": 65536
+            },
+            "serverAuthorityPercent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "traceIds": {
+              "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+            }
+          }
+        },
+        "streaming": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "minimumRadiusStuds",
+            "targetRadiusStuds",
+            "maxWarmupSeconds",
+            "traceIds"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minimumRadiusStuds": {
+              "type": "integer",
+              "minimum": 32,
+              "maximum": 4096
+            },
+            "targetRadiusStuds": {
+              "type": "integer",
+              "minimum": 64,
+              "maximum": 8192
+            },
+            "maxWarmupSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            },
+            "traceIds": {
+              "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+            }
+          }
+        }
+      }
+    },
+    "monetizationSafety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "allowedOffers",
+        "prohibitedPractices",
+        "purchaseFriction",
+        "traceIds"
+      ],
+      "properties": {
+        "policy": {
+          "type": "string",
+          "const": "player-value-without-pay-to-win",
+          "maxLength": 48
+        },
+        "allowedOffers": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "type", "playerValue", "safetyConstraint", "traceIds"],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["cosmetic", "optional-convenience", "private-server"],
+                "maxLength": 32
+              },
+              "playerValue": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "safetyConstraint": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "traceIds": {
+                "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+              }
+            }
+          }
+        },
+        "prohibitedPractices": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "pay-to-win",
+              "dark-patterns",
+              "misleading-odds",
+              "forced-purchase",
+              "child-directed-pressure"
+            ],
+            "maxLength": 32
+          }
+        },
+        "purchaseFriction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["confirmationRequired", "cooldownSeconds", "parentalDisclosure"],
+          "properties": {
+            "confirmationRequired": {
+              "type": "boolean",
+              "const": true
+            },
+            "cooldownSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            },
+            "parentalDisclosure": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "analyticsEventContracts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/analyticsEvent"
+      }
+    },
+    "acceptanceTests": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/acceptanceTest"
+      }
+    },
+    "provenance": {
+      "$ref": "common.schema.json#/$defs/provenanceLink"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/dateTime"
+    }
+  },
+  "$defs": {
+    "gameLoop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "cadence",
+        "playerAction",
+        "systemResponse",
+        "reward",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "cadence": {
+          "type": "string",
+          "enum": ["second", "minute", "session", "day"],
+          "maxLength": 16
+        },
+        "playerAction": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "systemResponse": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "reward": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "description",
+        "success",
+        "failure",
+        "recovery",
+        "dependencyIds",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "success": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["condition", "observableSignal"],
+          "properties": {
+            "condition": {
+              "$ref": "common.schema.json#/$defs/text"
+            },
+            "observableSignal": {
+              "$ref": "common.schema.json#/$defs/shortText"
+            }
+          }
+        },
+        "failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["condition", "consequence"],
+          "properties": {
+            "condition": {
+              "$ref": "common.schema.json#/$defs/text"
+            },
+            "consequence": {
+              "$ref": "common.schema.json#/$defs/text"
+            }
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["trigger", "playerAction", "systemSupport"],
+          "properties": {
+            "trigger": {
+              "$ref": "common.schema.json#/$defs/text"
+            },
+            "playerAction": {
+              "$ref": "common.schema.json#/$defs/text"
+            },
+            "systemSupport": {
+              "$ref": "common.schema.json#/$defs/text"
+            }
+          }
+        },
+        "dependencyIds": {
+          "$ref": "common.schema.json#/$defs/idArray"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "progression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "model", "stages", "resetPolicy", "traceIds"],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "model": {
+          "type": "string",
+          "enum": ["linear", "branching", "mastery", "collection"],
+          "maxLength": 16
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 48,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "unlockCondition", "reward", "traceIds"],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "name": {
+                "$ref": "common.schema.json#/$defs/label"
+              },
+              "unlockCondition": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "reward": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "traceIds": {
+                "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+              }
+            }
+          }
+        },
+        "resetPolicy": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "economy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "currency", "sources", "sinks", "safeguards", "traceIds"],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "currency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "name", "cap", "displayPrecision"],
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/id"
+            },
+            "name": {
+              "$ref": "common.schema.json#/$defs/label"
+            },
+            "cap": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000000
+            },
+            "displayPrecision": {
+              "type": "integer",
+              "const": 0
+            }
+          }
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "minimumAmount",
+              "maximumAmount",
+              "cadence",
+              "traceIds"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "name": {
+                "$ref": "common.schema.json#/$defs/label"
+              },
+              "minimumAmount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000
+              },
+              "maximumAmount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000
+              },
+              "cadence": {
+                "$ref": "common.schema.json#/$defs/shortText"
+              },
+              "traceIds": {
+                "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+              }
+            }
+          }
+        },
+        "sinks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "minimumCost",
+              "maximumCost",
+              "purpose",
+              "traceIds"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "name": {
+                "$ref": "common.schema.json#/$defs/label"
+              },
+              "minimumCost": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000
+              },
+              "maximumCost": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000
+              },
+              "purpose": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "traceIds": {
+                "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+              }
+            }
+          }
+        },
+        "safeguards": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "rule", "traceIds"],
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/id"
+              },
+              "rule": {
+                "$ref": "common.schema.json#/$defs/text"
+              },
+              "traceIds": {
+                "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+              }
+            }
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "runtimeRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "trigger",
+        "authority",
+        "clientBehavior",
+        "serverBehavior",
+        "antiExploit",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/label"
+        },
+        "trigger": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "authority": {
+          "type": "string",
+          "enum": ["server", "client", "shared"],
+          "maxLength": 16
+        },
+        "clientBehavior": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "serverBehavior": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "antiExploit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["validation", "rateLimitPerMinute", "violationResponse"],
+          "properties": {
+            "validation": {
+              "$ref": "common.schema.json#/$defs/text"
+            },
+            "rateLimitPerMinute": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "violationResponse": {
+              "$ref": "common.schema.json#/$defs/text"
+            }
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "sceneNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "purpose",
+        "entryCondition",
+        "exitCondition",
+        "systemIds",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/label"
+        },
+        "purpose": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "entryCondition": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "exitCondition": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "systemIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "responsibility",
+        "authority",
+        "dependencyIds",
+        "sceneIds",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/label"
+        },
+        "responsibility": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "authority": {
+          "type": "string",
+          "enum": ["server", "client", "shared"],
+          "maxLength": 16
+        },
+        "dependencyIds": {
+          "$ref": "common.schema.json#/$defs/idArray"
+        },
+        "sceneIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "trigger",
+        "channel",
+        "message",
+        "accessibilityFallback",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "trigger": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "channel": {
+          "type": "string",
+          "enum": ["visual", "audio", "haptic", "text"],
+          "maxLength": 16
+        },
+        "message": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "accessibilityFallback": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "analyticsEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "trigger",
+        "fields",
+        "privacyClass",
+        "retentionDays",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]+$"
+        },
+        "trigger": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "fields": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "required"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48,
+                "pattern": "^[a-z][a-zA-Z0-9_]*$"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["string", "integer", "boolean", "enum"],
+                "maxLength": 16
+              },
+              "required": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "privacyClass": {
+          "type": "string",
+          "enum": ["operational", "product", "safety"],
+          "maxLength": 16
+        },
+        "retentionDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    },
+    "acceptanceTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "given",
+        "when",
+        "then",
+        "observableSignals",
+        "traceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/shortText"
+        },
+        "given": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "when": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "then": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "observableSignals": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "common.schema.json#/$defs/shortText"
+          }
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        }
+      }
+    }
+  }
+}
