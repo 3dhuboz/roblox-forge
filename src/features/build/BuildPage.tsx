@@ -9,9 +9,70 @@ import { MonetizationPanel } from "./MonetizationPanel";
 import { InstanceExplorer } from "./InstanceExplorer";
 import { PropertyInspector } from "./PropertyInspector";
 import { useCanvasStore } from "../../stores/canvasStore";
-import { buildCommands } from "../../services/tauriCommands";
+import {
+  buildCommands,
+  isOperationUnavailableError,
+} from "../../services/tauriCommands";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
+
+type BuildUiError = {
+  scope: "export" | "studio";
+  message: string;
+  recoveryAction?: string;
+};
+
+type StudioState = "idle" | "opening" | "opened";
+
+type ExportResult = Awaited<ReturnType<typeof buildCommands.buildProject>>;
+
+type OwnedExportArtifact = {
+  result: ExportResult;
+  projectPath: string;
+  exportAttemptId: number;
+};
+
+type BuildAttemptOwnership = {
+  mounted: boolean;
+  attemptId: number;
+  currentAttemptId: number;
+  projectPath: string | undefined;
+  currentProjectPath: string | undefined;
+};
+
+export function isBuildAttemptCurrent({
+  mounted,
+  attemptId,
+  currentAttemptId,
+  projectPath,
+  currentProjectPath,
+}: BuildAttemptOwnership): boolean {
+  return (
+    mounted &&
+    attemptId === currentAttemptId &&
+    projectPath === currentProjectPath
+  );
+}
+
+function toBuildUiError(
+  scope: BuildUiError["scope"],
+  error: unknown,
+  fallbackMessage: string,
+): BuildUiError {
+  if (isOperationUnavailableError(error)) {
+    return {
+      scope,
+      message: error.message,
+      recoveryAction: error.receipt.recoveryAction,
+    };
+  }
+
+  return {
+    scope,
+    message:
+      error instanceof Error && error.message ? error.message : fallbackMessage,
+  };
+}
 
 export function BuildPage() {
   const { project, projectState } = useProjectStore();
@@ -19,31 +80,196 @@ export function BuildPage() {
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
   const [sidebarTab, setSidebarTab] = useState<"chat" | "script" | "monetize">("chat");
   const [isExporting, setIsExporting] = useState(false);
-  const [exportResult, setExportResult] = useState<{ rbxlPath: string; warnings: string[] } | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const [ownedExportArtifact, setOwnedExportArtifact] =
+    useState<OwnedExportArtifact | null>(null);
+  const [studioState, setStudioState] = useState<StudioState>("idle");
+  const [uiError, setUiError] = useState<BuildUiError | null>(null);
+  const exportInFlightRef = useRef(false);
+  const studioInFlightRef = useRef(false);
+  const exportAttemptIdRef = useRef(0);
+  const studioAttemptIdRef = useRef(0);
+  const ownedExportArtifactRef = useRef<OwnedExportArtifact | null>(null);
+  const mountedRef = useRef(true);
+  const projectPathRef = useRef(project?.path);
+
+  const invalidateProjectOwnership = useCallback(
+    (nextProjectPath: string | undefined) => {
+      if (projectPathRef.current === nextProjectPath) return;
+
+      projectPathRef.current = nextProjectPath;
+      exportAttemptIdRef.current += 1;
+      studioAttemptIdRef.current += 1;
+      exportInFlightRef.current = false;
+      studioInFlightRef.current = false;
+      ownedExportArtifactRef.current = null;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const unsubscribe = useProjectStore.subscribe((state, previousState) => {
+      const nextProjectPath = state.project?.path;
+      if (nextProjectPath === previousState.project?.path) return;
+
+      invalidateProjectOwnership(nextProjectPath);
+      setIsExporting(false);
+      setOwnedExportArtifact(null);
+      setStudioState("idle");
+      setUiError(null);
+    });
+
+    return () => {
+      unsubscribe();
+      mountedRef.current = false;
+      exportInFlightRef.current = false;
+      studioInFlightRef.current = false;
+      exportAttemptIdRef.current += 1;
+      studioAttemptIdRef.current += 1;
+      ownedExportArtifactRef.current = null;
+    };
+  }, [invalidateProjectOwnership]);
 
   const handleExport = async () => {
-    if (!project || isExporting) return;
+    const currentProject = useProjectStore.getState().project;
+    if (
+      !project ||
+      !currentProject ||
+      project.path !== currentProject.path ||
+      exportInFlightRef.current
+    ) {
+      return;
+    }
+
+    const projectPath = currentProject.path;
+    const attemptId = ++exportAttemptIdRef.current;
+    studioAttemptIdRef.current += 1;
+    exportInFlightRef.current = true;
+    studioInFlightRef.current = false;
+    ownedExportArtifactRef.current = null;
     setIsExporting(true);
-    setExportError(null);
-    setExportResult(null);
+    setOwnedExportArtifact(null);
+    setStudioState("idle");
+    setUiError(null);
+
+    const isCurrentAttempt = () =>
+      isBuildAttemptCurrent({
+        mounted: mountedRef.current,
+        attemptId,
+        currentAttemptId: exportAttemptIdRef.current,
+        projectPath,
+        currentProjectPath: useProjectStore.getState().project?.path,
+      });
+
     try {
-      const result = await buildCommands.buildProject(project.path);
-      setExportResult(result);
-    } catch (e) {
-      setExportError(e instanceof Error ? e.message : String(e));
+      const result = await buildCommands.buildProject(projectPath);
+      if (isCurrentAttempt()) {
+        const artifact: OwnedExportArtifact = {
+          result,
+          projectPath,
+          exportAttemptId: attemptId,
+        };
+        ownedExportArtifactRef.current = artifact;
+        setOwnedExportArtifact(artifact);
+      }
+    } catch (error) {
+      if (isCurrentAttempt()) {
+        setUiError(
+          toBuildUiError(
+            "export",
+            error,
+            "Export failed. Please try again.",
+          ),
+        );
+      }
     } finally {
-      setIsExporting(false);
+      if (isCurrentAttempt()) {
+        exportInFlightRef.current = false;
+        setIsExporting(false);
+      }
     }
   };
 
   const handleOpenInStudio = async () => {
-    if (!exportResult?.rbxlPath) return;
-    if (isTauriRuntime()) {
-      try {
-        await openPath(exportResult.rbxlPath);
-      } catch (e) {
-        console.error("Failed to open in Studio:", e);
+    if (exportInFlightRef.current || studioInFlightRef.current) return;
+
+    const artifact = ownedExportArtifactRef.current;
+    const currentProjectPath = useProjectStore.getState().project?.path;
+    if (
+      !artifact ||
+      !isBuildAttemptCurrent({
+        mounted: mountedRef.current,
+        attemptId: artifact.exportAttemptId,
+        currentAttemptId: exportAttemptIdRef.current,
+        projectPath: artifact.projectPath,
+        currentProjectPath,
+      })
+    ) {
+      return;
+    }
+
+    const projectPath = artifact.projectPath;
+    const rbxlPath = artifact.result.rbxlPath;
+    const attemptId = ++studioAttemptIdRef.current;
+    setUiError(null);
+
+    if (!isTauriRuntime()) {
+      setStudioState("idle");
+      setUiError({
+        scope: "studio",
+        message:
+          "Testing in Roblox Studio is unavailable in browser preview.",
+        recoveryAction: "Open RobloxForge Desktop to test this game.",
+      });
+      return;
+    }
+
+    studioInFlightRef.current = true;
+    setStudioState("opening");
+
+    const isCurrentAttempt = () => {
+      const studioAttemptIsCurrent = isBuildAttemptCurrent({
+        mounted: mountedRef.current,
+        attemptId,
+        currentAttemptId: studioAttemptIdRef.current,
+        projectPath,
+        currentProjectPath: useProjectStore.getState().project?.path,
+      });
+      const artifactIsCurrent = isBuildAttemptCurrent({
+        mounted: mountedRef.current,
+        attemptId: artifact.exportAttemptId,
+        currentAttemptId: exportAttemptIdRef.current,
+        projectPath: artifact.projectPath,
+        currentProjectPath: useProjectStore.getState().project?.path,
+      });
+
+      return (
+        studioAttemptIsCurrent &&
+        artifactIsCurrent &&
+        !exportInFlightRef.current &&
+        ownedExportArtifactRef.current === artifact
+      );
+    };
+
+    try {
+      await openPath(rbxlPath);
+      if (isCurrentAttempt()) {
+        setStudioState("opened");
+      }
+    } catch (error) {
+      if (isCurrentAttempt()) {
+        setStudioState("idle");
+        setUiError(
+          toBuildUiError(
+            "studio",
+            error,
+            "Could not open Roblox Studio. Please try again.",
+          ),
+        );
+      }
+    } finally {
+      if (isCurrentAttempt()) {
+        studioInFlightRef.current = false;
       }
     }
   };
@@ -75,6 +301,20 @@ export function BuildPage() {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [elements, project, handleSave]);
+
+  const renderableExportArtifact =
+    ownedExportArtifact !== null &&
+    ownedExportArtifactRef.current === ownedExportArtifact &&
+    isBuildAttemptCurrent({
+      mounted: mountedRef.current,
+      attemptId: ownedExportArtifact.exportAttemptId,
+      currentAttemptId: exportAttemptIdRef.current,
+      projectPath: ownedExportArtifact.projectPath,
+      currentProjectPath: project?.path,
+    })
+      ? ownedExportArtifact
+      : null;
+  const exportResult = renderableExportArtifact?.result ?? null;
 
   if (!project) {
     return (
@@ -153,7 +393,7 @@ export function BuildPage() {
             <Loader2 size={13} className="animate-spin" />
           ) : exportResult ? (
             <Check size={13} />
-          ) : exportError ? (
+          ) : uiError?.scope === "export" ? (
             <AlertCircle size={13} />
           ) : (
             <Download size={13} />
@@ -163,12 +403,36 @@ export function BuildPage() {
         {exportResult && (
           <button
             onClick={handleOpenInStudio}
+            disabled={studioState === "opening"}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600/20 px-3 py-1.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-600/30"
           >
-            <Play size={13} /> Test in Studio
+            {studioState === "opening" ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : studioState === "opened" ? (
+              <Check size={13} />
+            ) : (
+              <Play size={13} />
+            )}
+            {studioState === "opening"
+              ? "Opening..."
+              : studioState === "opened"
+                ? "Opened in Studio"
+                : "Test in Studio"}
           </button>
         )}
       </div>
+
+      {uiError && (
+        <div
+          role="alert"
+          className="border-b border-red-900/40 bg-red-950/40 px-4 py-2 text-xs text-red-200"
+        >
+          <div>{uiError.message}</div>
+          {uiError.recoveryAction && (
+            <div className="mt-1 text-red-300">{uiError.recoveryAction}</div>
+          )}
+        </div>
+      )}
 
       {/* Main layout: Explorer + 3D viewport + sidebar + Properties */}
       <div className="flex flex-1 overflow-hidden">
