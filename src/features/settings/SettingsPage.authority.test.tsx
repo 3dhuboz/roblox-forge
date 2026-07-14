@@ -304,26 +304,23 @@ describe("SettingsPage desktop authority", () => {
   it("does not promote deferred initial authority checks after runtime disappears", async () => {
     enableTauriRuntime();
     const keyCheck = deferred<string | null>();
-    const rojoCheck = deferred<RojoStatus>();
     vi.mocked(aiCommands.checkApiKey).mockReturnValueOnce(keyCheck.promise);
-    vi.mocked(rojoCommands.checkStatus).mockReturnValueOnce(rojoCheck.promise);
     render(<SettingsPage />);
 
     clearTauriRuntime();
     await act(async () => {
       keyCheck.resolve("openrouter");
-      rojoCheck.resolve(installedRojo);
-      await Promise.all([keyCheck.promise, rojoCheck.promise]);
+      await keyCheck.promise;
     });
 
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(false);
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getByRole("alert")).toHaveTextContent(/AI key management requires/i);
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
-    expect(screen.getByText(/Rojo status requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/AI key configured in RobloxForge Desktop/i),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("treats a desktop null check as missing even when the persisted profile says configured", async () => {
@@ -546,6 +543,7 @@ describe("SettingsPage desktop authority", () => {
       new Error("Rojo could not start for this project."),
     );
     render(<SettingsPage />);
+    expandStudioSync();
     expect(
       await screen.findByRole("button", { name: "Start Sync to Studio" }),
     ).toBeInTheDocument();
@@ -576,6 +574,7 @@ describe("SettingsPage desktop authority", () => {
       new Error("Rojo could not stop the current server."),
     );
     render(<SettingsPage />);
+    expandStudioSync();
     expect(
       await screen.findByRole("button", { name: "Stop" }),
     ).toBeInTheDocument();
