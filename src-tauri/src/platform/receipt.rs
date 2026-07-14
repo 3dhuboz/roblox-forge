@@ -613,17 +613,33 @@ fn sanitize_value(value: Value, depth: usize) -> Value {
                 .take(MAX_VALUE_OBJECT_ENTRIES)
                 .enumerate()
             {
-                let mut safe_key = sanitize_text(&key, MAX_VALUE_KEY_LENGTH);
+                let prototype_control_key = is_prototype_control_key(&key);
+                let mut safe_key = if prototype_control_key {
+                    REDACTED_TEXT.to_owned()
+                } else {
+                    sanitize_text(&key, MAX_VALUE_KEY_LENGTH)
+                };
                 if sanitized.contains_key(&safe_key) {
                     safe_key = format!("{}#{index}", safe_key);
                     safe_key = safe_key.chars().take(MAX_VALUE_KEY_LENGTH).collect();
                 }
-                sanitized.insert(safe_key, sanitize_value(item, depth + 1));
+                let safe_item = if prototype_control_key {
+                    Value::String(REDACTED_TEXT.to_owned())
+                } else {
+                    sanitize_value(item, depth + 1)
+                };
+                sanitized.insert(safe_key, safe_item);
             }
             Value::Object(sanitized)
         }
         scalar => scalar,
     }
+}
+
+fn is_prototype_control_key(key: &str) -> bool {
+    ["__proto__", "prototype", "constructor"]
+        .iter()
+        .any(|control_key| key.eq_ignore_ascii_case(control_key))
 }
 
 fn is_unsafe_text(value: &str) -> bool {

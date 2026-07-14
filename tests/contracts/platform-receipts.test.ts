@@ -216,23 +216,26 @@ describe("browser operation receipt boundary", () => {
       string,
       unknown
     >;
-    Object.defineProperties(hostile, {
-      __proto__: {
+    const prototypeControlEntries = [
+      ["__PrOtO__", { prototypePollution: fixture.sentinel }],
+      ["PrOtOtYpE", fixture.sentinel],
+      ["CONSTRUCTOR", fixture.sentinel],
+    ] as const;
+    for (const [key, item] of prototypeControlEntries) {
+      Object.defineProperty(hostile, key, {
+        configurable: true,
         enumerable: true,
-        value: { prototypePollution: fixture.sentinel },
-      },
-      prototype: {
-        enumerable: true,
-        value: fixture.sentinel,
-      },
-      constructor: {
-        enumerable: true,
-        value: fixture.sentinel,
-      },
-      safe: {
-        enumerable: true,
-        value: "preserved",
-      },
+        value: item,
+        writable: true,
+      });
+      expect(Object.prototype.hasOwnProperty.call(hostile, key)).toBe(true);
+      expect(Object.prototype.propertyIsEnumerable.call(hostile, key)).toBe(true);
+    }
+    Object.defineProperty(hostile, "safe", {
+      configurable: true,
+      enumerable: true,
+      value: "preserved",
+      writable: true,
     });
 
     const receipt = createBrowserReceipt({
@@ -245,9 +248,13 @@ describe("browser operation receipt boundary", () => {
 
     expect(Object.getPrototypeOf(value)).toBeNull();
     expect(Object.getPrototypeOf(value.nested)).toBeNull();
-    expect(Object.prototype.hasOwnProperty.call(value.nested, "__proto__")).toBe(false);
-    expect(Object.prototype.hasOwnProperty.call(value.nested, "prototype")).toBe(false);
-    expect(Object.prototype.hasOwnProperty.call(value.nested, "constructor")).toBe(false);
+    const safeKeys = Object.keys(value.nested);
+    expect(
+      safeKeys.filter((key) =>
+        ["__proto__", "prototype", "constructor"].includes(key.toLowerCase()),
+      ),
+    ).toEqual([]);
+    expect(safeKeys.filter((key) => key.startsWith(fixture.redacted))).toHaveLength(3);
     expect(value.nested.safe).toBe("preserved");
     expect(serialized).not.toContain(fixture.sentinel);
     expect(({} as Record<string, unknown>).prototypePollution).toBeUndefined();

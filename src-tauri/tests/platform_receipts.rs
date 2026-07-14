@@ -307,6 +307,62 @@ fn text_and_recursive_value_bounds_match_the_shared_fixture() {
 }
 
 #[test]
+fn nested_value_neutralizes_prototype_control_keys_case_insensitively() {
+    let fixture = redaction_fixture();
+    let hostile = json!({
+        "nested": {
+            "__PrOtO__": { "prototypePollution": fixture.sentinel },
+            "PrOtOtYpE": fixture.sentinel,
+            "CONSTRUCTOR": fixture.sentinel,
+            "safe": "preserved",
+        }
+    });
+    let first = attempt("analytics")
+        .failed(
+            "Analytics unavailable",
+            Vec::<String>::new(),
+            FailureRetrySafety::Safe,
+        )
+        .with_value(hostile.clone());
+    let second = attempt("analytics")
+        .failed(
+            "Analytics unavailable",
+            Vec::<String>::new(),
+            FailureRetrySafety::Safe,
+        )
+        .with_value(hostile);
+
+    assert_eq!(first.value(), second.value());
+    let nested = first.value().unwrap()["nested"].as_object().unwrap();
+    assert_eq!(
+        nested.len(),
+        4,
+        "redacted duplicate keys must not overwrite"
+    );
+    assert_eq!(nested.get("safe"), Some(&json!("preserved")));
+
+    let redacted_entries = nested
+        .iter()
+        .filter(|(key, _)| key.starts_with(&fixture.redacted))
+        .collect::<Vec<_>>();
+    assert_eq!(redacted_entries.len(), 3);
+    assert!(redacted_entries
+        .iter()
+        .all(|(_, value)| *value == &json!(fixture.redacted)));
+    assert!(nested.keys().all(|key| !matches!(
+        key.to_ascii_lowercase().as_str(),
+        "__proto__" | "prototype" | "constructor"
+    )));
+
+    let serialized = serde_json::to_string(first.value().unwrap()).unwrap();
+    let serialized_lower = serialized.to_ascii_lowercase();
+    assert!(!serialized.contains(&fixture.sentinel));
+    for control_key in ["__proto__", "prototype", "constructor"] {
+        assert!(!serialized_lower.contains(control_key));
+    }
+}
+
+#[test]
 fn safe_text_and_json_shape_are_preserved() {
     let fixture = redaction_fixture();
     let safe = fixture.safe_strings[0].clone();
