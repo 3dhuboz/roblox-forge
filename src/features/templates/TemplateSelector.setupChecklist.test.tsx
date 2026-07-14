@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TemplateSelector } from "./TemplateSelector";
 import {
   aiCommands,
+  OperationUnavailableError,
+  rojoCommands,
 } from "../../services/tauriCommands";
+import type { OperationReceipt } from "../../types/receipts";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
 
@@ -71,6 +74,13 @@ beforeEach(() => {
   useProjectStore.setState(originalProjectStoreState, true);
   seedProfile(false);
   vi.spyOn(aiCommands, "checkApiKey").mockResolvedValue(null);
+  vi.spyOn(rojoCommands, "checkStatus").mockResolvedValue({
+    installed: false,
+    version: null,
+    serving: false,
+    serve_port: null,
+    install_instructions: "Install Rojo to sync with Studio.",
+  });
 });
 
 afterEach(() => {
@@ -102,6 +112,7 @@ describe("TemplateSelector setup checklist authority", () => {
 
     expect(screen.getByText("1/2")).toBeInTheDocument();
     expect(screen.getByText(/No AI key is configured/i)).toBeInTheDocument();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("hides only after provider and a project are authoritatively ready", async () => {
@@ -115,6 +126,7 @@ describe("TemplateSelector setup checklist authority", () => {
       expect(screen.queryByText("Getting Started")).not.toBeInTheDocument(),
     );
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(true);
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("starts unavailable in browser, ignores a persisted flag, and calls no desktop checks", () => {
@@ -127,6 +139,7 @@ describe("TemplateSelector setup checklist authority", () => {
     expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
     expect(screen.queryByText(/Checking/i)).not.toBeInTheDocument();
     expect(aiCommands.checkApiKey).not.toHaveBeenCalled();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("keeps generic and typed desktop failures distinct and incomplete", async () => {
@@ -141,6 +154,29 @@ describe("TemplateSelector setup checklist authority", () => {
 
     expect(await screen.findByText(/Desktop key probe failed/i)).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
+
+    const receipt = {
+      operationId: "key-unavailable-id",
+      correlationId: "key-unavailable-correlation",
+      operation: "check_api_key",
+      state: "unavailable",
+      authoritative: false,
+      startedAt: "2000-01-01T00:00:00.000Z",
+      finishedAt: "2000-01-01T00:00:00.000Z",
+      message: "AI key authority is unavailable.",
+      diagnostics: ["raw receipt detail must stay hidden"],
+      retrySafety: "not_retryable",
+      recoveryAction: "Restart RobloxForge Desktop.",
+    } satisfies OperationReceipt;
+    vi.mocked(aiCommands.checkApiKey).mockRejectedValueOnce(
+      new OperationUnavailableError(receipt),
+    );
+    const view = renderSelector();
+    expect(await screen.findByText(/AI key authority is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Restart RobloxForge Desktop/i)).toBeInTheDocument();
+    expect(screen.queryByText(/raw receipt detail/i)).not.toBeInTheDocument();
+    view.unmount();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("keeps deferred successful checks incomplete when the desktop runtime disappears", async () => {
@@ -163,7 +199,8 @@ describe("TemplateSelector setup checklist authority", () => {
     expect(screen.getByText("1/2")).toBeInTheDocument();
     expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
     expect(screen.queryByText(/OpenRouter/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(installedRojo.version!)).not.toBeInTheDocument();
+    expect(screen.queryByText("Install Rojo")).not.toBeInTheDocument();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("uses Desktop-required hints for deferred failures after runtime disappears", async () => {
@@ -183,6 +220,7 @@ describe("TemplateSelector setup checklist authority", () => {
     expect(screen.getByText("1/2")).toBeInTheDocument();
     expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
     expect(screen.queryByText(/late key failure/i)).not.toBeInTheDocument();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
   it("does not update state or profile when deferred checks resolve after unmount", async () => {
@@ -202,5 +240,6 @@ describe("TemplateSelector setup checklist authority", () => {
 
     expect(updateProfile).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 });
