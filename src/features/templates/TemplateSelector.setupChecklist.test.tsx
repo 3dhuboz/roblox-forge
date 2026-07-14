@@ -150,10 +150,11 @@ describe("TemplateSelector setup checklist authority", () => {
       new Error("Desktop key probe failed."),
     );
 
-    renderSelector();
+    const genericView = renderSelector();
 
     expect(await screen.findByText(/Desktop key probe failed/i)).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
+    genericView.unmount();
 
     const receipt = {
       operationId: "key-unavailable-id",
