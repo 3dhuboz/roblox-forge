@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useAuthStore } from "../../stores/authStore";
-import { publishCommands } from "../../services/tauriCommands";
+import {
+  isOperationUnavailableError,
+  publishCommands,
+} from "../../services/tauriCommands";
 import {
   LogIn,
   LogOut,
@@ -66,8 +69,14 @@ export function PublishPage() {
     gameUrl?: string;
     versionNumber?: number;
     error?: string;
+    unavailable?: boolean;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const phaseTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const clearPhaseTimers = useCallback(() => {
+    phaseTimersRef.current.forEach((timer) => clearTimeout(timer));
+    phaseTimersRef.current = [];
+  }, []);
 
   // Auto-skip auth if already connected
   useEffect(() => {
@@ -79,6 +88,10 @@ export function PublishPage() {
       setStep("settings");
     }
   }, [auth, step]);
+
+  useEffect(() => {
+    return () => clearPhaseTimers();
+  }, [clearPhaseTimers]);
 
   const stepConfig = [
     { key: "auth" as const, label: "Log In", icon: LogIn },
@@ -119,14 +132,17 @@ export function PublishPage() {
     ) {
       return;
     }
+    clearPhaseTimers();
     setIsPublishing(true);
     setPublishResult(null);
     setPublishPhase("building");
 
     try {
       // Simulate phase progression (the backend does all 3 steps in one call)
-      const phaseTimer1 = setTimeout(() => setPublishPhase("uploading"), 800);
-      const phaseTimer2 = setTimeout(() => setPublishPhase("metadata"), 2000);
+      phaseTimersRef.current = [
+        setTimeout(() => setPublishPhase("uploading"), 800),
+        setTimeout(() => setPublishPhase("metadata"), 2000),
+      ];
 
       const result = await publishCommands.publishGame(
         project.path,
@@ -135,9 +151,6 @@ export function PublishPage() {
         universeId.trim(),
         placeId.trim(),
       );
-
-      clearTimeout(phaseTimer1);
-      clearTimeout(phaseTimer2);
 
       setPublishResult({
         gameUrl: result.gameUrl,
@@ -152,9 +165,12 @@ export function PublishPage() {
         setPublishPhase("error");
       }
     } catch (e) {
-      setPublishResult({ error: String(e) });
+      const unavailable = isOperationUnavailableError(e);
+      const error = e instanceof Error ? e.message : String(e);
+      setPublishResult({ error, unavailable });
       setPublishPhase("error");
     } finally {
+      clearPhaseTimers();
       setIsPublishing(false);
     }
   };
@@ -432,18 +448,27 @@ export function PublishPage() {
 
               {/* Error inline */}
               {publishResult?.error && !isPublishing && (
-                <div className="flex items-start gap-3 rounded-xl border border-red-900/40 bg-red-950/20 p-4">
+                <div
+                  role="alert"
+                  className="flex items-start gap-3 rounded-xl border border-red-900/40 bg-red-950/20 p-4"
+                >
                   <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-400" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-red-300">Publish failed</p>
+                    <p className="text-sm font-medium text-red-300">
+                      {publishResult.unavailable
+                        ? "Publishing unavailable"
+                        : "Publish failed"}
+                    </p>
                     <p className="mt-1 text-xs text-red-400/80">{publishResult.error}</p>
                   </div>
-                  <button
-                    onClick={handlePublish}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-red-600/20 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-600/30"
-                  >
-                    <RotateCcw size={12} /> Retry
-                  </button>
+                  {!publishResult.unavailable && (
+                    <button
+                      onClick={handlePublish}
+                      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-red-600/20 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-600/30"
+                    >
+                      <RotateCcw size={12} /> Retry
+                    </button>
+                  )}
                 </div>
               )}
 
