@@ -1,10 +1,10 @@
 use chrono::DateTime;
 use roblox_forge_lib::platform::receipt::{
-    FailureRetrySafety, OperationAttempt, PartialSuccessEvidence, RetrySafety, SuccessEvidence,
-    MAX_CORRELATION_ID_LENGTH, MAX_DIAGNOSTICS, MAX_DIAGNOSTIC_LENGTH,
-    MAX_EXTERNAL_RESOURCE_ID_LENGTH, MAX_MESSAGE_LENGTH, MAX_OPERATION_LENGTH,
-    MAX_RECOVERY_ACTION_LENGTH, MAX_VALUE_ARRAY_ITEMS, MAX_VALUE_DEPTH, MAX_VALUE_KEY_LENGTH,
-    MAX_VALUE_OBJECT_ENTRIES, MAX_VALUE_STRING_LENGTH,
+    FailureRetrySafety, OperationAttempt, OperationState, OutcomeUnknownEvidence,
+    PartialSuccessEvidence, RetrySafety, SuccessEvidence, MAX_CORRELATION_ID_LENGTH,
+    MAX_DIAGNOSTICS, MAX_DIAGNOSTIC_LENGTH, MAX_EXTERNAL_RESOURCE_ID_LENGTH, MAX_MESSAGE_LENGTH,
+    MAX_OPERATION_LENGTH, MAX_RECOVERY_ACTION_LENGTH, MAX_VALUE_ARRAY_ITEMS, MAX_VALUE_DEPTH,
+    MAX_VALUE_KEY_LENGTH, MAX_VALUE_OBJECT_ENTRIES, MAX_VALUE_STRING_LENGTH,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -119,6 +119,90 @@ fn authoritative_success_requires_valid_typed_evidence() {
     assert_eq!(receipt.artifact_hash(), Some(ARTIFACT_HASH));
     assert_eq!(receipt.external_resource_id(), Some("place-version:42"));
     assert!(receipt.is_authoritative_success());
+}
+
+#[test]
+fn outcome_unknown_requires_artifact_evidence_and_preserves_attempt_context() {
+    for invalid in [
+        "not-a-sha256",
+        "sha256:0123",
+        "sha256:RF_CREDENTIAL_VALUE_7A9C",
+    ] {
+        let error = OutcomeUnknownEvidence::new(invalid)
+            .unwrap_err()
+            .to_string();
+        assert_eq!(error, "artifact hash is invalid");
+        assert!(!error.contains(invalid));
+    }
+
+    let receipt = OperationAttempt::new("publish", CORRELATION_ID, Some(INPUT_HASH))
+        .unwrap()
+        .outcome_unknown(
+            OutcomeUnknownEvidence::new(ARTIFACT_HASH).unwrap(),
+            "Publish response was ambiguous",
+            vec!["Connection closed after upload".to_owned()],
+            "Reconcile the place version before retrying",
+        );
+
+    assert_eq!(receipt.state(), OperationState::OutcomeUnknown);
+    assert!(!receipt.authoritative());
+    assert!(!receipt.is_authoritative_success());
+    assert_eq!(
+        receipt.retry_safety(),
+        RetrySafety::UnsafeWithoutReconciliation
+    );
+    assert_eq!(receipt.input_hash(), Some(INPUT_HASH));
+    assert_eq!(receipt.artifact_hash(), Some(ARTIFACT_HASH));
+    assert!(receipt.external_resource_id().is_none());
+    assert_eq!(
+        receipt.recovery_action(),
+        Some("Reconcile the place version before retrying")
+    );
+    DateTime::parse_from_rfc3339(receipt.finished_at().unwrap()).unwrap();
+
+    let serialized = serde_json::to_value(&receipt).unwrap();
+    assert_eq!(serialized["state"], json!("outcome_unknown"));
+    assert_eq!(serialized["authoritative"], json!(false));
+    assert_eq!(
+        serialized["retrySafety"],
+        json!("unsafe_without_reconciliation")
+    );
+    assert_eq!(serialized["inputHash"], json!(INPUT_HASH));
+    assert_eq!(serialized["artifactHash"], json!(ARTIFACT_HASH));
+    assert!(serialized.get("externalResourceId").is_none());
+}
+
+#[test]
+fn outcome_unknown_recovery_action_is_sanitized_and_bounded() {
+    let fixture = redaction_fixture();
+    let secret_action = fixture.vectors[5].input.clone();
+    let redacted = OperationAttempt::new("publish", CORRELATION_ID, None)
+        .unwrap()
+        .outcome_unknown(
+            OutcomeUnknownEvidence::new(ARTIFACT_HASH).unwrap(),
+            "Publish response was ambiguous",
+            Vec::<String>::new(),
+            &secret_action,
+        );
+    assert_eq!(redacted.recovery_action(), Some(fixture.redacted.as_str()));
+    assert!(redacted.input_hash().is_none());
+    let serialized = serde_json::to_string(&redacted).unwrap();
+    assert!(!serialized.contains(&fixture.sentinel));
+    assert!(!serialized.contains(&secret_action));
+
+    let long_action = "r".repeat(MAX_RECOVERY_ACTION_LENGTH + 50);
+    let bounded = OperationAttempt::new("publish", CORRELATION_ID, None)
+        .unwrap()
+        .outcome_unknown(
+            OutcomeUnknownEvidence::new(ARTIFACT_HASH).unwrap(),
+            "Publish response was ambiguous",
+            Vec::<String>::new(),
+            &long_action,
+        );
+    assert_eq!(
+        bounded.recovery_action().unwrap().chars().count(),
+        MAX_RECOVERY_ACTION_LENGTH
+    );
 }
 
 #[test]

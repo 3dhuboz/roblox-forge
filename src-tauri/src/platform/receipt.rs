@@ -29,6 +29,7 @@ pub enum OperationState {
     Failed,
     Cancelled,
     PartialSuccess,
+    OutcomeUnknown,
     Unavailable,
     Simulated,
 }
@@ -139,6 +140,22 @@ impl PartialSuccessEvidence {
     }
 }
 
+#[derive(Debug)]
+pub struct OutcomeUnknownEvidence {
+    artifact_hash: String,
+}
+
+impl OutcomeUnknownEvidence {
+    pub fn new(artifact_hash: impl AsRef<str>) -> Result<Self, ReceiptValidationError> {
+        Ok(Self {
+            artifact_hash: validate_hash(
+                artifact_hash.as_ref(),
+                ReceiptValidationError::InvalidArtifactHash,
+            )?,
+        })
+    }
+}
+
 /// A Rust-issued record of one privileged operation.
 ///
 /// Callers cannot mutate authority-bearing fields after construction:
@@ -245,6 +262,63 @@ impl PartialSuccessEvidence {
 ///
 /// let attempt = OperationAttempt::new("publish", "correlation-1", None).unwrap();
 /// let _duplicate = attempt.clone();
+/// ```
+///
+/// Ambiguous-outcome evidence cannot be constructed without validation:
+///
+/// ```compile_fail,E0451
+/// use roblox_forge_lib::platform::receipt::OutcomeUnknownEvidence;
+///
+/// let _evidence = OutcomeUnknownEvidence {
+///     artifact_hash: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_owned(),
+/// };
+/// ```
+///
+/// Ambiguous outcomes cannot claim a known external resource:
+///
+/// ```compile_fail,E0599
+/// use roblox_forge_lib::platform::receipt::OutcomeUnknownEvidence;
+///
+/// let evidence = OutcomeUnknownEvidence::new(
+///     "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+/// ).unwrap();
+/// let _evidence = evidence.with_external_resource_id("place-version:42");
+/// ```
+///
+/// Ambiguous outcomes have a fixed retry classification:
+///
+/// ```compile_fail,E0061
+/// use roblox_forge_lib::platform::receipt::{OperationAttempt, OutcomeUnknownEvidence, RetrySafety};
+///
+/// let attempt = OperationAttempt::new("publish", "correlation-1", None).unwrap();
+/// let evidence = OutcomeUnknownEvidence::new(
+///     "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+/// ).unwrap();
+/// let _receipt = attempt.outcome_unknown(
+///     evidence,
+///     "Publish response was ambiguous",
+///     Vec::<String>::new(),
+///     "Reconcile before retrying",
+///     RetrySafety::Safe,
+/// );
+/// ```
+///
+/// An ambiguous terminal outcome consumes its operation attempt:
+///
+/// ```compile_fail,E0382
+/// use roblox_forge_lib::platform::receipt::{OperationAttempt, OutcomeUnknownEvidence};
+///
+/// let attempt = OperationAttempt::new("publish", "correlation-1", None).unwrap();
+/// let evidence = OutcomeUnknownEvidence::new(
+///     "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+/// ).unwrap();
+/// let _receipt = attempt.outcome_unknown(
+///     evidence,
+///     "Publish response was ambiguous",
+///     Vec::<String>::new(),
+///     "Reconcile before retrying",
+/// );
+/// let _running_after_terminal = attempt.running("Running again", Vec::<String>::new());
 /// ```
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -469,6 +543,26 @@ impl OperationAttempt {
             evidence.artifact_hash,
             Some(evidence.external_resource_id),
         )
+    }
+
+    pub fn outcome_unknown(
+        self,
+        evidence: OutcomeUnknownEvidence,
+        message: impl AsRef<str>,
+        diagnostics: Vec<String>,
+        recovery_action: impl AsRef<str>,
+    ) -> OperationReceipt {
+        self.receipt(
+            OperationState::OutcomeUnknown,
+            true,
+            true,
+            message,
+            diagnostics,
+            RetrySafety::UnsafeWithoutReconciliation,
+            Some(evidence.artifact_hash),
+            None,
+        )
+        .with_recovery_action(recovery_action)
     }
 
     pub fn unavailable(

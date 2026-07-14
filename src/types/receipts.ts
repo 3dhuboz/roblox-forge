@@ -5,6 +5,7 @@ export type OperationState =
   | "failed"
   | "cancelled"
   | "partial_success"
+  | "outcome_unknown"
   | "unavailable"
   | "simulated";
 

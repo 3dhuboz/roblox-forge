@@ -22,6 +22,7 @@ import {
   type BrowserReceiptInput,
   type BrowserReceiptState,
   type OperationReceipt,
+  type OperationState,
 } from "../../src/types/receipts";
 
 interface RedactionFixture {
@@ -84,9 +85,11 @@ describe("browser operation receipt boundary", () => {
   );
 
   it("rejects desktop states and drops hostile evidence fields", () => {
-    expect(() =>
-      createBrowserReceipt({ ...common, state: "succeeded" as BrowserReceiptState }),
-    ).toThrow("Browser receipts may only be simulated or unavailable");
+    for (const state of ["succeeded", "outcome_unknown"] as const) {
+      expect(() =>
+        createBrowserReceipt({ ...common, state: state as BrowserReceiptState }),
+      ).toThrow("Browser receipts may only be simulated or unavailable");
+    }
 
     const receipt = createBrowserReceipt({
       ...common,
@@ -101,6 +104,31 @@ describe("browser operation receipt boundary", () => {
     expect(receipt).not.toHaveProperty("inputHash");
     expect(receipt).not.toHaveProperty("artifactHash");
     expect(receipt).not.toHaveProperty("externalResourceId");
+  });
+
+  it("models an ambiguous Rust outcome without granting browser authority", () => {
+    const state: OperationState = "outcome_unknown";
+    const receipt: OperationReceipt = {
+      operationId: "b92aeffb-a527-4197-a48a-d640b6e8b156",
+      correlationId,
+      operation: "publish",
+      state,
+      authoritative: false,
+      startedAt: "2026-07-14T08:00:00.000Z",
+      finishedAt: "2026-07-14T08:00:30.000Z",
+      inputHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      artifactHash:
+        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      message: "Publish response was ambiguous",
+      diagnostics: [],
+      retrySafety: "unsafe_without_reconciliation",
+      recoveryAction: "Reconcile the place version before retrying",
+    };
+
+    expect(receipt.state).toBe("outcome_unknown");
+    expect(receipt.authoritative).toBe(false);
+    expect(receipt).not.toHaveProperty("externalResourceId");
+    expect(isAuthoritativeSuccess(receipt)).toBe(false);
   });
 
   it("uses distinct UUID v4 IDs and terminal RFC3339 timestamps", () => {
