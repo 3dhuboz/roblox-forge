@@ -39,3 +39,11 @@ rbx_xml = "2.0"
 rbx_reflection = "6.1"
 rbx_reflection_database = "2.0"
 regex = "1"
+async-trait = "0.1"
+zeroize = "1"
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3.6.3", default-features = false, features = ["windows-native"] }
+
+[dev-dependencies]
+tempfile = "3"

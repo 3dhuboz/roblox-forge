@@ -3,6 +3,15 @@ import type { AiResponse, ChatMessage } from "../types/ai";
 import type { ProjectInfo, ProjectState } from "../types/project";
 import { createBrowserReceipt, type OperationReceipt } from "../types/receipts";
 import type { AuthState, PublishResult } from "../types/roblox";
+import type {
+  CredentialMutationReceipt,
+  PublishRobloxProjectInput,
+  RegisterRobloxTargetInput,
+  RobloxAuthorityState,
+  RobloxCredentialPurpose,
+  RobloxPublishReceipt,
+  TargetRegistrationReceipt,
+} from "../types/robloxAuthority";
 import type { ValidationIssue } from "../types/validation";
 import { isTauriRuntime } from "../lib/isTauriRuntime";
 
@@ -20,6 +29,11 @@ type AuthorityOperation =
   | "read_file"
   | "send_chat_message"
   | "set_api_key"
+  | "get_roblox_authority_state"
+  | "set_roblox_api_key"
+  | "delete_roblox_api_key"
+  | "register_roblox_target"
+  | "publish_roblox_project"
   | "build_project"
   | "start_oauth_flow"
   | "handle_oauth_callback"
@@ -64,9 +78,13 @@ async function authorityOrInvoke<T>(
   const receiptOperation =
     operation === "set_api_key"
       ? "set_key"
-      : operation === "refresh_auth_token"
-        ? "refresh_auth"
-        : operation;
+      : operation === "set_roblox_api_key"
+        ? "set_roblox_key"
+        : operation === "delete_roblox_api_key"
+          ? "delete_roblox_key"
+          : operation === "refresh_auth_token"
+            ? "refresh_auth"
+            : operation;
   const receipt = createBrowserReceipt({
     state: "unavailable",
     operation: receiptOperation,
@@ -193,6 +211,36 @@ export const publishCommands = {
         universeId,
         placeId,
       }),
+    ),
+};
+
+export const robloxAuthorityCommands = {
+  getState: () =>
+    authorityOrInvoke("get_roblox_authority_state", () =>
+      invoke<RobloxAuthorityState>("get_roblox_authority_state"),
+    ),
+
+  setApiKey: (purpose: RobloxCredentialPurpose, apiKey: string) =>
+    authorityOrInvoke("set_roblox_api_key", () =>
+      invoke<CredentialMutationReceipt>("set_roblox_api_key", {
+        purpose,
+        apiKey,
+      }),
+    ),
+
+  deleteApiKey: (purpose: RobloxCredentialPurpose) =>
+    authorityOrInvoke("delete_roblox_api_key", () =>
+      invoke<CredentialMutationReceipt>("delete_roblox_api_key", { purpose }),
+    ),
+
+  registerTarget: (input: RegisterRobloxTargetInput) =>
+    authorityOrInvoke("register_roblox_target", () =>
+      invoke<TargetRegistrationReceipt>("register_roblox_target", { ...input }),
+    ),
+
+  publishProject: (input: PublishRobloxProjectInput) =>
+    authorityOrInvoke("publish_roblox_project", () =>
+      invoke<RobloxPublishReceipt>("publish_roblox_project", { ...input }),
     ),
 };
 

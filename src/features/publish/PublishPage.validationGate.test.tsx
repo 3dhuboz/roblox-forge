@@ -1,252 +1,175 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PublishPage } from "./PublishPage";
-import {
-  publishCommands,
-  validationCommands,
-} from "../../services/tauriCommands";
-import { useAuthStore } from "../../stores/authStore";
+import { robloxAuthorityCommands } from "../../services/tauriCommands";
 import { useProjectStore } from "../../stores/projectStore";
-import type { AuthState } from "../../types/roblox";
 import type { ProjectInfo } from "../../types/project";
+import type { RobloxAuthorityState } from "../../types/robloxAuthority";
+import { PublishPage } from "./PublishPage";
 
-const originalAuthStoreState = useAuthStore.getState();
-const originalProjectStoreState = useProjectStore.getState();
-
-const auth: AuthState = {
-  accessToken: "test-access-token",
-  refreshToken: "test-refresh-token",
-  expiresAt: Date.now() + 60_000,
-  userId: "42",
-  username: "validation-tester",
-  displayName: "Validation Tester",
-};
-
+const originalProjectStore = useProjectStore.getState();
 const project: ProjectInfo = {
   name: "Publish Gate Contract",
   path: "D:/RobloxForge/PublishGateContract",
   template: "obby",
-  createdAt: "2000-06-01T00:00:00.000Z",
+  createdAt: "2026-07-15T00:00:00.000Z",
 };
 
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
+const readyCapability = {
+  state: "ready" as const,
+  ready: true,
+  requiredScopes: [] as string[],
+  reason: "Ready.",
+};
+
+const authority: RobloxAuthorityState = {
+  publishCredential: {
+    purpose: "publish",
+    configured: true,
+    alias: "publish-default",
+    verifiedAt: "2026-07-15T00:00:00.000Z",
+  },
+  analyticsCredential: {
+    purpose: "analytics",
+    configured: false,
+    alias: "analytics-default",
+  },
+  targets: [
+    {
+      id: "f28530a4-143d-4ab8-88d4-209ef7d0d19d",
+      label: "Validation Target",
+      universeId: "123",
+      rootPlaceId: "456",
+      publishCredentialAlias: "publish-default",
+      verifiedAt: "2026-07-15T00:00:00.000Z",
+      gameUrl: "https://www.roblox.com/games/456",
+    },
+  ],
+  capabilities: {
+    authMode: "api_key",
+    createUniverse: {
+      state: "unsupported",
+      ready: false,
+      requiredScopes: [],
+      reason: "Open Cloud cannot create a universe.",
+    },
+    publishExistingPlace: readyCapability,
+    updatePlaceMetadata: readyCapability,
+    ownedAnalytics: {
+      state: "setup_required",
+      ready: false,
+      requiredScopes: [],
+      reason: "Analytics key required.",
+    },
+  },
+  createUniverseSupported: false,
+};
+
+function enableTauriRuntime(): void {
+  Object.defineProperty(window, "__TAURI_INTERNALS__", {
+    configurable: true,
+    value: {},
   });
-  return { promise, resolve, reject };
+}
+
+function clearTauriRuntime(): void {
+  delete (window as Window & { __TAURI_INTERNALS__?: unknown })
+    .__TAURI_INTERNALS__;
 }
 
 beforeEach(() => {
-  useAuthStore.setState(originalAuthStoreState, true);
-  useProjectStore.setState(originalProjectStoreState, true);
-  useAuthStore.setState({
-    auth,
-    status: "signed_in",
-    isConnecting: false,
-    error: null,
-    checkAuth: vi.fn().mockResolvedValue(undefined),
-  });
+  enableTauriRuntime();
+  useProjectStore.setState(originalProjectStore, true);
   useProjectStore.setState({
     project,
     validationIssues: [],
     validationState: "not_run",
     validationError: null,
+    fixingIssueId: null,
   });
+  vi.spyOn(robloxAuthorityCommands, "getState").mockResolvedValue(authority);
+  vi.spyOn(robloxAuthorityCommands, "publishProject");
 });
 
 afterEach(() => {
-  useAuthStore.setState(originalAuthStoreState, true);
-  useProjectStore.setState(originalProjectStoreState, true);
+  clearTauriRuntime();
+  useProjectStore.setState(originalProjectStore, true);
   vi.restoreAllMocks();
 });
 
-async function enterPublishIds(): Promise<void> {
-  const user = userEvent.setup();
-  await screen.findByRole("heading", { name: "Game Details" });
-  await user.type(
-    screen.getByPlaceholderText("e.g. 1234567890"),
-    "1234567890",
-  );
-  await user.type(
-    screen.getByPlaceholderText("e.g. 9876543210"),
-    "9876543210",
-  );
+async function renderReady(): Promise<void> {
+  render(<PublishPage />);
+  await screen.findByRole("combobox", { name: "Verified Roblox target" });
 }
 
-describe("PublishPage validation gate", () => {
+describe("PublishPage exact-project validation gate", () => {
   it.each([
-    [
-      "validation is running",
-      { validationState: "running" as const, fixingIssueId: null },
-    ],
-    [
-      "an auto-fix is running",
-      {
-        validationState: "not_run" as const,
-        fixingIssueId: "stale-warning-proof",
-      },
-    ],
-  ])("disables Check My Game while %s", async (_label, gateState) => {
-    useProjectStore.setState(gateState);
-    render(<PublishPage />);
-    await enterPublishIds();
+    ["validation is running", { validationState: "running" as const, fixingIssueId: null }],
+    ["an auto-fix is running", { validationState: "not_run" as const, fixingIssueId: "fix-1" }],
+  ])("disables the exact-project check while %s", async (_label, gate) => {
+    useProjectStore.setState(gate);
+    await renderReady();
 
-    expect(
-      screen.getByRole("button", { name: "Check My Game" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check this exact project" }))
+      .toBeDisabled();
   });
 
-  it("stays on settings and exposes an alert when validation fails", async () => {
+  it("keeps publish disabled and exposes validation failure", async () => {
     const validateProject = vi.fn().mockImplementation(async () => {
       useProjectStore.setState({
-        validationIssues: [],
         validationState: "failed",
-        validationError: "Desktop validation is unavailable.",
+        validationError: "Desktop validation did not pass.",
       });
       return false;
     });
     useProjectStore.setState({ validateProject });
-    const publishGame = vi.spyOn(publishCommands, "publishGame");
-    render(<PublishPage />);
-    await enterPublishIds();
+    await renderReady();
 
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Check My Game" }));
+      .click(screen.getByRole("button", { name: "Check this exact project" }));
 
-    await waitFor(() => expect(validateProject).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("heading", { name: "Game Details" })).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Desktop validation is unavailable.",
-    );
-    expect(screen.queryByText("Validation Passed")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Publish to Roblox!" }),
-    ).not.toBeInTheDocument();
-    expect(publishGame).not.toHaveBeenCalled();
+    expect(await screen.findByText("Desktop validation did not pass."))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publish verified target" }))
+      .toBeDisabled();
+    expect(robloxAuthorityCommands.publishProject).not.toHaveBeenCalled();
   });
 
-  it("advances after a completed passed run and enables publish", async () => {
+  it("enables publish only after the recorded store state passes for this exact path", async () => {
     const validateProject = vi.fn().mockImplementation(async () => {
       useProjectStore.setState({
-        validationIssues: [],
         validationState: "passed",
         validationError: null,
       });
       return true;
     });
     useProjectStore.setState({ validateProject });
-    render(<PublishPage />);
-    await enterPublishIds();
+    await renderReady();
+    expect(screen.getByRole("button", { name: "Publish verified target" }))
+      .toBeDisabled();
 
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Check My Game" }));
+      .click(screen.getByRole("button", { name: "Check this exact project" }));
 
     expect(await screen.findByText("Validation Passed")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Publish to Roblox!" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Publish verified target" }))
+      .toBeEnabled();
   });
 
-  it("keeps publish disabled unless the recorded state is passed", async () => {
-    const validateProject = vi.fn().mockResolvedValue(true);
-    useProjectStore.setState({ validateProject });
-    render(<PublishPage />);
-    await enterPublishIds();
+  it("does not trust a true return value when the authoritative validation state is not passed", async () => {
+    useProjectStore.setState({
+      validateProject: vi.fn().mockResolvedValue(true),
+    });
+    await renderReady();
 
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: "Check My Game" }));
+      .click(screen.getByRole("button", { name: "Check this exact project" }));
 
-    expect(
-      await screen.findByRole("button", { name: "Publish to Roblox!" }),
-    ).toBeDisabled();
-  });
-
-  it("disables publish while an auto-fix mutation is active", async () => {
-    const validateProject = vi.fn().mockImplementation(async () => {
-      useProjectStore.setState({
-        validationIssues: [],
-        validationState: "passed",
-        validationError: null,
-      });
-      return true;
-    });
-    useProjectStore.setState({ validateProject });
-    const publishGame = vi.spyOn(publishCommands, "publishGame");
-    render(<PublishPage />);
-    await enterPublishIds();
-
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Check My Game" }));
-    expect(await screen.findByText("Validation Passed")).toBeInTheDocument();
-
-    act(() => {
-      useProjectStore.setState({ fixingIssueId: "stale-warning-proof" });
-    });
-
-    expect(
-      screen.getByRole("button", { name: "Publish to Roblox!" }),
-    ).toBeDisabled();
-    expect(publishGame).not.toHaveBeenCalled();
-  });
-
-  it("keeps a replacement project's fix gate owned until its operation settles", async () => {
-    const olderFix = deferred<string>();
-    const replacementFix = deferred<string>();
-    vi.spyOn(validationCommands, "autoFixIssue")
-      .mockReturnValueOnce(olderFix.promise)
-      .mockReturnValueOnce(replacementFix.promise);
-    render(<PublishPage />);
-    await enterPublishIds();
-
-    let olderFixPromise!: Promise<void>;
-    act(() => {
-      olderFixPromise = useProjectStore.getState().autoFixIssue("project-a-fix");
-    });
-
-    await act(async () => {
-      useProjectStore.getState().clearProject();
-      await useProjectStore
-        .getState()
-        .createProject("obby", "Replacement Fix Owner");
-    });
-
-    let replacementFixPromise!: Promise<void>;
-    act(() => {
-      replacementFixPromise = useProjectStore
-        .getState()
-        .autoFixIssue("project-b-fix");
-    });
-    expect(useProjectStore.getState().fixingIssueId).toBe("project-b-fix");
-    expect(
-      screen.getByRole("button", { name: "Check My Game" }),
-    ).toBeDisabled();
-
-    await act(async () => {
-      olderFix.reject(new Error("Stale project A fix failed."));
-      await olderFixPromise;
-    });
-
-    expect(useProjectStore.getState().fixingIssueId).toBe("project-b-fix");
-    expect(
-      screen.getByRole("button", { name: "Check My Game" }),
-    ).toBeDisabled();
-
-    await act(async () => {
-      replacementFix.reject(new Error("Replacement fix failed."));
-      await replacementFixPromise;
-    });
-
-    expect(useProjectStore.getState().fixingIssueId).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Check My Game" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Publish verified target" }))
+      .toBeDisabled();
+    expect(robloxAuthorityCommands.publishProject).not.toHaveBeenCalled();
   });
 });

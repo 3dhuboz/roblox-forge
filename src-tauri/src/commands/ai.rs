@@ -1,5 +1,5 @@
 use crate::ai;
-use crate::state::AppState;
+use crate::state::AiSettingsState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -31,7 +31,7 @@ pub async fn send_chat_message(
     history: Vec<ChatMessage>,
     user_level: Option<String>,
     user_name: Option<String>,
-    state: State<'_, AppState>,
+    state: State<'_, AiSettingsState>,
 ) -> Result<AiResponse, String> {
     let api_key = state
         .api_key
@@ -49,14 +49,14 @@ pub async fn send_chat_message(
 }
 
 #[tauri::command]
-pub async fn set_api_key(api_key: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn set_api_key(api_key: String, state: State<'_, AiSettingsState>) -> Result<(), String> {
     let mut key = state.api_key.lock().map_err(|e| e.to_string())?;
     *key = Some(api_key);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn check_api_key(state: State<'_, AppState>) -> Result<Option<String>, String> {
+pub async fn check_api_key(state: State<'_, AiSettingsState>) -> Result<Option<String>, String> {
     let key = state.api_key.lock().map_err(|e| e.to_string())?;
     match key.as_ref() {
         Some(k) if k.starts_with("sk-or-") => Ok(Some("openrouter".into())),

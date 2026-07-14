@@ -1,52 +1,60 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  dashboardCommands,
-  type GameStats,
-} from "../../services/tauriCommands";
-import {
-  useAuthStore,
-  type AuthStatus,
-} from "../../stores/authStore";
-import type { AuthState } from "../../types/roblox";
+import { robloxAuthorityCommands } from "../../services/tauriCommands";
+import type {
+  CapabilityDetail,
+  RobloxAuthorityState,
+} from "../../types/robloxAuthority";
 import { DashboardPage } from "./DashboardPage";
 
-const originalAuthStoreState = useAuthStore.getState();
+const target = {
+  id: "0f65be3e-3771-4a3f-98be-e5af7cfcf8b6",
+  label: "Obby Alpha",
+  universeId: "94712001",
+  rootPlaceId: "947120011",
+  publishCredentialAlias: "roblox-publish",
+  analyticsCredentialAlias: "roblox-analytics",
+  verifiedAt: "2026-07-15T00:00:00.000Z",
+  gameUrl: "https://www.roblox.com/games/947120011",
+} as const;
 
-const validAuth: AuthState = {
-  accessToken: "test-access-token",
-  refreshToken: "test-refresh-token",
-  expiresAt: Date.now() + 60_000,
-  userId: "84",
-  username: "dashboard-tester",
-  displayName: "Dashboard Tester",
-};
+function capability(state: CapabilityDetail["state"]): CapabilityDetail {
+  return {
+    state,
+    ready: state === "ready",
+    requiredScopes: [],
+    reason: state === "ready" ? "Ready." : "Setup is required.",
+  };
+}
 
-const replacementAuth: AuthState = {
-  ...validAuth,
-  expiresAt: validAuth.expiresAt + 1,
-  userId: "85",
-  username: "replacement-dashboard-tester",
-  displayName: "Replacement Dashboard Tester",
-};
-
-const accountAGame: GameStats = {
-  universe_id: "account-a-game",
-  name: "Account A Game",
-  playing: 1,
-  visits: 10,
-  favorites: 2,
-  updated: "2026-07-15T00:00:00.000Z",
-};
-
-const accountBGame: GameStats = {
-  universe_id: "account-b-game",
-  name: "Account B Game",
-  playing: 3,
-  visits: 30,
-  favorites: 6,
-  updated: "2026-07-15T00:01:00.000Z",
-};
+function authority(
+  overrides: Partial<RobloxAuthorityState> = {},
+): RobloxAuthorityState {
+  return {
+    publishCredential: {
+      purpose: "publish",
+      configured: true,
+      alias: "roblox-publish",
+      verifiedAt: "2026-07-15T00:00:00.000Z",
+    },
+    analyticsCredential: {
+      purpose: "analytics",
+      configured: true,
+      alias: "roblox-analytics",
+      verifiedAt: "2026-07-15T00:00:00.000Z",
+    },
+    targets: [target],
+    capabilities: {
+      authMode: "api_key",
+      createUniverse: capability("unsupported"),
+      publishExistingPlace: capability("ready"),
+      updatePlaceMetadata: capability("ready"),
+      ownedAnalytics: capability("ready"),
+    },
+    createUniverseSupported: false,
+    ...overrides,
+  };
+}
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -58,130 +66,107 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+function enableTauriRuntime(): void {
+  Object.defineProperty(window, "__TAURI_INTERNALS__", {
+    configurable: true,
+    value: {},
+  });
+}
+
+function clearTauriRuntime(): void {
+  Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
+}
+
 beforeEach(() => {
-  useAuthStore.setState(originalAuthStoreState, true);
+  clearTauriRuntime();
 });
 
 afterEach(() => {
-  useAuthStore.setState(originalAuthStoreState, true);
+  clearTauriRuntime();
   vi.restoreAllMocks();
 });
 
-describe("DashboardPage auth availability", () => {
-  it("checks direct-route auth, explains desktop availability, and does not fetch stats", async () => {
-    const checkAuth = vi.fn().mockResolvedValue(undefined);
-    const fetchGameStats = vi.spyOn(dashboardCommands, "fetchGameStats");
-    useAuthStore.setState({
-      auth: null,
-      status: "unavailable",
-      isConnecting: false,
-      error:
-        "Roblox authentication requires the RobloxForge Desktop app. Open the Desktop app to continue.",
-      checkAuth,
-    });
+describe("DashboardPage Desktop analytics authority", () => {
+  it("makes zero authority calls in browser preview", () => {
+    const getState = vi.spyOn(robloxAuthorityCommands, "getState");
 
     render(<DashboardPage />);
 
-    await waitFor(() => expect(checkAuth).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("alert")).toHaveTextContent(/Desktop app/i);
-    expect(fetchGameStats).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /Owned analytics requires RobloxForge Desktop/i,
+    );
+    expect(getState).not.toHaveBeenCalled();
   });
 
-  it.each<AuthStatus>([
-    "unknown",
-    "checking",
-    "signed_out",
-    "unavailable",
-    "error",
-  ])(
-    "does not fetch stats while auth is %s",
-    async (status) => {
-      const checkAuth = vi.fn().mockResolvedValue(undefined);
-      const fetchGameStats = vi.spyOn(dashboardCommands, "fetchGameStats");
-      useAuthStore.setState({
-        auth: status === "checking" ? validAuth : null,
-        status,
-        error: status === "error" ? "Auth check failed." : null,
-        checkAuth,
-      });
-
-      render(<DashboardPage />);
-      await waitFor(() => expect(checkAuth).toHaveBeenCalledTimes(1));
-
-      expect(fetchGameStats).not.toHaveBeenCalled();
-    },
-  );
-
-  it("fetches stats only for a signed-in, unexpired session", async () => {
-    const checkAuth = vi.fn().mockResolvedValue(undefined);
-    const fetchGameStats = vi
-      .spyOn(dashboardCommands, "fetchGameStats")
-      .mockResolvedValueOnce([]);
-    useAuthStore.setState({
-      auth: validAuth,
-      status: "signed_in",
-      error: null,
-      checkAuth,
-    });
+  it("loads verified targets directly from Desktop without OAuth", async () => {
+    enableTauriRuntime();
+    const getState = vi
+      .spyOn(robloxAuthorityCommands, "getState")
+      .mockResolvedValue(authority());
 
     render(<DashboardPage />);
 
-    await waitFor(() => expect(fetchGameStats).toHaveBeenCalledTimes(1));
-    expect(checkAuth).toHaveBeenCalledTimes(1);
+    expect(await screen.findByLabelText("Verified owned target")).toHaveValue(target.id);
+    expect(getState).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Load owned analytics" })).toBeEnabled();
   });
 
-  it("lets only the latest signed-in session own stats and loading state", async () => {
-    const accountARequest = deferred<GameStats[]>();
-    const accountBRequest = deferred<GameStats[]>();
-    const checkAuth = vi.fn().mockResolvedValue(undefined);
-    const fetchGameStats = vi
-      .spyOn(dashboardCommands, "fetchGameStats")
-      .mockReturnValueOnce(accountARequest.promise)
-      .mockReturnValueOnce(accountBRequest.promise);
-    useAuthStore.setState({
-      auth: validAuth,
-      status: "signed_in",
-      error: null,
-      checkAuth,
-    });
+  it("keeps queries closed when the analytics key or capability is not ready", async () => {
+    enableTauriRuntime();
+    vi.spyOn(robloxAuthorityCommands, "getState").mockResolvedValue(
+      authority({
+        analyticsCredential: {
+          purpose: "analytics",
+          configured: false,
+          alias: "roblox-analytics",
+        },
+        capabilities: {
+          ...authority().capabilities,
+          ownedAnalytics: capability("setup_required"),
+        },
+      }),
+    );
+
     render(<DashboardPage />);
-    await waitFor(() => expect(fetchGameStats).toHaveBeenCalledTimes(1));
 
-    act(() => {
-      useAuthStore.setState({
-        auth: null,
-        status: "signed_out",
-        isConnecting: false,
-        error: null,
-      });
-    });
-    act(() => {
-      useAuthStore.setState({
-        auth: replacementAuth,
-        status: "signed_in",
-        isConnecting: false,
-        error: null,
-      });
-    });
-    await waitFor(() => expect(fetchGameStats).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Verify an analytics key first")).toBeVisible();
+    expect(screen.queryByLabelText("Verified owned target")).not.toBeInTheDocument();
+  });
 
+  it("redacts authority failures and recovers on an explicit retry", async () => {
+    enableTauriRuntime();
+    const getState = vi
+      .spyOn(robloxAuthorityCommands, "getState")
+      .mockRejectedValueOnce(new Error("secret x-api-key leaked"))
+      .mockResolvedValueOnce(authority());
+    render(<DashboardPage />);
+
+    expect(await screen.findByText(/could not read the verified analytics setup/i)).toBeVisible();
+    expect(document.body).not.toHaveTextContent(/x-api-key|secret/i);
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+
+    expect(await screen.findByLabelText("Verified owned target")).toBeVisible();
+    expect(getState).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not promote a Desktop response after the runtime disappears", async () => {
+    enableTauriRuntime();
+    const request = deferred<RobloxAuthorityState>();
+    vi.spyOn(robloxAuthorityCommands, "getState").mockReturnValue(request.promise);
+    render(<DashboardPage />);
+    expect(screen.getByRole("status")).toHaveTextContent(/Reading verified analytics setup/i);
+
+    clearTauriRuntime();
     await act(async () => {
-      accountARequest.resolve([accountAGame]);
-      await accountARequest.promise;
+      request.resolve(authority());
+      await request.promise;
     });
 
-    expect(screen.queryByText(accountAGame.name)).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Updating..." }),
-    ).toBeDisabled();
-
-    await act(async () => {
-      accountBRequest.resolve([accountBGame]);
-      await accountBRequest.promise;
-    });
-
-    expect(await screen.findByText(accountBGame.name)).toBeInTheDocument();
-    expect(screen.queryByText(accountAGame.name)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /Owned analytics requires RobloxForge Desktop/i,
+      ),
+    );
+    expect(screen.queryByLabelText("Verified owned target")).not.toBeInTheDocument();
   });
 });

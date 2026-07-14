@@ -1,54 +1,82 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useProjectStore } from "../../stores/projectStore";
 import {
-  AUTH_DESKTOP_REQUIRED_MESSAGE,
-  useAuthStore,
-} from "../../stores/authStore";
-import {
-  isOperationUnavailableError,
-  publishCommands,
-} from "../../services/tauriCommands";
-import {
-  LogIn,
-  LogOut,
-  CheckCircle,
-  Rocket,
-  Loader2,
+  AlertTriangle,
+  CheckCircle2,
   ExternalLink,
+  FolderCheck,
+  Loader2,
+  Rocket,
   Settings,
   ShieldCheck,
-  PartyPopper,
-  Upload,
-  Copy,
-  Check,
-  AlertCircle,
-  RotateCcw,
 } from "lucide-react";
+import { isTauriRuntime } from "../../lib/isTauriRuntime";
+import {
+  isOperationUnavailableError,
+  robloxAuthorityCommands,
+} from "../../services/tauriCommands";
+import { useProjectStore } from "../../stores/projectStore";
+import type { RobloxPublishReceipt } from "../../types/robloxAuthority";
+import type {
+  RobloxAuthorityState,
+  VerifiedRobloxTarget,
+} from "../../types/robloxAuthority";
 import { ValidationPanel } from "../validation/ValidationPanel";
 
-type PublishStep = "auth" | "settings" | "validate" | "publish" | "success";
-type PublishPhase = "idle" | "building" | "uploading" | "metadata" | "done" | "error";
+const DESKTOP_REQUIRED =
+  "Publishing requires RobloxForge Desktop. Browser preview never uploads, authenticates, or reports a publish success.";
 
-const PHASE_LABELS: Record<PublishPhase, string> = {
-  idle: "Ready",
-  building: "Building .rbxl...",
-  uploading: "Uploading to Roblox...",
-  metadata: "Setting game info...",
-  done: "Published!",
-  error: "Failed",
-};
+type AuthorityStatus = "loading" | "ready" | "unavailable" | "error";
+type PublishOutcome =
+  | { readonly kind: "succeeded"; readonly receipt: RobloxPublishReceipt }
+  | { readonly kind: "partial_success"; readonly receipt: RobloxPublishReceipt }
+  | { readonly kind: "outcome_unknown"; readonly receipt?: RobloxPublishReceipt }
+  | { readonly kind: "failed"; readonly message: string };
 
-const PHASE_PROGRESS: Record<PublishPhase, number> = {
-  idle: 0,
-  building: 1,
-  uploading: 2,
-  metadata: 3,
-  done: 3,
-  error: 0,
-};
+function safeText(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim() ?? "";
+  const normalized = trimmed.toLowerCase();
+  const unsafe =
+    !trimmed ||
+    trimmed.length > 280 ||
+    [
+      ".roblosecurity",
+      "authorization",
+      "bearer ",
+      "x-api-key",
+      "api_key",
+      "api key",
+      "password",
+      "secret",
+      "token",
+      "response body",
+    ].some((marker) => normalized.includes(marker)) ||
+    /[a-z]:[\\/]/i.test(trimmed) ||
+    trimmed.includes("\\\\");
+  return unsafe ? fallback : trimmed;
+}
 
-function isNumericId(value: string): boolean {
-  return /^\d+$/.test(value.trim());
+function hasVerifiedPublishKey(authority: RobloxAuthorityState | null): boolean {
+  return Boolean(
+    authority?.publishCredential.configured &&
+      authority.publishCredential.verifiedAt &&
+      authority.capabilities.publishExistingPlace.ready,
+  );
+}
+
+function expectedGameUrl(target: VerifiedRobloxTarget): string {
+  return `https://www.roblox.com/games/${target.rootPlaceId}`;
+}
+
+function receiptMatchesTarget(
+  receipt: RobloxPublishReceipt,
+  target: VerifiedRobloxTarget,
+): boolean {
+  return Boolean(
+    receipt.value &&
+      receipt.value.targetId === target.id &&
+      receipt.value.universeId === target.universeId &&
+      receipt.value.rootPlaceId === target.rootPlaceId,
+  );
 }
 
 export function PublishPage() {
@@ -60,185 +88,279 @@ export function PublishPage() {
     fixingIssueId,
     validateProject,
   } = useProjectStore();
-  const {
-    auth,
-    status: authStatus,
-    isConnecting,
-    error: authError,
-    startLogin,
-    logout,
-    checkAuth,
-  } = useAuthStore();
-  const [step, setStep] = useState<PublishStep>("auth");
-  const [hasCompletedAuthCheck, setHasCompletedAuthCheck] = useState(false);
-  const [gameName, setGameName] = useState("");
-  const [gameDescription, setGameDescription] = useState("");
-  const [universeId, setUniverseId] = useState("");
-  const [placeId, setPlaceId] = useState("");
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [publishPhase, setPublishPhase] = useState<PublishPhase>("idle");
-  const [publishResult, setPublishResult] = useState<{
-    gameUrl?: string;
-    versionNumber?: number;
-    error?: string;
-    unavailable?: boolean;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const phaseTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
-  const clearPhaseTimers = useCallback(() => {
-    phaseTimersRef.current.forEach((timer) => clearTimeout(timer));
-    phaseTimersRef.current = [];
-  }, []);
-  const hasValidAuth =
-    authStatus === "signed_in" && auth !== null && auth.expiresAt > Date.now();
-  const authUnavailableAlert = (
-    <div
-      role="alert"
-      className="mt-4 max-w-lg rounded-xl border border-amber-800/60 bg-amber-950/30 p-4 text-sm text-amber-200"
-    >
-      <div className="flex items-start gap-2">
-        <AlertCircle size={18} className="mt-0.5 shrink-0" />
-        <p>{authError ?? AUTH_DESKTOP_REQUIRED_MESSAGE}</p>
-      </div>
-    </div>
+  const desktopAtRender = isTauriRuntime();
+  const [authorityStatus, setAuthorityStatus] = useState<AuthorityStatus>(
+    desktopAtRender ? "loading" : "unavailable",
   );
+  const [authority, setAuthority] = useState<RobloxAuthorityState | null>(null);
+  const [authorityError, setAuthorityError] = useState<string | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState("");
+  const [gameName, setGameName] = useState(project?.name ?? "");
+  const [gameDescription, setGameDescription] = useState("");
+  const [validatedProjectPath, setValidatedProjectPath] = useState<string | null>(
+    null,
+  );
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [outcome, setOutcome] = useState<PublishOutcome | null>(null);
+  const mountedRef = useRef(true);
+  const authorityAttemptRef = useRef(0);
+  const validationAttemptRef = useRef(0);
+  const publishAttemptRef = useRef(0);
+  const latestProjectPathRef = useRef(project?.path ?? null);
+  const latestTargetIdRef = useRef(selectedTargetId);
+
+  latestProjectPathRef.current = project?.path ?? null;
+  latestTargetIdRef.current = selectedTargetId;
 
   useEffect(() => {
-    let active = true;
-    setHasCompletedAuthCheck(false);
-    void checkAuth().finally(() => {
-      if (active) {
-        setHasCompletedAuthCheck(true);
-      }
-    });
+    mountedRef.current = true;
     return () => {
-      active = false;
+      mountedRef.current = false;
+      authorityAttemptRef.current += 1;
+      validationAttemptRef.current += 1;
+      publishAttemptRef.current += 1;
     };
-  }, [checkAuth]);
+  }, []);
 
-  useEffect(() => {
-    setStep((currentStep) => {
-      if (!hasCompletedAuthCheck || !hasValidAuth || authError !== null) {
-        return "auth";
-      }
-      return currentStep === "auth" ? "settings" : currentStep;
-    });
-  }, [authError, hasCompletedAuthCheck, hasValidAuth]);
-
-  useEffect(() => {
-    return () => clearPhaseTimers();
-  }, [clearPhaseTimers]);
-
-  const stepConfig = [
-    { key: "auth" as const, label: "Log In", icon: LogIn },
-    { key: "settings" as const, label: "Details", icon: Settings },
-    { key: "validate" as const, label: "Check", icon: ShieldCheck },
-    { key: "publish" as const, label: "Go Live", icon: Rocket },
-  ];
-
-  if (!project) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-gray-400">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-800/60">
-          <Upload size={28} className="text-gray-600" />
-        </div>
-        {authStatus === "unavailable" && authUnavailableAlert}
-        <div className="text-center">
-          <p className="text-lg font-semibold text-gray-300">Nothing to share yet</p>
-          <p className="mt-1 text-sm text-gray-500">Build a game first, then come back here to publish it!</p>
-        </div>
-      </div>
-    );
-  }
-
-  const universeIdValid = universeId.trim() === "" || isNumericId(universeId);
-  const placeIdValid = placeId.trim() === "" || isNumericId(placeId);
-  const canProceedToValidate =
-    universeId.trim().length > 0 &&
-    placeId.trim().length > 0 &&
-    isNumericId(universeId) &&
-    isNumericId(placeId);
-
-  const handlePublish = async () => {
-    const currentAuthState = useAuthStore.getState();
-    if (
-      currentAuthState.status !== "signed_in" ||
-      currentAuthState.auth === null ||
-      currentAuthState.auth.expiresAt <= Date.now()
-    ) {
-      clearPhaseTimers();
-      setIsPublishing(false);
-      setPublishResult(null);
-      setPublishPhase("idle");
-      setStep("auth");
+  const loadAuthority = useCallback(async () => {
+    if (!isTauriRuntime()) {
+      setAuthority(null);
+      setAuthorityStatus("unavailable");
+      setAuthorityError(null);
       return;
     }
 
-    if (
-      !universeId ||
-      !placeId ||
-      validationState !== "passed" ||
-      fixingIssueId !== null ||
-      validationIssues.some((issue) => issue.severity === "error")
-    ) {
-      return;
-    }
-    clearPhaseTimers();
-    setIsPublishing(true);
-    setPublishResult(null);
-    setPublishPhase("building");
-
+    const attempt = ++authorityAttemptRef.current;
+    setAuthorityStatus("loading");
+    setAuthorityError(null);
     try {
-      // Simulate phase progression (the backend does all 3 steps in one call)
-      phaseTimersRef.current = [
-        setTimeout(() => setPublishPhase("uploading"), 800),
-        setTimeout(() => setPublishPhase("metadata"), 2000),
-      ];
-
-      const result = await publishCommands.publishGame(
-        project.path,
-        gameName || project.name,
-        gameDescription,
-        universeId.trim(),
-        placeId.trim(),
-      );
-
-      setPublishResult({
-        gameUrl: result.gameUrl,
-        versionNumber: result.versionNumber,
-        error: result.error,
-      });
-
-      if (result.success) {
-        setPublishPhase("done");
-        setStep("success");
-      } else {
-        setPublishPhase("error");
+      const next = await robloxAuthorityCommands.getState();
+      if (
+        !mountedRef.current ||
+        authorityAttemptRef.current !== attempt ||
+        !isTauriRuntime()
+      ) {
+        return;
       }
-    } catch (e) {
-      const unavailable = isOperationUnavailableError(e);
-      const error = e instanceof Error ? e.message : String(e);
-      setPublishResult({ error, unavailable });
-      setPublishPhase("error");
+      setAuthority(next);
+      setSelectedTargetId((current) =>
+        next.targets.some((target) => target.id === current)
+          ? current
+          : (next.targets[0]?.id ?? ""),
+      );
+      setAuthorityStatus("ready");
+    } catch (caught) {
+      if (!mountedRef.current || authorityAttemptRef.current !== attempt) return;
+      if (isOperationUnavailableError(caught) || !isTauriRuntime()) {
+        setAuthorityStatus("unavailable");
+        setAuthorityError(null);
+      } else {
+        setAuthorityStatus("error");
+        setAuthorityError(
+          safeText(
+            caught instanceof Error ? caught.message : undefined,
+            "RobloxForge Desktop could not read verified Roblox targets.",
+          ),
+        );
+      }
+      setAuthority(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (desktopAtRender) void loadAuthority();
+  }, [desktopAtRender, loadAuthority]);
+
+  const projectPath = project?.path ?? null;
+  useEffect(() => {
+    validationAttemptRef.current += 1;
+    publishAttemptRef.current += 1;
+    setValidatedProjectPath(null);
+    setIsPublishing(false);
+    setOutcome(null);
+    setGameName(project?.name ?? "");
+    setGameDescription("");
+  }, [projectPath, project?.name]);
+
+  const selectedTarget =
+    authority?.targets.find((target) => target.id === selectedTargetId) ?? null;
+  const setupReady =
+    authorityStatus === "ready" &&
+    hasVerifiedPublishKey(authority) &&
+    selectedTarget !== null;
+  const validationPassedForExactProject =
+    project !== null &&
+    validatedProjectPath === project.path &&
+    validationState === "passed" &&
+    fixingIssueId === null &&
+    !validationIssues.some((issue) => issue.severity === "error");
+  const requiresReconciliation =
+    outcome?.kind === "partial_success" || outcome?.kind === "outcome_unknown";
+
+  const checkExactProject = async () => {
+    if (
+      !project ||
+      !setupReady ||
+      validationState === "running" ||
+      requiresReconciliation
+    ) {
+      return;
+    }
+    const ownedPath = project.path;
+    const attempt = ++validationAttemptRef.current;
+    setValidatedProjectPath(null);
+    setOutcome(null);
+    const passed = await validateProject();
+    if (
+      !mountedRef.current ||
+      validationAttemptRef.current !== attempt ||
+      latestProjectPathRef.current !== ownedPath ||
+      !passed
+    ) {
+      return;
+    }
+
+    const current = useProjectStore.getState();
+    if (
+      current.project?.path === ownedPath &&
+      current.validationState === "passed" &&
+      current.fixingIssueId === null &&
+      !current.validationIssues.some((issue) => issue.severity === "error")
+    ) {
+      setValidatedProjectPath(ownedPath);
+    }
+  };
+
+  const handleTargetChange = (targetId: string) => {
+    publishAttemptRef.current += 1;
+    setSelectedTargetId(targetId);
+    setOutcome(null);
+  };
+
+  const classifyReceipt = (
+    receipt: RobloxPublishReceipt,
+    ownedTarget: VerifiedRobloxTarget,
+  ): PublishOutcome => {
+    if (!receipt.authoritative) {
+      return {
+        kind: "failed",
+        message:
+          "RobloxForge Desktop did not return an authoritative publish receipt.",
+      };
+    }
+
+    if (receipt.state === "succeeded") {
+      if (
+        !receiptMatchesTarget(receipt, ownedTarget) ||
+        receipt.value?.uploadCompleted !== true ||
+        receipt.value.metadataCompleted !== true
+      ) {
+        return {
+          kind: "failed",
+          message:
+            "The Desktop publish receipt did not match the selected verified target.",
+        };
+      }
+      return { kind: "succeeded", receipt };
+    }
+
+    if (receipt.state === "partial_success") {
+      if (
+        !receiptMatchesTarget(receipt, ownedTarget) ||
+        receipt.value?.uploadCompleted !== true ||
+        receipt.value.metadataCompleted !== false
+      ) {
+        return {
+          kind: "failed",
+          message:
+            "The Desktop partial-success receipt was incomplete or mismatched.",
+        };
+      }
+      return { kind: "partial_success", receipt };
+    }
+
+    if (receipt.state === "outcome_unknown") {
+      return { kind: "outcome_unknown", receipt };
+    }
+
+    return {
+      kind: "failed",
+      message: safeText(
+        receipt.message,
+        "RobloxForge Desktop did not publish this project.",
+      ),
+    };
+  };
+
+  const publishExactProject = async () => {
+    const current = useProjectStore.getState();
+    if (
+      !isTauriRuntime() ||
+      !project ||
+      !selectedTarget ||
+      !setupReady ||
+      !validationPassedForExactProject ||
+      current.project?.path !== project.path ||
+      current.validationState !== "passed" ||
+      current.fixingIssueId !== null ||
+      current.validationIssues.some((issue) => issue.severity === "error") ||
+      isPublishing ||
+      requiresReconciliation
+    ) {
+      return;
+    }
+
+    const attempt = ++publishAttemptRef.current;
+    const ownedPath = project.path;
+    const ownedTarget = selectedTarget;
+    setIsPublishing(true);
+    setOutcome(null);
+    try {
+      const receipt = await robloxAuthorityCommands.publishProject({
+        projectPath: ownedPath,
+        targetId: ownedTarget.id,
+        name: gameName.trim() || project.name,
+        description: gameDescription.trim(),
+      });
+      if (
+        !mountedRef.current ||
+        publishAttemptRef.current !== attempt ||
+        latestProjectPathRef.current !== ownedPath ||
+        latestTargetIdRef.current !== ownedTarget.id ||
+        !isTauriRuntime()
+      ) {
+        return;
+      }
+      setOutcome(classifyReceipt(receipt, ownedTarget));
+    } catch (caught) {
+      if (
+        !mountedRef.current ||
+        publishAttemptRef.current !== attempt ||
+        latestProjectPathRef.current !== ownedPath ||
+        latestTargetIdRef.current !== ownedTarget.id
+      ) {
+        return;
+      }
+      if (isOperationUnavailableError(caught) || !isTauriRuntime()) {
+        setAuthorityStatus("unavailable");
+        setOutcome(null);
+      } else {
+        setOutcome({ kind: "outcome_unknown" });
+      }
     } finally {
-      clearPhaseTimers();
-      setIsPublishing(false);
+      if (mountedRef.current && publishAttemptRef.current === attempt) {
+        setIsPublishing(false);
+      }
     }
   };
 
-  const handleCopyUrl = () => {
-    if (publishResult?.gameUrl) {
-      navigator.clipboard.writeText(publishResult.gameUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handlePublishAgain = () => {
-    setPublishResult(null);
-    setPublishPhase("idle");
-    setStep("settings");
-  };
+  const recoveryAction =
+    outcome?.kind === "partial_success" || outcome?.kind === "outcome_unknown"
+      ? safeText(
+          outcome.receipt?.recoveryAction,
+          "Reconcile the target in Creator Dashboard before another publish.",
+        )
+      : null;
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -248,404 +370,237 @@ export function PublishPage() {
             <Rocket size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Share Your Game</h1>
-            <p className="text-sm text-gray-400">Publish to Roblox so everyone can play!</p>
+            <h1 className="text-xl font-bold text-white">Publish to Roblox</h1>
+            <p className="text-sm text-gray-400">
+              Validate this project, then publish it to one verified owned game.
+            </p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="mx-auto max-w-2xl space-y-6">
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-1">
-            {stepConfig.map((s, i) => {
-              const Icon = s.icon;
-              const isActive = step === s.key;
-              const stepIndex = stepConfig.findIndex((sc) => sc.key === step);
-              const isDone = i < stepIndex || step === "success";
-              return (
-                <div key={s.key} className="flex items-center gap-1">
-                  {i > 0 && (
-                    <div className={`h-px w-6 ${isDone ? "bg-indigo-500" : "bg-gray-800"}`} />
-                  )}
-                  <div
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-medium transition-all ${
-                      isActive
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                        : isDone
-                          ? "bg-indigo-900/30 text-indigo-300"
-                          : "bg-gray-800/60 text-gray-500"
-                    }`}
-                  >
-                    {isDone ? <CheckCircle size={14} /> : <Icon size={14} />}
-                    {s.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Auth step */}
-          {step === "auth" && (
-            <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
-              <h3 className="text-lg font-bold text-white">Log In to Roblox</h3>
-              <p className="mt-1 text-sm text-gray-400">
-                Connect your Roblox account so we can publish your game.
-              </p>
-              {authStatus === "unavailable" ? (
-                authUnavailableAlert
-              ) : authStatus === "unknown" || authStatus === "checking" ? (
-                <div
-                  role="status"
-                  className="mt-4 flex items-center gap-2 rounded-xl bg-gray-800/60 p-4 text-sm text-gray-300"
-                >
-                  <Loader2 size={18} className="animate-spin" />
-                  {isConnecting
-                    ? "Waiting for Roblox login..."
-                    : "Checking Roblox connection..."}
-                </div>
-              ) : authStatus === "error" ? (
-                <div
-                  role="alert"
-                  className="mt-4 rounded-xl border border-red-900/60 bg-red-950/30 p-4 text-sm text-red-200"
-                >
-                  <div className="flex items-start gap-2">
-                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                    <div>
-                      <p>{authError ?? "Roblox authentication failed."}</p>
-                      <button
-                        type="button"
-                        onClick={() => void checkAuth()}
-                        className="mt-3 rounded-lg bg-gray-800 px-3 py-2 font-semibold text-white hover:bg-gray-700"
-                      >
-                        Check Again
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : hasValidAuth ? (
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between rounded-xl bg-gray-800/60 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600/20">
-                        <CheckCircle size={20} className="text-green-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{auth.displayName}</p>
-                        <p className="text-sm text-gray-400">@{auth.username}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        aria-label="Log out of Roblox"
-                        onClick={() => void logout()}
-                        className="rounded-xl bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"
-                      >
-                        <LogOut size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStep("settings")}
-                        className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold hover:bg-indigo-500"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                  {authError && (
-                    <div
-                      role="alert"
-                      className="flex items-start gap-2 rounded-xl border border-red-900/60 bg-red-950/30 p-3 text-sm text-red-200"
-                    >
-                      <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                      <p>{authError}</p>
-                    </div>
-                  )}
-                </div>
-              ) : authStatus === "signed_out" ? (
-                <button
-                  onClick={() => void startLogin()}
-                  disabled={isConnecting}
-                  className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:opacity-50"
-                >
-                  {isConnecting ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <LogIn size={18} />
-                  )}
-                  {isConnecting ? "Connecting..." : "Log In with Roblox"}
-                </button>
-              ) : (
-                <div
-                  role="alert"
-                  className="mt-4 rounded-xl border border-red-900/60 bg-red-950/30 p-4 text-sm text-red-200"
-                >
-                  The Roblox session is not valid. Check the connection again
-                  before publishing.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Settings step */}
-          {step === "settings" && (
-            <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
-              <h3 className="text-lg font-bold text-white">Game Details</h3>
-              <p className="mt-1 text-sm text-gray-400">Tell players what your game is about!</p>
-              <div className="mt-5 space-y-4">
+        <div className="mx-auto max-w-3xl space-y-5">
+          {authorityStatus === "unavailable" ? (
+            <div role="alert" className="rounded-2xl border border-amber-800/50 bg-amber-950/25 p-5 text-sm text-amber-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={19} className="mt-0.5 shrink-0" />
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold text-gray-300">
-                    Game Name
-                  </label>
-                  <input
-                    type="text"
-                    value={gameName}
-                    onChange={(e) => setGameName(e.target.value)}
-                    placeholder={project.name}
-                    className="w-full rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-3 text-white outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold text-gray-300">
-                    Description
-                  </label>
-                  <textarea
-                    value={gameDescription}
-                    onChange={(e) => setGameDescription(e.target.value)}
-                    placeholder="An awesome game built with RobloxForge!"
-                    rows={3}
-                    className="w-full rounded-xl border border-gray-700/50 bg-gray-800/60 px-4 py-3 text-white outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold text-gray-300">
-                    Universe ID
-                  </label>
-                  <input
-                    type="text"
-                    value={universeId}
-                    onChange={(e) => setUniverseId(e.target.value)}
-                    placeholder="e.g. 1234567890"
-                    className={`w-full rounded-xl border px-4 py-3 text-white outline-none focus:ring-2 ${
-                      !universeIdValid
-                        ? "border-red-500/50 bg-red-950/20 focus:border-red-500/50 focus:ring-red-500/20"
-                        : "border-gray-700/50 bg-gray-800/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
-                    }`}
-                  />
-                  {!universeIdValid && (
-                    <p className="mt-1 text-xs text-red-400">Universe ID must be a number</p>
-                  )}
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    Go to{" "}
-                    <a
-                      href="https://create.roblox.com/dashboard/creations"
-                      target="_blank"
-                      rel="noopener"
-                      className="text-indigo-400 hover:text-indigo-300"
-                    >
-                      create.roblox.com/dashboard/creations
-                    </a>
-                    {" "}→ click your experience → copy the number from the URL.
-                  </p>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold text-gray-300">
-                    Place ID
-                  </label>
-                  <input
-                    type="text"
-                    value={placeId}
-                    onChange={(e) => setPlaceId(e.target.value)}
-                    placeholder="e.g. 9876543210"
-                    className={`w-full rounded-xl border px-4 py-3 text-white outline-none focus:ring-2 ${
-                      !placeIdValid
-                        ? "border-red-500/50 bg-red-950/20 focus:border-red-500/50 focus:ring-red-500/20"
-                        : "border-gray-700/50 bg-gray-800/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
-                    }`}
-                  />
-                  {!placeIdValid && (
-                    <p className="mt-1 text-xs text-red-400">Place ID must be a number</p>
-                  )}
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    Found under your experience → Places → Start Place.
-                  </p>
-                </div>
-                {validationState === "failed" && (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-3 rounded-xl border border-red-900/40 bg-red-950/20 p-4"
-                  >
-                    <AlertCircle
-                      size={18}
-                      className="mt-0.5 shrink-0 text-red-400"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-red-300">
-                        Game check failed
-                      </p>
-                      <p className="mt-1 text-xs text-red-400/80">
-                        {validationError ??
-                          "Validation did not pass. Resolve the issues and try again."}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2">
-                  <button
-                    onClick={() => setStep("auth")}
-                    className="rounded-xl bg-gray-800 px-5 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const passed = await validateProject();
-                      if (passed) {
-                        setStep("validate");
-                      }
-                    }}
-                    disabled={
-                      !canProceedToValidate ||
-                      validationState === "running" ||
-                      fixingIssueId !== null
-                    }
-                    className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Check My Game
-                  </button>
+                  <p className="font-semibold">Desktop required</p>
+                  <p className="mt-1 text-amber-200/80">{DESKTOP_REQUIRED}</p>
                 </div>
               </div>
             </div>
-          )}
+          ) : authorityStatus === "loading" ? (
+            <div role="status" className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900/70 p-5 text-sm text-gray-400">
+              <Loader2 size={17} className="animate-spin" /> Reading verified targets from Desktop…
+            </div>
+          ) : authorityStatus === "error" ? (
+            <div role="alert" className="rounded-2xl border border-red-900/50 bg-red-950/25 p-5 text-sm text-red-200">
+              {authorityError}
+            </div>
+          ) : null}
 
-          {/* Validate step */}
-          {step === "validate" && (
-            <div className="space-y-4">
-              <ValidationPanel
-                issues={validationIssues}
-                state={validationState}
-                error={validationError}
-              />
+          {!project ? (
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-8 text-center">
+              <FolderCheck size={30} className="mx-auto text-gray-600" />
+              <h2 className="mt-3 text-lg font-semibold text-white">No project is open</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Create or open a game before publishing.
+              </p>
+            </div>
+          ) : null}
 
-              {/* Publish progress bar */}
-              {isPublishing && (
-                <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-4">
-                  <div className="flex items-center gap-2 text-[13px] font-medium text-indigo-300">
-                    <Loader2 size={14} className="animate-spin" />
-                    {PHASE_LABELS[publishPhase]}
-                  </div>
-                  <div className="mt-3 flex gap-1">
-                    {[1, 2, 3].map((seg) => (
-                      <div
-                        key={seg}
-                        className={`h-1.5 flex-1 rounded-full transition-colors ${
-                          seg <= PHASE_PROGRESS[publishPhase]
-                            ? "bg-indigo-500"
-                            : "bg-gray-800"
-                        }`}
-                      />
+          {project && authorityStatus === "ready" && !setupReady ? (
+            <div className="rounded-2xl border border-amber-800/50 bg-amber-950/20 p-5">
+              <div className="flex items-start gap-3">
+                <Settings size={19} className="mt-0.5 shrink-0 text-amber-300" />
+                <div>
+                  <h2 className="font-semibold text-amber-100">
+                    A verified publish key and target are required
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-amber-200/75">
+                    In Settings, save the one-shot publish key and register an
+                    existing Roblox universe/root-place pair. Open Cloud cannot
+                    create the universe for you.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {project && setupReady && selectedTarget ? (
+            <>
+              <section className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-emerald-400" />
+                  <h2 className="font-semibold text-white">1. Verified destination</h2>
+                </div>
+                <label className="mt-4 block text-xs font-semibold text-gray-300">
+                  Verified Roblox target
+                  <select
+                    aria-label="Verified Roblox target"
+                    value={selectedTargetId}
+                    onChange={(event) => handleTargetChange(event.target.value)}
+                    disabled={isPublishing}
+                    className="mt-1.5 w-full rounded-xl border border-gray-700/60 bg-gray-950/60 px-3 py-3 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+                  >
+                    {authority?.targets.map((candidate) => (
+                      <option key={candidate.id} value={candidate.id}>
+                        {candidate.label}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                </label>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-gray-950/50 px-4 py-3 text-xs text-gray-400">
+                  <span>Universe {selectedTarget.universeId}</span>
+                  <span>Root place {selectedTarget.rootPlaceId}</span>
+                  <span>Credential {selectedTarget.publishCredentialAlias}</span>
                 </div>
-              )}
+              </section>
 
-              {/* Error inline */}
-              {publishResult?.error && !isPublishing && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-3 rounded-xl border border-red-900/40 bg-red-950/20 p-4"
-                >
-                  <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-300">
-                      {publishResult.unavailable
-                        ? "Publishing unavailable"
-                        : "Publish failed"}
-                    </p>
-                    <p className="mt-1 text-xs text-red-400/80">{publishResult.error}</p>
-                  </div>
-                  {!publishResult.unavailable && (
-                    <button
-                      onClick={handlePublish}
-                      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-red-600/20 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-600/30"
-                    >
-                      <RotateCcw size={12} /> Retry
-                    </button>
-                  )}
+              <section className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
+                <div className="flex items-center gap-2">
+                  <FolderCheck size={18} className="text-indigo-400" />
+                  <h2 className="font-semibold text-white">2. Exact local project</h2>
                 </div>
-              )}
-
-              <div className="flex justify-between pt-2">
+                <p className="mt-3 text-xs text-gray-500">Desktop will build and validate this exact path:</p>
+                <code className="mt-1 block overflow-x-auto rounded-xl border border-gray-800 bg-gray-950/70 px-4 py-3 text-xs text-indigo-200">
+                  {project.path}
+                </code>
+                <div className="mt-4 grid gap-3">
+                  <label className="text-xs font-semibold text-gray-300">
+                    Roblox game name
+                    <input
+                      aria-label="Roblox game name"
+                      value={gameName}
+                      onChange={(event) => setGameName(event.target.value)}
+                      disabled={isPublishing}
+                      maxLength={50}
+                      className="mt-1.5 w-full rounded-xl border border-gray-700/60 bg-gray-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+                    />
+                  </label>
+                  <label className="text-xs font-semibold text-gray-300">
+                    Roblox description
+                    <textarea
+                      aria-label="Roblox description"
+                      value={gameDescription}
+                      onChange={(event) => setGameDescription(event.target.value)}
+                      disabled={isPublishing}
+                      maxLength={1_000}
+                      rows={3}
+                      className="mt-1.5 w-full resize-none rounded-xl border border-gray-700/60 bg-gray-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50"
+                    />
+                  </label>
+                </div>
                 <button
-                  onClick={() => setStep("settings")}
-                  className="rounded-xl bg-gray-800 px-5 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                  type="button"
+                  onClick={() => void checkExactProject()}
+                  disabled={
+                    validationState === "running" ||
+                    fixingIssueId !== null ||
+                    isPublishing ||
+                    requiresReconciliation
+                  }
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Back
+                  {validationState === "running" ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <ShieldCheck size={16} />
+                  )}
+                  Check this exact project
                 </button>
-                {!isPublishing && !publishResult?.error && (
+              </section>
+
+              {validationState !== "not_run" ? (
+                <ValidationPanel
+                  issues={validationIssues}
+                  state={validationState}
+                  error={validationError}
+                />
+              ) : null}
+
+              <section className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-white">3. Publish with Desktop authority</h2>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      No automatic retry occurs. Rust owns validation, target lookup,
+                      upload, metadata, and the final receipt.
+                    </p>
+                  </div>
                   <button
-                    onClick={handlePublish}
+                    type="button"
+                    onClick={() => void publishExactProject()}
                     disabled={
+                      !validationPassedForExactProject ||
                       isPublishing ||
-                      validationState !== "passed" ||
-                      fixingIssueId !== null ||
-                      validationIssues.some((i) => i.severity === "error")
+                      requiresReconciliation
                     }
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-7 py-3 text-[15px] font-bold text-white shadow-lg shadow-green-600/20 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/20 hover:from-emerald-500 hover:to-green-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Rocket size={18} />
-                    Publish to Roblox!
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Success step */}
-          {step === "success" && (
-            <div className="rounded-2xl border border-green-900/40 bg-green-950/20 p-10 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-xl shadow-green-600/20">
-                <PartyPopper size={28} className="text-white" />
-              </div>
-              <h3 className="mt-5 text-2xl font-bold text-white">Your Game is Live!</h3>
-              <p className="mt-2 text-gray-400">
-                Awesome! Players can now find and play your game on Roblox.
-              </p>
-              {publishResult?.versionNumber && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Version {publishResult.versionNumber}
-                </p>
-              )}
-
-              {publishResult?.gameUrl && (
-                <div className="mt-5 flex items-center justify-center gap-2">
-                  <a
-                    href={publishResult.gameUrl}
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3 font-semibold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500"
-                  >
-                    Open on Roblox <ExternalLink size={16} />
-                  </a>
-                  <button
-                    onClick={handleCopyUrl}
-                    className="flex items-center gap-1.5 rounded-xl border border-gray-700 bg-gray-800 px-4 py-3 text-sm text-gray-300 hover:bg-gray-700"
-                  >
-                    {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-                    {copied ? "Copied!" : "Copy Link"}
+                    {isPublishing ? <Loader2 size={17} className="animate-spin" /> : <Rocket size={17} />}
+                    {requiresReconciliation
+                      ? "Reconciliation required"
+                      : isPublishing
+                        ? "Publishing…"
+                        : "Publish verified target"}
                   </button>
                 </div>
-              )}
+              </section>
+            </>
+          ) : null}
 
-              <button
-                onClick={handlePublishAgain}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-gray-700 bg-gray-800/60 px-5 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
-              >
-                <RotateCcw size={14} /> Publish Again
-              </button>
+          {outcome?.kind === "succeeded" && selectedTarget ? (
+            <div role="status" className="rounded-2xl border border-emerald-800/50 bg-emerald-950/25 p-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 size={21} className="mt-0.5 shrink-0 text-emerald-300" />
+                <div>
+                  <h2 className="font-semibold text-emerald-100">Published with Desktop authority</h2>
+                  <p className="mt-1 text-sm text-emerald-200/75">
+                    Upload and metadata both completed for {selectedTarget.label}.
+                  </p>
+                  <a
+                    href={expectedGameUrl(selectedTarget)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                  >
+                    Open on Roblox <ExternalLink size={15} />
+                  </a>
+                </div>
+              </div>
             </div>
-          )}
+          ) : null}
+
+          {outcome?.kind === "partial_success" ? (
+            <div role="alert" className="rounded-2xl border border-amber-700/60 bg-amber-950/30 p-6 text-amber-100">
+              <h2 className="font-semibold">Upload complete — metadata needs attention</h2>
+              <p className="mt-2 text-sm text-amber-200/80">
+                The place upload is known to have completed, but metadata did not.
+                Do not publish again until you reconcile this target.
+              </p>
+              <p className="mt-2 text-sm font-medium">{recoveryAction}</p>
+            </div>
+          ) : null}
+
+          {outcome?.kind === "outcome_unknown" ? (
+            <div role="alert" className="rounded-2xl border border-red-800/60 bg-red-950/30 p-6 text-red-100">
+              <h2 className="font-semibold">Publish outcome is unknown</h2>
+              <p className="mt-2 text-sm text-red-200/80">
+                Do not publish again yet. A transport interruption, rate limit, or
+                server failure can leave the external upload outcome ambiguous.
+              </p>
+              <p className="mt-2 text-sm font-medium">{recoveryAction}</p>
+            </div>
+          ) : null}
+
+          {outcome?.kind === "failed" ? (
+            <div role="alert" className="rounded-2xl border border-red-800/60 bg-red-950/30 p-6 text-red-100">
+              <h2 className="font-semibold">Publish was not completed</h2>
+              <p className="mt-2 text-sm text-red-200/80">{outcome.message}</p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

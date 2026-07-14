@@ -1,212 +1,211 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PublishPage } from "./PublishPage";
-import {
-  OperationUnavailableError,
-  publishCommands,
-} from "../../services/tauriCommands";
-import { useAuthStore } from "../../stores/authStore";
+import { robloxAuthorityCommands } from "../../services/tauriCommands";
 import { useProjectStore } from "../../stores/projectStore";
-import { createBrowserReceipt } from "../../types/receipts";
 import type { ProjectInfo } from "../../types/project";
-import type { AuthState, PublishResult } from "../../types/roblox";
+import type {
+  RobloxAuthorityState,
+  RobloxPublishReceipt,
+} from "../../types/robloxAuthority";
+import { PublishPage } from "./PublishPage";
 
-const originalAuthStoreState = useAuthStore.getState();
-const originalProjectStoreState = useProjectStore.getState();
-
-const auth: AuthState = {
-  accessToken: "test-access-token",
-  refreshToken: "test-refresh-token",
-  expiresAt: Date.now() + 60_000,
-  userId: "84",
-  username: "publish-attempt-tester",
-  displayName: "Publish Attempt Tester",
-};
-
+const originalProjectStore = useProjectStore.getState();
 const project: ProjectInfo = {
   name: "Publish Attempt Contract",
   path: "D:/RobloxForge/PublishAttemptContract",
   template: "obby",
-  createdAt: "2000-07-01T00:00:00.000Z",
+  createdAt: "2026-07-15T00:00:00.000Z",
 };
+
+const authority: RobloxAuthorityState = {
+  publishCredential: {
+    purpose: "publish",
+    configured: true,
+    alias: "publish-default",
+    verifiedAt: "2026-07-15T00:00:00.000Z",
+  },
+  analyticsCredential: {
+    purpose: "analytics",
+    configured: false,
+    alias: "analytics-default",
+  },
+  targets: [
+    {
+      id: "3e3e4347-d9e2-4356-ae2f-197815900605",
+      label: "Owned Publish Target",
+      universeId: "123",
+      rootPlaceId: "456",
+      publishCredentialAlias: "publish-default",
+      verifiedAt: "2026-07-15T00:00:00.000Z",
+      gameUrl: "https://www.roblox.com/games/456",
+    },
+  ],
+  capabilities: {
+    authMode: "api_key",
+    createUniverse: {
+      state: "unsupported",
+      ready: false,
+      requiredScopes: [],
+      reason: "Open Cloud cannot create a universe.",
+    },
+    publishExistingPlace: {
+      state: "ready",
+      ready: true,
+      requiredScopes: [],
+      reason: "Ready.",
+    },
+    updatePlaceMetadata: {
+      state: "ready",
+      ready: true,
+      requiredScopes: [],
+      reason: "Ready.",
+    },
+    ownedAnalytics: {
+      state: "setup_required",
+      ready: false,
+      requiredScopes: [],
+      reason: "Analytics key required.",
+    },
+  },
+  createUniverseSupported: false,
+};
+
+function successfulReceipt(): RobloxPublishReceipt {
+  return {
+    operationId: "publish-operation",
+    correlationId: "publish-correlation",
+    operation: "publish_roblox_project",
+    state: "succeeded",
+    authoritative: true,
+    startedAt: "2026-07-15T00:00:00.000Z",
+    finishedAt: "2026-07-15T00:00:01.000Z",
+    message: "Published.",
+    diagnostics: [],
+    retrySafety: "not_retryable",
+    value: {
+      targetId: authority.targets[0].id,
+      universeId: authority.targets[0].universeId,
+      rootPlaceId: authority.targets[0].rootPlaceId,
+      gameUrl: authority.targets[0].gameUrl,
+      uploadCompleted: true,
+      metadataCompleted: true,
+    },
+  };
+}
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+  const promise = new Promise<T>((promiseResolve) => {
     resolve = promiseResolve;
-    reject = promiseReject;
   });
-  return { promise, resolve, reject };
+  return { promise, resolve };
+}
+
+function enableTauriRuntime(): void {
+  Object.defineProperty(window, "__TAURI_INTERNALS__", {
+    configurable: true,
+    value: {},
+  });
+}
+
+function clearTauriRuntime(): void {
+  delete (window as Window & { __TAURI_INTERNALS__?: unknown })
+    .__TAURI_INTERNALS__;
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  useAuthStore.setState(originalAuthStoreState, true);
-  useProjectStore.setState(originalProjectStoreState, true);
-  useAuthStore.setState({
-    auth,
-    status: "signed_in",
-    isConnecting: false,
-    error: null,
-    checkAuth: vi.fn().mockResolvedValue(undefined),
-  });
+  enableTauriRuntime();
+  useProjectStore.setState(originalProjectStore, true);
   useProjectStore.setState({
     project,
     validationIssues: [],
-    validationState: "passed",
+    validationState: "not_run",
     validationError: null,
     fixingIssueId: null,
-    validateProject: vi.fn().mockResolvedValue(true),
+    validateProject: vi.fn().mockImplementation(async () => {
+      useProjectStore.setState({ validationState: "passed" });
+      return true;
+    }),
   });
+  vi.spyOn(robloxAuthorityCommands, "getState").mockResolvedValue(authority);
+  vi.spyOn(robloxAuthorityCommands, "publishProject");
 });
 
 afterEach(() => {
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  useAuthStore.setState(originalAuthStoreState, true);
-  useProjectStore.setState(originalProjectStoreState, true);
+  clearTauriRuntime();
+  useProjectStore.setState(originalProjectStore, true);
   vi.restoreAllMocks();
 });
 
 async function renderReadyToPublish() {
   const view = render(<PublishPage />);
+  await screen.findByRole("combobox", { name: "Verified Roblox target" });
   await act(async () => {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Check this exact project" }),
+    );
     await Promise.resolve();
   });
-
-  fireEvent.change(screen.getByPlaceholderText("e.g. 1234567890"), {
-    target: { value: "1234567890" },
-  });
-  fireEvent.change(screen.getByPlaceholderText("e.g. 9876543210"), {
-    target: { value: "9876543210" },
-  });
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Check My Game" }));
-    await Promise.resolve();
-  });
-
-  expect(screen.getByText("Validation Passed")).toBeInTheDocument();
+  expect(await screen.findByText("Validation Passed")).toBeInTheDocument();
   return view;
 }
 
-async function clickPublish(): Promise<void> {
-  await act(async () => {
-    fireEvent.click(
-      screen.getByRole("button", { name: "Publish to Roblox!" }),
-    );
-    await Promise.resolve();
-    await Promise.resolve();
-  });
-}
-
 describe("PublishPage attempt cleanup", () => {
-  it("shows an unavailable receipt without retry or leaked phase timers", async () => {
-    const unavailable = new OperationUnavailableError(
-      createBrowserReceipt({
-        state: "unavailable",
-        operation: "publish_game",
-        correlationId: "test:publish:unavailable",
-        message: "Publishing is unavailable in browser preview.",
-        recoveryAction: "Open RobloxForge Desktop to publish this game.",
-      }),
-    );
-    vi.spyOn(publishCommands, "publishGame").mockRejectedValueOnce(unavailable);
-    await renderReadyToPublish();
-
-    await clickPublish();
-
-    const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent(unavailable.message);
-    expect(alert).not.toHaveTextContent("OperationUnavailableError");
-    expect(
-      screen.queryByRole("button", { name: "Retry" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Your Game is Live!")).not.toBeInTheDocument();
-    expect(vi.getTimerCount()).toBe(0);
-
-    act(() => {
-      vi.advanceTimersByTime(5_000);
-    });
-
-    expect(screen.getByRole("alert")).toHaveTextContent(unavailable.message);
-    expect(screen.queryByText("Your Game is Live!")).not.toBeInTheDocument();
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("clears every phase timer when unmounted during a pending publish", async () => {
-    const pendingPublish = deferred<PublishResult>();
-    vi.spyOn(publishCommands, "publishGame").mockReturnValueOnce(
-      pendingPublish.promise,
-    );
-    const view = await renderReadyToPublish();
-
-    act(() => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Publish to Roblox!" }),
-      );
-    });
-
-    expect(vi.getTimerCount()).toBe(2);
-    view.unmount();
-    expect(vi.getTimerCount()).toBe(0);
-
-    await act(async () => {
-      pendingPublish.resolve({ success: true });
-      await pendingPublish.promise;
-    });
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("keeps a normal rejection visible after phase time advances", async () => {
-    vi.spyOn(publishCommands, "publishGame").mockRejectedValueOnce(
+  it("treats an unexpected transport rejection as outcome unknown without retry", async () => {
+    vi.mocked(robloxAuthorityCommands.publishProject).mockRejectedValueOnce(
       new Error("Roblox gateway timed out."),
     );
     await renderReadyToPublish();
 
-    await clickPublish();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Roblox gateway timed out.",
-    );
-    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
-    expect(vi.getTimerCount()).toBe(0);
-
-    act(() => {
-      vi.advanceTimersByTime(5_000);
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Publish verified target" }),
+      );
+      await Promise.resolve();
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Roblox gateway timed out.",
-    );
-    expect(screen.queryByText("Your Game is Live!")).not.toBeInTheDocument();
-    expect(vi.getTimerCount()).toBe(0);
+    expect(await screen.findByText("Publish outcome is unknown")).toBeInTheDocument();
+    expect(screen.getByText(/Do not publish again yet/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconciliation required" }))
+      .toBeDisabled();
+    expect(robloxAuthorityCommands.publishProject).toHaveBeenCalledTimes(1);
   });
 
-  it("does not publish when auth is invalidated at action time", async () => {
-    const publishGame = vi
-      .spyOn(publishCommands, "publishGame")
-      .mockResolvedValueOnce({ success: true });
-    await renderReadyToPublish();
-    const publishButton = screen.getByRole("button", {
-      name: "Publish to Roblox!",
-    });
+  it("does not promote a pending receipt after unmount", async () => {
+    const pending = deferred<RobloxPublishReceipt>();
+    vi.mocked(robloxAuthorityCommands.publishProject).mockReturnValueOnce(
+      pending.promise,
+    );
+    const view = await renderReadyToPublish();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Publish verified target" }),
+    );
+    view.unmount();
 
     await act(async () => {
-      useAuthStore.setState({
-        auth: null,
-        status: "unavailable",
-        isConnecting: false,
-        error:
-          "Roblox authentication requires the RobloxForge Desktop app. Open the Desktop app to continue.",
-      });
-      fireEvent.click(publishButton);
-      await Promise.resolve();
-      await Promise.resolve();
+      pending.resolve(successfulReceipt());
+      await pending.promise;
     });
+    expect(document.body).not.toHaveTextContent("Published with Desktop authority");
+  });
 
-    expect(publishGame).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent(/Desktop app/i);
-    expect(vi.getTimerCount()).toBe(0);
+  it("does not promote a receipt if Desktop authority disappears mid-attempt", async () => {
+    const pending = deferred<RobloxPublishReceipt>();
+    vi.mocked(robloxAuthorityCommands.publishProject).mockReturnValueOnce(
+      pending.promise,
+    );
+    await renderReadyToPublish();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Publish verified target" }),
+    );
+    clearTauriRuntime();
+
+    await act(async () => {
+      pending.resolve(successfulReceipt());
+      await pending.promise;
+    });
+    expect(screen.queryByText("Published with Desktop authority"))
+      .not.toBeInTheDocument();
   });
 });

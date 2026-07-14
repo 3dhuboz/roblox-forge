@@ -28,6 +28,7 @@ import { useUserStore } from "../../stores/userStore";
 import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";
 import type { ExperienceLevel } from "../../types/user";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
+import { RobloxAuthorityPanel } from "./RobloxAuthorityPanel";
 
 type ApiAuthorityStatus =
   | "checking"
@@ -729,6 +730,8 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+
+          <RobloxAuthorityPanel />
 
           {/* Rojo Sync */}
           <div className="rounded-2xl border border-gray-800/60 bg-gray-900/70 p-6">

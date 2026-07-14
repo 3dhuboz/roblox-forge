@@ -8,28 +8,16 @@ fn manifest_file(relative_path: &str) -> String {
 }
 
 #[test]
-fn private_alpha_invoke_surface_exposes_only_the_read_only_rojo_probe() {
+fn private_alpha_invoke_surface_exposes_only_approved_desktop_commands() {
     let source = manifest_file("src/lib.rs");
     let forbidden_commands = [
-        "commands::project::create_project",
-        "commands::project::get_project_state",
-        "commands::project::write_file",
-        "commands::project::read_file",
-        "commands::ai::send_chat_message",
-        "commands::ai::set_api_key",
-        "commands::ai::check_api_key",
         "commands::auth::start_oauth_flow",
         "commands::auth::handle_oauth_callback",
         "commands::auth::get_auth_state",
         "commands::auth::refresh_auth_token",
         "commands::auth::logout",
-        "commands::build::build_project",
         "commands::publish::publish_game",
-        "commands::validate::validate_project",
-        "commands::validate::auto_fix_issue",
         "commands::dashboard::fetch_game_stats",
-        "commands::rojo::start_rojo_serve",
-        "commands::rojo::stop_rojo_serve",
     ];
 
     for command in forbidden_commands {
@@ -53,15 +41,33 @@ fn private_alpha_invoke_surface_exposes_only_the_read_only_rojo_probe() {
         .filter(|entry| !entry.is_empty())
         .collect();
 
-    assert_eq!(
-        registered_commands,
-        ["commands::rojo::check_rojo_status"],
-        "private-alpha invoke surface must expose only the read-only Rojo status probe"
-    );
+    let approved_commands = [
+        "commands::project::create_project",
+        "commands::project::get_project_state",
+        "commands::project::write_file",
+        "commands::project::read_file",
+        "commands::ai::send_chat_message",
+        "commands::ai::set_api_key",
+        "commands::ai::check_api_key",
+        "commands::build::build_project",
+        "commands::validate::validate_project",
+        "commands::validate::auto_fix_issue",
+        "commands::rojo::check_rojo_status",
+        "commands::rojo::start_rojo_serve",
+        "commands::rojo::stop_rojo_serve",
+        "roblox_authority::get_roblox_authority_state",
+        "roblox_authority::set_roblox_api_key",
+        "roblox_authority::delete_roblox_api_key",
+        "roblox_authority::register_roblox_target",
+        "roblox_authority::publish_roblox_project",
+        "roblox_authority::query_owned_analytics",
+    ];
+
+    assert_eq!(registered_commands, approved_commands);
 }
 
 #[test]
-fn private_alpha_runtime_initializes_no_legacy_authority_or_secrets() {
+fn private_alpha_runtime_initializes_no_legacy_roblox_authority_or_secrets() {
     let source = manifest_file("src/lib.rs");
     let forbidden_runtime_fragments = [
         "tauri_plugin_opener",
@@ -73,12 +79,29 @@ fn private_alpha_runtime_initializes_no_legacy_authority_or_secrets() {
         "use state::AppState",
         "AppState::default()",
         ".manage(app_state)",
+        "commands::auth",
+        "commands::dashboard",
+        "commands::publish::publish_game",
     ];
 
     for fragment in forbidden_runtime_fragments {
         assert!(
             !source.contains(fragment),
             "private-alpha runtime must not initialize legacy authority fragment {fragment:?}"
+        );
+    }
+}
+
+#[test]
+fn legacy_roblox_modules_are_not_compiled() {
+    let library = manifest_file("src/lib.rs");
+    let command_modules = manifest_file("src/commands/mod.rs");
+
+    assert!(!library.contains("mod roblox;"));
+    for module in ["pub mod auth;", "pub mod dashboard;", "pub mod publish;"] {
+        assert!(
+            !command_modules.contains(module),
+            "legacy module must not be compiled: {module}"
         );
     }
 }

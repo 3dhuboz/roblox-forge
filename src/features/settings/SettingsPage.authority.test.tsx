@@ -4,11 +4,13 @@ import { SettingsPage } from "./SettingsPage";
 import {
   aiCommands,
   OperationUnavailableError,
+  robloxAuthorityCommands,
   rojoCommands,
 } from "../../services/tauriCommands";
 import { useUserStore } from "../../stores/userStore";
 import type { OperationReceipt } from "../../types/receipts";
 import type { RojoStatus } from "../../services/tauriCommands";
+import type { RobloxAuthorityState } from "../../types/robloxAuthority";
 
 const originalUserStoreState = useUserStore.getState();
 
@@ -26,6 +28,48 @@ const missingRojo: RojoStatus = {
   serving: false,
   serve_port: null,
   install_instructions: "Install Rojo from rojo.space.",
+};
+
+const emptyRobloxAuthority: RobloxAuthorityState = {
+  publishCredential: {
+    purpose: "publish",
+    configured: false,
+    alias: "publish-default",
+  },
+  analyticsCredential: {
+    purpose: "analytics",
+    configured: false,
+    alias: "analytics-default",
+  },
+  targets: [],
+  capabilities: {
+    authMode: "api_key",
+    createUniverse: {
+      state: "unsupported",
+      ready: false,
+      requiredScopes: [],
+      reason: "Open Cloud cannot create a universe.",
+    },
+    publishExistingPlace: {
+      state: "setup_required",
+      ready: false,
+      requiredScopes: [],
+      reason: "Configure a publish key.",
+    },
+    updatePlaceMetadata: {
+      state: "setup_required",
+      ready: false,
+      requiredScopes: [],
+      reason: "Configure a publish key.",
+    },
+    ownedAnalytics: {
+      state: "setup_required",
+      ready: false,
+      requiredScopes: [],
+      reason: "Configure an analytics key.",
+    },
+  },
+  createUniverseSupported: false,
 };
 
 function deferred<T>() {
@@ -70,6 +114,9 @@ beforeEach(() => {
   vi.spyOn(rojoCommands, "checkStatus").mockResolvedValue(missingRojo);
   vi.spyOn(rojoCommands, "startServe").mockResolvedValue(34872);
   vi.spyOn(rojoCommands, "stopServe").mockResolvedValue(undefined);
+  vi.spyOn(robloxAuthorityCommands, "getState").mockResolvedValue(
+    emptyRobloxAuthority,
+  );
 });
 
 afterEach(() => {
@@ -87,7 +134,7 @@ describe("SettingsPage desktop authority", () => {
 
     render(<SettingsPage />);
 
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getAllByRole("alert")).toHaveLength(3);
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByText(/Rojo status requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByLabelText("AI API key")).toBeDisabled();
