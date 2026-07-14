@@ -696,8 +696,10 @@ it("allows only one immediate Start Sync action", async () => {
   const startButton = await screen.findByRole("button", {
     name: "Start Sync to Studio",
   });
-  fireEvent.click(startButton);
-  fireEvent.click(startButton);
+  act(() => {
+    startButton.click();
+    startButton.click();
+  });
   expect(rojoCommands.startServe).toHaveBeenCalledTimes(1);
 
   await act(async () => {
@@ -722,8 +724,10 @@ it("allows only one immediate Stop action", async () => {
   expandStudioSync();
 
   const stopButton = await screen.findByRole("button", { name: "Stop" });
-  fireEvent.click(stopButton);
-  fireEvent.click(stopButton);
+  act(() => {
+    stopButton.click();
+    stopButton.click();
+  });
   expect(rojoCommands.stopServe).toHaveBeenCalledTimes(1);
 
   await act(async () => {
