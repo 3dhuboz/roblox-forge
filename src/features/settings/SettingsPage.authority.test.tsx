@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "./SettingsPage";
 import {
@@ -94,6 +94,12 @@ function clearTauriRuntime(): void {
     .__TAURI_INTERNALS__;
 }
 
+function expandStudioSync() {
+  const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
+  fireEvent.click(within(region).getByRole("button", { name: "Show" }));
+  return region;
+}
+
 function setPersistedApiKey(value: boolean): void {
   useUserStore.setState({
     profile: {
@@ -129,17 +135,19 @@ afterEach(() => {
 });
 
 describe("SettingsPage desktop authority", () => {
-  it("shows Desktop-required API and Rojo states in browser without calling authority services", () => {
+  it("keeps optional Studio Sync collapsed in browser without calls", () => {
     setPersistedApiKey(true);
 
     render(<SettingsPage />);
 
-    expect(screen.getAllByRole("alert")).toHaveLength(3);
+    const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
+    expect(within(region).getByText("Optional")).toBeInTheDocument();
+    expect(within(region).getByText(/Not needed to create, preview, publish, or monitor your game/)).toBeInTheDocument();
+    expect(within(region).getByRole("button", { name: "Show" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByText(/Rojo status requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByLabelText("AI API key")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Refresh Rojo status/i })).toBeDisabled();
     expect(aiCommands.checkApiKey).not.toHaveBeenCalled();
     expect(aiCommands.setApiKey).not.toHaveBeenCalled();
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
@@ -147,11 +155,27 @@ describe("SettingsPage desktop authority", () => {
     expect(rojoCommands.stopServe).not.toHaveBeenCalled();
   });
 
+  it("shows neutral browser guidance only when Studio Sync expands", () => {
+    render(<SettingsPage />);
+    const region = expandStudioSync();
+    expect(within(region).getByRole("status")).toHaveTextContent("Advanced Studio Sync can only be managed in RobloxForge Desktop.");
+    expect(within(region).queryByRole("alert")).not.toBeInTheDocument();
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
+  });
+
+  it("checks Rojo exactly once on first Desktop expansion", async () => {
+    enableTauriRuntime();
+    render(<SettingsPage />);
+    expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
+    const region = expandStudioSync();
+    await within(region).findByRole("status");
+    expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
+  });
+
   it("defensively skips save, refresh, and Rojo actions if the desktop runtime disappears", async () => {
     enableTauriRuntime();
     vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo);
-    render(<SettingsPage />);
-    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
     await screen.findByText(/No AI key is configured/i);
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByLabelText("AI API key"), {
@@ -211,8 +235,7 @@ describe("SettingsPage desktop authority", () => {
     const start = deferred<number>();
     vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo);
     vi.mocked(rojoCommands.startServe).mockReturnValueOnce(start.promise);
-    render(<SettingsPage />);
-    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
     fireEvent.click(
       screen.getByRole("button", { name: "Start Sync to Studio" }),
@@ -240,8 +263,7 @@ describe("SettingsPage desktop authority", () => {
     vi.mocked(rojoCommands.checkStatus)
       .mockResolvedValueOnce(installedRojo)
       .mockReturnValueOnce(refreshedStatus.promise);
-    render(<SettingsPage />);
-    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
     fireEvent.click(
       screen.getByRole("button", { name: "Start Sync to Studio" }),
     );
@@ -558,8 +580,7 @@ describe("SettingsPage desktop authority", () => {
     vi.mocked(rojoCommands.checkStatus)
       .mockResolvedValueOnce(installedRojo)
       .mockRejectedValueOnce(new Error("Rojo refresh failed."));
-    render(<SettingsPage />);
-    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
 
     fireEvent.click(
       screen.getByRole("button", { name: /Refresh Rojo status/i }),
@@ -572,3 +593,4 @@ describe("SettingsPage desktop authority", () => {
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2);
   });
 });
+
