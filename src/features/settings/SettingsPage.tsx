@@ -782,7 +782,15 @@ export function SettingsPage() {
               <div id="advanced-studio-sync-content">
                 <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-gray-500">Rojo live synchronization</p>
-              <button type="button" aria-label="Refresh Rojo status" onClick={refreshRojoStatus} disabled={!desktopRuntime || rojoLoading || rojoAuthority.status === "unavailable"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14} className={rojoLoading ? "animate-spin" : undefined} /></button>
+                  <button
+                    type="button"
+                    aria-label="Refresh Rojo status"
+                    onClick={refreshRojoStatus}
+                    disabled={!desktopRuntime || rojoLoading || rojoAuthority.status === "unavailable"}
+                    className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <RotateCcw size={14} className={rojoLoading ? "animate-spin" : undefined} />
+                  </button>
                 </div>
 
                 {rojoAuthority.status === "error" ||
