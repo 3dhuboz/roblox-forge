@@ -171,8 +171,6 @@ export function SettingsPage() {
   const apiAttemptIdRef = useRef(0);
   const apiSaveInFlightRef = useRef(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rojoAttemptIdRef = useRef(0);
-  const rojoInFlightRef = useRef(false);
   const studioSyncExpandedRef = useRef(false);
   const rojoGenerationRef = useRef(0);
   const rojoOperationSequenceRef = useRef(0);
@@ -212,7 +210,6 @@ export function SettingsPage() {
     const operationOwner = ++rojoOperationSequenceRef.current;
     rojoOperationOwnerRef.current = operationOwner;
     const generation = rojoGenerationRef.current;
-    const attemptId = ++rojoAttemptIdRef.current;
     setRojoLoading(true);
     try {
       const status = await rojoCommands.checkStatus();
