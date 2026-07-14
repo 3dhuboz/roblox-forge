@@ -1,64 +1,114 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ProjectInfo, ProjectState } from "../types/project";
 import type { AiResponse, ChatMessage } from "../types/ai";
+import type { ProjectInfo, ProjectState } from "../types/project";
+import { createBrowserReceipt, type OperationReceipt } from "../types/receipts";
 import type { AuthState, PublishResult } from "../types/roblox";
 import type { ValidationIssue } from "../types/validation";
 import { isTauriRuntime } from "../lib/isTauriRuntime";
-import * as mock from "./browserDevMocks";
 
-const NEED_DESKTOP =
-  "RobloxForge must run as the desktop app. Install Rust from https://rustup.rs/ and run npm run tauri dev.";
+const DESKTOP_RECOVERY_ACTION =
+  "Open RobloxForge Desktop to run this operation.";
+const UNAVAILABLE_MESSAGE =
+  "This authority operation is unavailable in browser preview.";
 
-async function devOrInvoke<T>(
+let browserCorrelationSequence = 0;
+
+type AuthorityOperation =
+  | "create_project"
+  | "get_project_state"
+  | "write_file"
+  | "read_file"
+  | "send_chat_message"
+  | "set_api_key"
+  | "build_project"
+  | "start_oauth_flow"
+  | "handle_oauth_callback"
+  | "refresh_auth_token"
+  | "logout"
+  | "publish_game"
+  | "fetch_game_stats"
+  | "start_rojo_serve"
+  | "stop_rojo_serve"
+  | "validate_project"
+  | "auto_fix_issue";
+
+function nextBrowserCorrelationId(): string {
+  browserCorrelationSequence += 1;
+  return `browser:authority:${browserCorrelationSequence}`;
+}
+
+export class OperationUnavailableError extends Error {
+  readonly receipt: OperationReceipt;
+
+  constructor(receipt: OperationReceipt) {
+    super(receipt.message);
+    this.name = "OperationUnavailableError";
+    this.receipt = receipt;
+  }
+}
+
+export function isOperationUnavailableError(
+  error: unknown,
+): error is OperationUnavailableError {
+  return error instanceof OperationUnavailableError;
+}
+
+async function authorityOrInvoke<T>(
+  operation: AuthorityOperation,
   runInvoke: () => Promise<T>,
-  runMock: () => T | Promise<T>,
 ): Promise<T> {
   if (isTauriRuntime()) {
     return runInvoke();
   }
-  if (!import.meta.env.DEV) {
-    throw new Error(NEED_DESKTOP);
-  }
-  return runMock();
+
+  const receiptOperation =
+    operation === "set_api_key"
+      ? "set_key"
+      : operation === "refresh_auth_token"
+        ? "refresh_auth"
+        : operation;
+  const receipt = createBrowserReceipt({
+    state: "unavailable",
+    operation: receiptOperation,
+    correlationId: nextBrowserCorrelationId(),
+    message: UNAVAILABLE_MESSAGE,
+    recoveryAction: DESKTOP_RECOVERY_ACTION,
+  });
+
+  // These are fixed command identifiers, not untrusted input. The receipt
+  // sanitizer rejects their secret-marker substrings, so restore the exact
+  // static Tauri operation after all user-controlled receipt fields are clean.
+  throw new OperationUnavailableError(
+    receiptOperation === operation ? receipt : { ...receipt, operation },
+  );
 }
 
-async function devOrInvokeTauriOnly<T>(runInvoke: () => Promise<T>): Promise<T> {
-  if (isTauriRuntime()) {
-    return runInvoke();
-  }
-  throw new Error(
-    import.meta.env.DEV
-      ? "This action only works in the desktop app. Run npm run tauri dev."
-      : NEED_DESKTOP,
-  );
+async function passiveOrInvoke<T>(
+  runInvoke: () => Promise<T>,
+  browserValue: () => T,
+): Promise<T> {
+  return isTauriRuntime() ? runInvoke() : browserValue();
 }
 
 export const projectCommands = {
   createProject: (templateName: string, projectName: string) =>
-    devOrInvoke(
-      () => invoke<ProjectInfo>("create_project", { templateName, projectName }),
-      () => mock.mockCreateProject(templateName, projectName),
+    authorityOrInvoke("create_project", () =>
+      invoke<ProjectInfo>("create_project", { templateName, projectName }),
     ),
 
   getProjectState: (projectPath: string) =>
-    devOrInvoke(
-      () => invoke<ProjectState>("get_project_state", { projectPath }),
-      () => mock.mockGetProjectState(projectPath),
+    authorityOrInvoke("get_project_state", () =>
+      invoke<ProjectState>("get_project_state", { projectPath }),
     ),
 
   writeFile: (projectPath: string, relativePath: string, content: string) =>
-    devOrInvoke(
-      () =>
-        invoke<void>("write_file", { projectPath, relativePath, content }),
-      async () => {
-        mock.mockWriteFile(projectPath, relativePath, content);
-      },
+    authorityOrInvoke("write_file", () =>
+      invoke<void>("write_file", { projectPath, relativePath, content }),
     ),
 
   readFile: (projectPath: string, relativePath: string) =>
-    devOrInvoke(
-      () => invoke<string>("read_file", { projectPath, relativePath }),
-      () => mock.mockReadFile(projectPath, relativePath),
+    authorityOrInvoke("read_file", () =>
+      invoke<string>("read_file", { projectPath, relativePath }),
     ),
 };
 
@@ -70,64 +120,61 @@ export const aiCommands = {
     userLevel?: string,
     userName?: string,
   ) =>
-    devOrInvoke(
-      () =>
-        invoke<AiResponse>("send_chat_message", {
-          projectPath,
-          message,
-          history,
-          userLevel,
-          userName,
-        }),
-      () => mock.mockSendChatMessage(message),
+    authorityOrInvoke("send_chat_message", () =>
+      invoke<AiResponse>("send_chat_message", {
+        projectPath,
+        message,
+        history,
+        userLevel,
+        userName,
+      }),
     ),
 
   setApiKey: (apiKey: string) =>
-    devOrInvoke(
-      () => invoke<void>("set_api_key", { apiKey }),
-      async () => {
-        void apiKey;
-      },
+    authorityOrInvoke("set_api_key", () =>
+      invoke<void>("set_api_key", { apiKey }),
     ),
 
   checkApiKey: () =>
-    devOrInvoke(
+    passiveOrInvoke(
       () => invoke<string | null>("check_api_key"),
-      () => mock.mockCheckApiKey(),
+      () => null,
     ),
 };
 
 export const buildCommands = {
   buildProject: (projectPath: string) =>
-    devOrInvoke(
-      () => invoke<{ rbxlPath: string; warnings: string[] }>("build_project", { projectPath }),
-      () => mock.mockBuildProject(projectPath),
+    authorityOrInvoke("build_project", () =>
+      invoke<{ rbxlPath: string; warnings: string[] }>("build_project", {
+        projectPath,
+      }),
     ),
 };
 
 export const authCommands = {
   startOauthFlow: () =>
-    devOrInvokeTauriOnly(() => invoke<string>("start_oauth_flow")),
+    authorityOrInvoke("start_oauth_flow", () =>
+      invoke<string>("start_oauth_flow"),
+    ),
 
   handleOauthCallback: (code: string, state: string) =>
-    devOrInvokeTauriOnly(() =>
+    authorityOrInvoke("handle_oauth_callback", () =>
       invoke<AuthState>("handle_oauth_callback", { code, state }),
     ),
 
   getAuthState: () =>
-    devOrInvoke(
+    passiveOrInvoke(
       () => invoke<AuthState | null>("get_auth_state"),
-      () => mock.mockGetAuthState(),
+      () => null,
     ),
 
   refreshAuthToken: () =>
-    devOrInvokeTauriOnly(() => invoke<AuthState>("refresh_auth_token")),
+    authorityOrInvoke("refresh_auth_token", () =>
+      invoke<AuthState>("refresh_auth_token"),
+    ),
 
   logout: () =>
-    devOrInvoke(
-      () => invoke<void>("logout"),
-      async () => {},
-    ),
+    authorityOrInvoke("logout", () => invoke<void>("logout")),
 };
 
 export const publishCommands = {
@@ -138,16 +185,14 @@ export const publishCommands = {
     universeId: string,
     placeId: string,
   ) =>
-    devOrInvoke(
-      () =>
-        invoke<PublishResult>("publish_game", {
-          projectPath,
-          gameName,
-          gameDescription,
-          universeId,
-          placeId,
-        }),
-      () => mock.mockPublishGame(),
+    authorityOrInvoke("publish_game", () =>
+      invoke<PublishResult>("publish_game", {
+        projectPath,
+        gameName,
+        gameDescription,
+        universeId,
+        placeId,
+      }),
     ),
 };
 
@@ -162,9 +207,8 @@ export interface GameStats {
 
 export const dashboardCommands = {
   fetchGameStats: () =>
-    devOrInvoke(
-      () => invoke<GameStats[]>("fetch_game_stats"),
-      () => mock.mockFetchGameStats(),
+    authorityOrInvoke("fetch_game_stats", () =>
+      invoke<GameStats[]>("fetch_game_stats"),
     ),
 };
 
@@ -178,34 +222,39 @@ export interface RojoStatus {
 
 export const rojoCommands = {
   checkStatus: () =>
-    devOrInvoke(
+    passiveOrInvoke(
       () => invoke<RojoStatus>("check_rojo_status"),
-      () => mock.mockCheckRojoStatus(),
+      () => ({
+        installed: false,
+        version: null,
+        serving: false,
+        serve_port: null,
+        install_instructions:
+          "Open RobloxForge Desktop to check Rojo installation and status.",
+      }),
     ),
 
   startServe: (projectPath: string) =>
-    devOrInvoke(
-      () => invoke<number>("start_rojo_serve", { projectPath }),
-      () => mock.mockStartRojoServe(),
+    authorityOrInvoke("start_rojo_serve", () =>
+      invoke<number>("start_rojo_serve", { projectPath }),
     ),
 
   stopServe: () =>
-    devOrInvoke(
-      () => invoke<void>("stop_rojo_serve"),
-      async () => {},
+    authorityOrInvoke("stop_rojo_serve", () =>
+      invoke<void>("stop_rojo_serve"),
     ),
 };
 
 export const validationCommands = {
   validateProject: (projectPath: string) =>
-    devOrInvoke(
-      () => invoke<ValidationIssue[]>("validate_project", { projectPath }),
-      () => mock.mockValidateProject(),
+    authorityOrInvoke("validate_project", () =>
+      invoke<ValidationIssue[]>("validate_project", { projectPath }),
     ),
 
   autoFixIssue: (projectPath: string, issueId: string) =>
-    devOrInvoke(
-      () => invoke<string>("auto_fix_issue", { projectPath, issueId }),
-      async () => `Mock fix applied for ${issueId}`,
+    authorityOrInvoke("auto_fix_issue", () =>
+      invoke<string>("auto_fix_issue", { projectPath, issueId }),
     ),
 };
+
+export { browserPreviewService } from "./browserDevMocks";
