@@ -260,10 +260,9 @@ describe("SettingsPage desktop authority", () => {
     });
 
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /Rojo status requires the RobloxForge Desktop app/i,
-    );
-    expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
+    const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
+    expect(within(region).getByRole("status")).toHaveTextContent("Advanced Studio Sync can only be managed in RobloxForge Desktop.");
+    expect(within(region).queryByText("Rojo Installed")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Refresh Rojo status/i }),
     ).toBeDisabled();
@@ -295,10 +294,9 @@ describe("SettingsPage desktop authority", () => {
       await refreshedStatus.promise;
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /Rojo status requires the RobloxForge Desktop app/i,
-    );
-    expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
+    const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
+    expect(within(region).getByRole("status")).toHaveTextContent("Advanced Studio Sync can only be managed in RobloxForge Desktop.");
+    expect(within(region).queryByText("Rojo Installed")).not.toBeInTheDocument();
   });
 
   it("does not promote deferred initial authority checks after runtime disappears", async () => {
@@ -314,7 +312,7 @@ describe("SettingsPage desktop authority", () => {
     });
 
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(false);
-    expect(screen.getByRole("alert")).toHaveTextContent(/AI key management requires/i);
+    expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/AI key configured in RobloxForge Desktop/i),
