@@ -139,7 +139,7 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
   };
 
   return (
-    <div className="flex h-full w-80 flex-col border-l border-gray-800/40 bg-gray-950 lg:w-96">
+    <div className="flex h-full w-full flex-col border-l border-gray-800/40 bg-gray-950">
       {/* Script tabs */}
       <div className="flex items-center border-b border-gray-800/40 overflow-x-auto">
         {graphs.map((g, i) => (

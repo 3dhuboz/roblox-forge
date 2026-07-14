@@ -10,6 +10,7 @@ import {
   type EditableDirectorField,
   type EditableDirectorList,
 } from "../../stores/gameDirectorStore";
+import { CreateFromApprovedBrief } from "./CreateFromApprovedBrief";
 
 const TEXT_FIELDS: ReadonlyArray<{
   field: EditableDirectorField;
@@ -265,6 +266,8 @@ export function DirectorApprovalPanel() {
           {approved ? "Brief approved locally" : "Approve this brief locally"}
         </button>
       </div>
+
+      {approved ? <CreateFromApprovedBrief /> : null}
     </section>
   );
 }

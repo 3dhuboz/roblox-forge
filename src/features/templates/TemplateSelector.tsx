@@ -712,10 +712,10 @@ export function TemplateSelector() {
 
   const handleCreate = async () => {
     if (!selectedTemplate || !projectName.trim()) return;
-    const created = await createProject(selectedTemplate, projectName.trim());
-    if (!created) return;
-
-    const createdProject = useProjectStore.getState().project;
+    const createdProject = await createProject(
+      selectedTemplate,
+      projectName.trim(),
+    );
     if (!createdProject) return;
 
     saveRecentProject(createdProject);
@@ -724,8 +724,8 @@ export function TemplateSelector() {
   };
 
   const handleOpenRecent = async (recent: RecentProject) => {
-    const created = await createProject(recent.template, recent.name);
-    if (!created) return;
+    const createdProject = await createProject(recent.template, recent.name);
+    if (!createdProject) return;
     navigate("/build");
   };
 

@@ -99,7 +99,12 @@ describe("project store runtime routing", () => {
       .getState()
       .createProject("obby", "Preview Store Contract");
 
-    expect(created).toBe(true);
+    expect(created).toEqual(
+      expect.objectContaining({
+        path: "browser-preview://Preview_Store_Contract",
+        template: "obby",
+      }),
+    );
     expect(previewCreate).toHaveBeenCalledWith(
       "obby",
       "Preview Store Contract",
@@ -135,7 +140,7 @@ describe("project store runtime routing", () => {
       .getState()
       .createProject("obby", "Broken Preview");
 
-    expect(created).toBe(false);
+    expect(created).toBeNull();
     expect(previewGetState).not.toHaveBeenCalled();
     expect(useProjectStore.getState()).toEqual(
       expect.objectContaining({
@@ -162,7 +167,7 @@ describe("project store runtime routing", () => {
       .getState()
       .createProject("obby", desktopProject.name);
 
-    expect(created).toBe(true);
+    expect(created).toEqual(desktopProject);
     expect(desktopCreate).toHaveBeenCalledWith("obby", desktopProject.name);
     expect(desktopGetState).toHaveBeenCalledWith(desktopProject.path);
     expect(previewCreate).not.toHaveBeenCalled();
@@ -176,7 +181,7 @@ describe("project store runtime routing", () => {
 
 describe("template navigation truth", () => {
   it("does not save or navigate when project creation fails", async () => {
-    const createProject = vi.fn().mockResolvedValue(false);
+    const createProject = vi.fn().mockResolvedValue(null);
     useProjectStore.setState({ createProject });
     renderTemplateSelector();
 
@@ -196,7 +201,7 @@ describe("template navigation truth", () => {
     };
     const createProject = vi.fn().mockImplementation(async () => {
       useProjectStore.setState({ project: createdProject });
-      return true;
+      return createdProject;
     });
     useProjectStore.setState({ createProject });
     renderTemplateSelector();
@@ -223,7 +228,7 @@ describe("template navigation truth", () => {
         },
       ]),
     );
-    const createProject = vi.fn().mockResolvedValue(false);
+    const createProject = vi.fn().mockResolvedValue(null);
     useProjectStore.setState({ createProject });
     renderTemplateSelector();
 

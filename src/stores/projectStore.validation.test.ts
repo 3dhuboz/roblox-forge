@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { validationCommands } from "../services/tauriCommands";
+import {
+  browserPreviewService,
+  validationCommands,
+} from "../services/tauriCommands";
 import { useProjectStore } from "./projectStore";
 import { useToastStore } from "./toastStore";
 import type { ProjectInfo } from "../types/project";
@@ -51,6 +54,79 @@ afterEach(() => {
 });
 
 describe("project validation state", () => {
+  it("ignores a delayed project-state refresh after project ownership changes", async () => {
+    const firstCreation = await browserPreviewService.createProject(
+      "obby",
+      "Delayed Refresh Owner A",
+    );
+    const secondCreation = await browserPreviewService.createProject(
+      "obby",
+      "Delayed Refresh Owner B",
+    );
+    const firstResponse = await browserPreviewService.getProjectState(
+      firstCreation.data.path,
+    );
+    const secondResponse = await browserPreviewService.getProjectState(
+      secondCreation.data.path,
+    );
+    const delayedRefresh = deferred<typeof firstResponse>();
+    vi.spyOn(browserPreviewService, "getProjectState").mockReturnValueOnce(
+      delayedRefresh.promise,
+    );
+    useProjectStore.setState({
+      project: firstCreation.data,
+      projectState: null,
+    });
+
+    const refreshPromise = useProjectStore.getState().refreshProjectState();
+    useProjectStore.setState({
+      project: secondCreation.data,
+      projectState: secondResponse.data,
+    });
+    delayedRefresh.resolve(firstResponse);
+    await refreshPromise;
+
+    expect(useProjectStore.getState().project?.path).toBe(
+      secondCreation.data.path,
+    );
+    expect(useProjectStore.getState().projectState?.path).toBe(
+      secondCreation.data.path,
+    );
+  });
+
+  it("rejects an old refresh when a same-path project is recreated", async () => {
+    const sharedName = "Same Path Refresh Owner";
+    const firstCreation = await browserPreviewService.createProject(
+      "obby",
+      sharedName,
+    );
+    const firstResponse = await browserPreviewService.getProjectState(
+      firstCreation.data.path,
+    );
+    const delayedRefresh = deferred<typeof firstResponse>();
+    vi.spyOn(browserPreviewService, "getProjectState").mockReturnValueOnce(
+      delayedRefresh.promise,
+    );
+    useProjectStore.setState({
+      project: firstCreation.data,
+      projectState: null,
+    });
+
+    const refreshPromise = useProjectStore.getState().refreshProjectState();
+    const replacement = await browserPreviewService.createProject(
+      "tycoon",
+      sharedName,
+    );
+    expect(replacement.data.path).toBe(firstCreation.data.path);
+    useProjectStore.setState({ project: replacement.data, projectState: null });
+    delayedRefresh.resolve(firstResponse);
+    await refreshPromise;
+
+    expect(useProjectStore.getState().project).toBe(replacement.data);
+    expect(useProjectStore.getState().project?.template).toBe("tycoon");
+    expect(useProjectStore.getState().projectState).toBeNull();
+  });
+
   it("clears stale proof and fails closed when validation is unavailable", async () => {
     useProjectStore.setState({
       project,
@@ -225,7 +301,9 @@ describe("project validation state", () => {
     const replacementPath = useProjectStore.getState().project?.path;
     inFlightRun.resolve([]);
 
-    expect(created).toBe(true);
+    expect(created?.path).toBe(
+      "browser-preview://Replacement_Validation_Contract",
+    );
     expect(replacementPath).toBe(
       "browser-preview://Replacement_Validation_Contract",
     );

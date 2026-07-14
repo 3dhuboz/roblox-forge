@@ -119,6 +119,8 @@ interface CanvasStore {
   undoStack: CanvasElement[][];
   redoStack: CanvasElement[][];
   template: string;
+  sceneProjectPath: string | null;
+  appliedGuidedProposalId: string | null;
 
   // Actions
   setTemplate: (template: string) => void;
@@ -139,6 +141,16 @@ interface CanvasStore {
   saveToProject: (projectPath: string) => Promise<void>;
   loadFromProject: (hierarchy: InstanceNode, template: string) => void;
   loadPreset: (elements: CanvasElement[]) => void;
+  hydrateProjectScene: (
+    projectPath: string,
+    hierarchy: InstanceNode,
+    template: string,
+  ) => boolean;
+  applyGuidedProposal: (
+    projectPath: string,
+    proposalId: string,
+    elements: readonly CanvasElement[],
+  ) => boolean;
   isSaving: boolean;
   lastSavedAt: number | null;
 }
@@ -163,6 +175,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   undoStack: [],
   redoStack: [],
   template: "obby",
+  sceneProjectPath: null,
+  appliedGuidedProposalId: null,
   isSaving: false,
   lastSavedAt: null,
 
@@ -301,16 +315,63 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       selectedId: null,
       undoStack: [],
       redoStack: [],
+      template,
+      sceneProjectPath: null,
+      appliedGuidedProposalId: null,
     });
   },
 
   loadPreset: (elements: CanvasElement[]) => {
     set({
+      elements: elements.map((element) => ({ ...element })),
+      selectedId: null,
+      undoStack: [],
+      redoStack: [],
+      sceneProjectPath: null,
+      appliedGuidedProposalId: null,
+    });
+  },
+
+  hydrateProjectScene: (projectPath, hierarchy, template) => {
+    if (!projectPath || get().sceneProjectPath === projectPath) return false;
+    const elements = projectStateToCanvasElements(hierarchy, template);
+    set({
       elements,
       selectedId: null,
       undoStack: [],
       redoStack: [],
+      template,
+      sceneProjectPath: projectPath,
+      appliedGuidedProposalId: null,
     });
+    return true;
+  },
+
+  applyGuidedProposal: (projectPath, proposalId, elements) => {
+    const state = get();
+    if (
+      !projectPath ||
+      !proposalId ||
+      state.sceneProjectPath !== projectPath ||
+      state.appliedGuidedProposalId !== null ||
+      elements.length === 0
+    ) {
+      return false;
+    }
+
+    set({
+      elements: elements.map((element) => ({
+        ...element,
+        properties: { ...element.properties },
+        logic: { ...element.logic },
+      })),
+      selectedId: null,
+      undoStack: [],
+      redoStack: [],
+      template: "obby",
+      appliedGuidedProposalId: proposalId,
+    });
+    return true;
   },
 
   saveToProject: async (projectPath: string) => {

@@ -121,7 +121,7 @@ export function MonetizationPanel({ projectPath }: { projectPath: string }) {
   };
 
   return (
-    <div className="flex flex-col w-[380px] border-l border-gray-800/40 bg-gray-950 overflow-y-auto">
+    <div className="flex w-full flex-col overflow-y-auto border-l border-gray-800/40 bg-gray-950">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800/40">
         <div className="flex items-center gap-2">

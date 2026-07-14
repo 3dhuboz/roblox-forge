@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useNavigate } from "react-router-dom";
-import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play, MessageSquare, Code, DollarSign } from "lucide-react";
+import { Map, ArrowLeft, Undo2, Redo2, Download, ZoomIn, ZoomOut, Save, Loader2, Check, AlertCircle, Play, MessageSquare, Code, DollarSign, Boxes, ListTree, SlidersHorizontal } from "lucide-react";
 import { GameCanvas3D } from "../builder/GameCanvas3D";
+import { ElementPalette } from "../builder/ElementPalette";
 import { AiSceneChat } from "../builder/AiSceneChat";
 import { VisualScriptEditor } from "../builder/VisualScriptEditor";
 import { MonetizationPanel } from "./MonetizationPanel";
 import { InstanceExplorer } from "./InstanceExplorer";
 import { PropertyInspector } from "./PropertyInspector";
 import { useCanvasStore } from "../../stores/canvasStore";
+import { useGuidedSceneStore } from "../../stores/guidedSceneStore";
 import {
   buildCommands,
   isOperationUnavailableError,
@@ -77,8 +79,13 @@ function toBuildUiError(
 export function BuildPage() {
   const { project, projectState } = useProjectStore();
   const navigate = useNavigate();
-  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
-  const [sidebarTab, setSidebarTab] = useState<"chat" | "script" | "monetize">("chat");
+  const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, hydrateProjectScene, applyGuidedProposal, isSaving, lastSavedAt } = useCanvasStore();
+  const [leftPanel, setLeftPanel] = useState<"explorer" | "toolbox">(
+    "explorer",
+  );
+  const [sidebarTab, setSidebarTab] = useState<
+    "chat" | "script" | "monetize" | "properties"
+  >("chat");
   const [isExporting, setIsExporting] = useState(false);
   const [ownedExportArtifact, setOwnedExportArtifact] =
     useState<OwnedExportArtifact | null>(null);
@@ -279,12 +286,30 @@ export function BuildPage() {
     if (project?.template) setTemplate(project.template);
   }, [project?.template, setTemplate]);
 
-  // Load real project state into canvas preview
+  // Hydrate each authoritative project path once, then consume only a proposal
+  // that was bound to that exact path. Later rerenders never overwrite edits.
   useEffect(() => {
-    if (projectState?.hierarchy && project?.template) {
-      loadFromProject(projectState.hierarchy, project.template);
+    if (!projectState?.hierarchy || !project?.template || !project.path) return;
+    if (
+      projectState.path !== project.path ||
+      projectState.template !== project.template
+    ) {
+      return;
     }
-  }, [projectState?.hierarchy, project?.template, loadFromProject]);
+    if (useProjectStore.getState().project?.path !== project.path) return;
+
+    hydrateProjectScene(project.path, projectState.hierarchy, project.template);
+    const proposal = useGuidedSceneStore.getState().claimForProject(project.path);
+    if (proposal) {
+      applyGuidedProposal(project.path, proposal.proposalId, proposal.elements);
+    }
+  }, [
+    project?.path,
+    project?.template,
+    projectState?.hierarchy,
+    hydrateProjectScene,
+    applyGuidedProposal,
+  ]);
 
   // Auto-save canvas to project files when elements change (debounced)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -382,6 +407,31 @@ export function BuildPage() {
           {isSaving ? "Saving..." : savedRecently ? "Saved" : "Save"}
         </button>
 
+        <div className="h-4 w-px bg-gray-800 mx-1" />
+
+        <button
+          onClick={() => setLeftPanel("explorer")}
+          aria-pressed={leftPanel === "explorer"}
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+            leftPanel === "explorer"
+              ? "bg-indigo-500/20 text-indigo-200"
+              : "text-gray-500 hover:bg-gray-800 hover:text-white"
+          }`}
+        >
+          <ListTree size={13} /> Explorer
+        </button>
+        <button
+          onClick={() => setLeftPanel("toolbox")}
+          aria-pressed={leftPanel === "toolbox"}
+          className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+            leftPanel === "toolbox"
+              ? "bg-indigo-500/20 text-indigo-200"
+              : "text-gray-500 hover:bg-gray-800 hover:text-white"
+          }`}
+        >
+          <Boxes size={13} /> Toolbox
+        </button>
+
         <div className="flex-1" />
 
         <button
@@ -436,15 +486,15 @@ export function BuildPage() {
 
       {/* Main layout: Explorer + 3D viewport + sidebar + Properties */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Instance Explorer */}
-        <InstanceExplorer />
+        {/* One left rail keeps the 3D world usable at laptop widths. */}
+        {leftPanel === "explorer" ? <InstanceExplorer /> : <ElementPalette />}
 
         {/* Center: 3D Viewport + sidebar */}
         <div className="flex flex-1 overflow-hidden">
           <GameCanvas3D />
 
           {/* Right: Tabbed sidebar */}
-          <div className="flex flex-col">
+          <div className="flex w-[340px] flex-shrink-0 flex-col">
             {/* Tab buttons */}
             <div className="flex border-l border-b border-gray-800/40">
               <button
@@ -477,6 +527,16 @@ export function BuildPage() {
               >
                 <DollarSign size={12} /> Monetize
               </button>
+              <button
+                onClick={() => setSidebarTab("properties")}
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-semibold transition-colors ${
+                  sidebarTab === "properties"
+                    ? "border-b-2 border-cyan-500 text-white"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <SlidersHorizontal size={12} /> Properties
+              </button>
             </div>
 
             {/* Tab content */}
@@ -484,14 +544,13 @@ export function BuildPage() {
               <AiSceneChat />
             ) : sidebarTab === "script" ? (
               <VisualScriptEditor projectPath={project.path} />
-            ) : (
+            ) : sidebarTab === "monetize" ? (
               <MonetizationPanel projectPath={project.path} />
+            ) : (
+              <PropertyInspector />
             )}
           </div>
         </div>
-
-        {/* Right: Property Inspector */}
-        <PropertyInspector />
       </div>
     </div>
   );

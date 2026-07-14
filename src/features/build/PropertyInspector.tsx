@@ -82,7 +82,7 @@ export function PropertyInspector() {
 
   if (!selected) {
     return (
-      <div className="flex flex-col h-full bg-gray-900 border-l border-gray-800 w-[300px] flex-shrink-0">
+      <div className="flex h-full w-full flex-col bg-gray-900 border-l border-gray-800">
         <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
           <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Properties</span>
         </div>
@@ -96,7 +96,7 @@ export function PropertyInspector() {
   const update = (changes: Parameters<typeof updateElement>[1]) => updateElement(selected.id, changes);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 border-l border-gray-800 w-[300px] flex-shrink-0">
+    <div className="flex h-full w-full flex-col bg-gray-900 border-l border-gray-800">
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
         <div className="flex flex-col min-w-0">
           <span className="text-[12px] font-semibold text-white truncate">{selected.label}</span>

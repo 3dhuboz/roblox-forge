@@ -16,6 +16,7 @@ export type ValidationState = "not_run" | "running" | "failed" | "passed";
 
 let validationEpoch = 0;
 let fixingOperationGeneration = 0;
+let projectCreationEpoch = 0;
 
 interface ProjectStore {
   project: ProjectInfo | null;
@@ -27,7 +28,7 @@ interface ProjectStore {
   error: string | null;
   fixingIssueId: string | null;
 
-  createProject: (template: string, name: string) => Promise<boolean>;
+  createProject: (template: string, name: string) => Promise<ProjectInfo | null>;
   refreshProjectState: () => Promise<void>;
   validateProject: () => Promise<boolean>;
   autoFixIssue: (issueId: string) => Promise<void>;
@@ -45,6 +46,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   fixingIssueId: null,
 
   createProject: async (template, name) => {
+    const creationAttempt = ++projectCreationEpoch;
+    const ownsCreation = () => projectCreationEpoch === creationAttempt;
     validationEpoch += 1;
     fixingOperationGeneration += 1;
     const isDesktop = isTauriRuntime();
@@ -62,9 +65,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       const project = isDesktop
         ? await projectCommands.createProject(template, name)
         : (await browserPreviewService.createProject(template, name)).data;
+      if (!ownsCreation()) return null;
       const projectState = isDesktop
         ? await projectCommands.getProjectState(project.path)
         : (await browserPreviewService.getProjectState(project.path)).data;
+      if (!ownsCreation()) return null;
 
       set({ project, projectState });
 
@@ -85,26 +90,41 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
             ? `Project "${name}" created!`
             : `Preview project "${name}" created in temporary memory.`,
         );
-      return true;
+      return project;
     } catch (e) {
+      if (!ownsCreation()) return null;
       set({ project: null, projectState: null, error: String(e) });
       useToastStore.getState().addToast("error", `Failed to create project: ${e}`);
-      return false;
+      return null;
     } finally {
-      set({ isLoading: false });
+      if (ownsCreation()) set({ isLoading: false });
     }
   },
 
   refreshProjectState: async () => {
     const { project } = get();
     if (!project) return;
+    const projectOwner = project;
+    const projectPath = project.path;
     try {
       const projectState = isTauriRuntime()
-        ? await projectCommands.getProjectState(project.path)
-        : (await browserPreviewService.getProjectState(project.path)).data;
+        ? await projectCommands.getProjectState(projectPath)
+        : (await browserPreviewService.getProjectState(projectPath)).data;
+      const currentProject = get().project;
+      if (
+        currentProject !== projectOwner ||
+        currentProject.path !== projectPath ||
+        currentProject.template !== projectOwner.template ||
+        projectState.path !== currentProject.path ||
+        projectState.template !== currentProject.template
+      ) {
+        return;
+      }
       set({ projectState });
     } catch (e) {
-      set({ error: String(e) });
+      if (get().project === projectOwner) {
+        set({ error: String(e) });
+      }
     }
   },
 
@@ -218,6 +238,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   clearProject: () => {
+    projectCreationEpoch += 1;
     validationEpoch += 1;
     fixingOperationGeneration += 1;
     set({
