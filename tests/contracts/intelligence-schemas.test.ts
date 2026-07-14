@@ -730,6 +730,17 @@ describe("game intelligence JSON contracts", () => {
     }
   });
 
+  it("documents the mandatory post-Ajv Director semantic invariant layer", () => {
+    const proposalSchema = asJsonObject(
+      schemas.get("director-proposal.v1.schema.json"),
+      "director proposal schema",
+    );
+    const comment = String(proposalSchema.$comment);
+
+    expect(comment).toContain("semanticValidation");
+    expect(comment.toLowerCase()).toContain("mandatory");
+  });
+
   it.each([
     "rawIdea",
     "playerFantasy",

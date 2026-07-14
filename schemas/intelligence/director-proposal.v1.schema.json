@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.robloxforge.dev/intelligence/director-proposal.v1.schema.json",
   "title": "RobloxForge Director Proposal v1",
+  "$comment": "JSON Schema validates shape only; invoking src/intelligence/semanticValidation.ts after Ajv is mandatory for identity, uniqueness, and reversible-operation invariants.",
   "type": "object",
   "additionalProperties": false,
   "required": [
