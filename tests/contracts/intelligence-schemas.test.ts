@@ -289,6 +289,15 @@ describe("game intelligence JSON contracts", () => {
     const recommendation = asJsonObject(fixture.recommendation, "recommendation");
 
     expect(gom.briefId, "GOM must reference the Brief").toBe(brief.id);
+    for (const [index, referenceInput] of asJsonObjects(
+      brief.referenceInputs,
+      "gameBrief.referenceInputs",
+    ).entries()) {
+      expect(
+        referenceInput.referenceAnalysisId,
+        `Brief reference input ${index} must resolve its Reference Analysis`,
+      ).toBe(reference.id);
+    }
 
     const briefProvenance = asJsonObject(brief.provenance, "gameBrief.provenance");
     const gomProvenance = asJsonObject(gom.provenance, "gameOperatingModel.provenance");
@@ -803,6 +812,14 @@ describe("game intelligence JSON contracts", () => {
 
   it("keeps all intelligence document links coherent", () => {
     expectCoherentIntelligenceLinks(validFixture);
+  });
+
+  it("detects a mismatched Brief reference-analysis link", () => {
+    const wrongReference = clone(validFixture);
+    const wrongBrief = asJsonObject(wrongReference.gameBrief, "gameBrief");
+    asJsonObjects(wrongBrief.referenceInputs, "gameBrief.referenceInputs")[0]
+      .referenceAnalysisId = "referenceanalysis:mismatched";
+    expect(() => expectCoherentIntelligenceLinks(wrongReference)).toThrow();
   });
 
   it("detects representative cross-document link mutations", () => {
