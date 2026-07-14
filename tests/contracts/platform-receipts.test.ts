@@ -1,9 +1,22 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import * as receipts from "../../src/types/receipts";
 import {
+  MAX_CORRELATION_ID_LENGTH,
   MAX_DIAGNOSTICS,
   MAX_DIAGNOSTIC_LENGTH,
+  MAX_EXTERNAL_RESOURCE_ID_LENGTH,
+  MAX_MESSAGE_LENGTH,
+  MAX_OPERATION_LENGTH,
+  MAX_RECOVERY_ACTION_LENGTH,
+  MAX_VALUE_ARRAY_ITEMS,
+  MAX_VALUE_DEPTH,
+  MAX_VALUE_KEY_LENGTH,
+  MAX_VALUE_OBJECT_ENTRIES,
+  MAX_VALUE_STRING_LENGTH,
   createBrowserReceipt,
   isAuthoritativeSuccess,
   type BrowserReceiptInput,
@@ -11,10 +24,34 @@ import {
   type OperationReceipt,
 } from "../../src/types/receipts";
 
+interface RedactionFixture {
+  sentinel: string;
+  redacted: string;
+  truncated: string;
+  vectors: Array<{ name: string; input: string }>;
+  safeStrings: string[];
+  limits: {
+    messageLength: number;
+    recoveryActionLength: number;
+    diagnosticsCount: number;
+    diagnosticLength: number;
+    operationLength: number;
+    correlationIdLength: number;
+    externalResourceIdLength: number;
+    valueDepth: number;
+    valueObjectEntries: number;
+    valueArrayItems: number;
+    valueKeyLength: number;
+    valueStringLength: number;
+  };
+}
+
+const fixture = JSON.parse(
+  readFileSync(join(process.cwd(), "tests", "fixtures", "receipt-redaction-vectors.json"), "utf8"),
+) as RedactionFixture;
 const correlationId = "create-flow-1";
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 const common = {
   operation: "build",
   correlationId,
@@ -22,12 +59,12 @@ const common = {
 } as const;
 
 describe("browser operation receipt boundary", () => {
-  it("exports exactly one receipt factory and it is browser-only", () => {
-    const factoryExports = Object.keys(receipts)
-      .filter((name) => name.startsWith("create"))
-      .sort();
-
-    expect(factoryExports).toEqual(["createBrowserReceipt"]);
+  it("exports exactly one browser-only receipt factory", () => {
+    expect(
+      Object.keys(receipts)
+        .filter((name) => name.startsWith("create"))
+        .sort(),
+    ).toEqual(["createBrowserReceipt"]);
   });
 
   it.each(["simulated", "unavailable"] as const)(
@@ -46,37 +83,27 @@ describe("browser operation receipt boundary", () => {
     },
   );
 
-  it("rejects a desktop state even when the type boundary is bypassed", () => {
+  it("rejects desktop states and drops hostile evidence fields", () => {
     expect(() =>
-      createBrowserReceipt({
-        ...common,
-        state: "succeeded" as BrowserReceiptState,
-      }),
-    ).toThrow(/browser receipts/i);
-  });
+      createBrowserReceipt({ ...common, state: "succeeded" as BrowserReceiptState }),
+    ).toThrow("Browser receipts may only be simulated or unavailable");
 
-  it("drops authority-bearing artifact fields from hostile browser input", () => {
-    const hostileInput = {
+    const receipt = createBrowserReceipt({
       ...common,
       state: "simulated",
       authoritative: true,
-      inputHash: "input-authority",
-      artifactHash: "artifact-authority",
+      inputHash: "sha256:authority",
+      artifactHash: "sha256:authority",
       externalResourceId: "place-version:42",
-      finishedAt: "2000-01-01T00:00:00.000Z",
-    } as unknown as BrowserReceiptInput;
-
-    const receipt = createBrowserReceipt(hostileInput);
+    } as unknown as BrowserReceiptInput);
 
     expect(receipt.authoritative).toBe(false);
     expect(receipt).not.toHaveProperty("inputHash");
     expect(receipt).not.toHaveProperty("artifactHash");
     expect(receipt).not.toHaveProperty("externalResourceId");
-    expect(receipt.finishedAt).not.toBe("2000-01-01T00:00:00.000Z");
-    expect(isAuthoritativeSuccess(receipt)).toBe(false);
   });
 
-  it("generates distinct UUID v4 operation IDs and RFC3339 timestamps", () => {
+  it("uses distinct UUID v4 IDs and terminal RFC3339 timestamps", () => {
     const first = createBrowserReceipt({ ...common, state: "simulated" });
     const second = createBrowserReceipt({ ...common, state: "unavailable" });
 
@@ -87,65 +114,116 @@ describe("browser operation receipt boundary", () => {
     expect(Number.isNaN(Date.parse(first.finishedAt ?? ""))).toBe(false);
   });
 
-  it("bounds, deterministically sanitizes, and pre-redacts diagnostics", () => {
-    const diagnostics = [
-      "safe diagnostic",
-      "Authorization: Bearer bearer-sentinel",
-      "api_key=sk-or-v1-api-sentinel",
-      String.raw`C:\Users\Steve\secret-project\.env`,
-      "/home/steve/secret-project/.env",
-      'response body: {"token":"body-sentinel"}',
-      "x".repeat(MAX_DIAGNOSTIC_LENGTH + 40),
-      ...Array.from(
-        { length: MAX_DIAGNOSTICS + 4 },
-        (_, index) => `bounded-${index}`,
-      ),
-    ];
+  it("applies every shared redaction vector to all browser data surfaces", () => {
+    for (const vector of fixture.vectors) {
+      const receipt = createBrowserReceipt({
+        operation: "publish",
+        correlationId,
+        state: "unavailable",
+        message: vector.input,
+        recoveryAction: vector.input,
+        diagnostics: [vector.input],
+        value: { nested: { [vector.input]: vector.input } },
+      });
+      const serialized = JSON.stringify(receipt);
 
-    const first = createBrowserReceipt({
-      ...common,
-      state: "unavailable",
-      diagnostics,
-    });
-    const second = createBrowserReceipt({
-      ...common,
-      state: "unavailable",
-      diagnostics,
-    });
-
-    expect(first.diagnostics).toEqual(second.diagnostics);
-    expect(first.diagnostics.length).toBeLessThanOrEqual(MAX_DIAGNOSTICS);
-    expect(
-      first.diagnostics.every(
-        (diagnostic) => [...diagnostic].length <= MAX_DIAGNOSTIC_LENGTH,
-      ),
-    ).toBe(true);
-
-    const serialized = JSON.stringify(first.diagnostics);
-    for (const forbidden of [
-      "bearer-sentinel",
-      "api-sentinel",
-      String.raw`C:\Users`,
-      "/home/steve",
-      "body-sentinel",
-    ]) {
-      expect(serialized).not.toContain(forbidden);
+      expect(receipt.message, `${vector.name} message`).toBe(
+        `[Browser preview] ${fixture.redacted}`,
+      );
+      expect(receipt.recoveryAction).toBe(fixture.redacted);
+      expect(receipt.diagnostics).toEqual([fixture.redacted]);
+      expect(serialized).toContain(fixture.redacted);
+      expect(serialized, `${vector.name} sentinel`).not.toContain(fixture.sentinel);
+      expect(serialized, `${vector.name} raw`).not.toContain(vector.input);
     }
   });
 
-  it("keeps value as non-authoritative browser data", () => {
-    const receipt = createBrowserReceipt<{ claimedSuccess: boolean }>({
-      ...common,
-      operation: "analytics",
-      state: "simulated",
-      value: { claimedSuccess: true },
-    });
+  it("validates browser operation and correlation identifiers with static errors", () => {
+    const oversizedOperation = "x".repeat(MAX_OPERATION_LENGTH + 1);
+    const oversizedCorrelation = "x".repeat(MAX_CORRELATION_ID_LENGTH + 1);
+    for (const operation of ["", "bad operation", oversizedOperation, fixture.vectors[0].input]) {
+      expect(() =>
+        createBrowserReceipt({ ...common, operation, state: "simulated" }),
+      ).toThrow("operation identifier is invalid");
+    }
+    for (const invalidCorrelation of [
+      "",
+      "bad correlation",
+      oversizedCorrelation,
+      fixture.vectors[1].input,
+    ]) {
+      expect(() =>
+        createBrowserReceipt({
+          ...common,
+          correlationId: invalidCorrelation,
+          state: "simulated",
+        }),
+      ).toThrow("correlation identifier is invalid");
+    }
+  });
 
-    expect(receipt.value).toEqual({ claimedSuccess: true });
+  it("bounds text and recursive value data using the shared limits", () => {
+    expect({
+      messageLength: MAX_MESSAGE_LENGTH,
+      recoveryActionLength: MAX_RECOVERY_ACTION_LENGTH,
+      diagnosticsCount: MAX_DIAGNOSTICS,
+      diagnosticLength: MAX_DIAGNOSTIC_LENGTH,
+      operationLength: MAX_OPERATION_LENGTH,
+      correlationIdLength: MAX_CORRELATION_ID_LENGTH,
+      externalResourceIdLength: MAX_EXTERNAL_RESOURCE_ID_LENGTH,
+      valueDepth: MAX_VALUE_DEPTH,
+      valueObjectEntries: MAX_VALUE_OBJECT_ENTRIES,
+      valueArrayItems: MAX_VALUE_ARRAY_ITEMS,
+      valueKeyLength: MAX_VALUE_KEY_LENGTH,
+      valueStringLength: MAX_VALUE_STRING_LENGTH,
+    }).toEqual(fixture.limits);
+
+    const long = "z".repeat(MAX_VALUE_STRING_LENGTH + 50);
+    const receipt = createBrowserReceipt({
+      operation: "analytics",
+      correlationId,
+      state: "simulated",
+      message: long,
+      recoveryAction: long,
+      diagnostics: Array.from({ length: MAX_DIAGNOSTICS + 5 }, () => long),
+      value: {
+        long,
+        array: Array.from({ length: MAX_VALUE_ARRAY_ITEMS + 5 }, (_, index) => index),
+        deep: { a: { b: { c: { d: { e: fixture.sentinel } } } } },
+        [fixture.vectors[0].input]: fixture.sentinel,
+      },
+    });
+    const serializedValue = JSON.stringify(receipt.value);
+
+    expect([...receipt.message.replace("[Browser preview] ", "")].length).toBeLessThanOrEqual(
+      MAX_MESSAGE_LENGTH,
+    );
+    expect([...(receipt.recoveryAction ?? "")].length).toBeLessThanOrEqual(
+      MAX_RECOVERY_ACTION_LENGTH,
+    );
+    expect(receipt.diagnostics.length).toBeLessThanOrEqual(MAX_DIAGNOSTICS);
+    expect(receipt.diagnostics.every((item) => [...item].length <= MAX_DIAGNOSTIC_LENGTH)).toBe(
+      true,
+    );
+    expect(serializedValue).toContain(fixture.truncated);
+    expect(serializedValue).not.toContain(fixture.sentinel);
+    assertValueBounds(receipt.value, 0);
     expect(isAuthoritativeSuccess(receipt)).toBe(false);
   });
 
-  it("uses the success guard only to display a Rust-issued receipt", () => {
+  it("preserves safe strings and keeps the success guard display-only", () => {
+    const receipt = createBrowserReceipt({
+      operation: "build",
+      correlationId,
+      state: "simulated",
+      message: fixture.safeStrings[0],
+      recoveryAction: fixture.safeStrings[0],
+      value: { status: fixture.safeStrings[0] },
+    });
+    expect(receipt.message).toBe(`[Browser preview] ${fixture.safeStrings[0]}`);
+    expect(receipt.recoveryAction).toBe(fixture.safeStrings[0]);
+    expect(isAuthoritativeSuccess(receipt)).toBe(false);
+
     const receivedFromRust: OperationReceipt = {
       operationId: "b92aeffb-a527-4197-a48a-d640b6e8b156",
       correlationId,
@@ -154,14 +232,32 @@ describe("browser operation receipt boundary", () => {
       authoritative: true,
       startedAt: "2026-07-14T08:00:00.000Z",
       finishedAt: "2026-07-14T08:00:01.000Z",
+      artifactHash:
+        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       message: "Private place version uploaded",
       diagnostics: [],
       retrySafety: "safe",
     };
-
     expect(isAuthoritativeSuccess(receivedFromRust)).toBe(true);
-    expect(Object.keys(receipts).filter((name) => name.startsWith("create"))).toEqual([
-      "createBrowserReceipt",
-    ]);
   });
 });
+
+function assertValueBounds(value: unknown, depth: number): void {
+  if (depth >= MAX_VALUE_DEPTH) {
+    expect(typeof value).toBe("string");
+    return;
+  }
+  if (typeof value === "string") {
+    expect([...value].length).toBeLessThanOrEqual(MAX_VALUE_STRING_LENGTH);
+  } else if (Array.isArray(value)) {
+    expect(value.length).toBeLessThanOrEqual(MAX_VALUE_ARRAY_ITEMS);
+    value.forEach((item) => assertValueBounds(item, depth + 1));
+  } else if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value);
+    expect(entries.length).toBeLessThanOrEqual(MAX_VALUE_OBJECT_ENTRIES);
+    for (const [key, item] of entries) {
+      expect([...key].length).toBeLessThanOrEqual(MAX_VALUE_KEY_LENGTH);
+      assertValueBounds(item, depth + 1);
+    }
+  }
+}

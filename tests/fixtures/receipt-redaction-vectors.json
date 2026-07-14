@@ -1,0 +1,87 @@
+{
+  "sentinel": "RF_SENTINEL_NEVER_LEAK_7A9C",
+  "redacted": "[REDACTED]",
+  "truncated": "[TRUNCATED]",
+  "vectors": [
+    {
+      "name": "roblox cookie",
+      "input": "Cookie: .ROBLOSECURITY=RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "api key header",
+      "input": "x-api-key: RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "authorization header",
+      "input": "Authorization: Basic RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "bearer credential",
+      "input": "Bearer RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "OpenAI style key",
+      "input": "sk-RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "Stripe publishable key",
+      "input": "pk_live_RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "root env path",
+      "input": "/root/.env/RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "home path",
+      "input": "/home/steve/RF_SENTINEL_NEVER_LEAK_7A9C/.env"
+    },
+    {
+      "name": "Users path",
+      "input": "/Users/Steve/RF_SENTINEL_NEVER_LEAK_7A9C/.env"
+    },
+    {
+      "name": "Windows drive path",
+      "input": "C:\\Users\\Steve\\RF_SENTINEL_NEVER_LEAK_7A9C\\.env"
+    },
+    {
+      "name": "Windows UNC path",
+      "input": "\\\\server\\share\\RF_SENTINEL_NEVER_LEAK_7A9C\\.env"
+    },
+    {
+      "name": "response body",
+      "input": "response body: {\"value\":\"RF_SENTINEL_NEVER_LEAK_7A9C\"}"
+    },
+    {
+      "name": "password assignment",
+      "input": "password=RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "secret assignment",
+      "input": "secret=RF_SENTINEL_NEVER_LEAK_7A9C"
+    },
+    {
+      "name": "token assignment",
+      "input": "token=RF_SENTINEL_NEVER_LEAK_7A9C"
+    }
+  ],
+  "safeStrings": [
+    "Build completed",
+    "publish",
+    "create-flow-1",
+    "place-version:42"
+  ],
+  "limits": {
+    "messageLength": 256,
+    "recoveryActionLength": 256,
+    "diagnosticsCount": 8,
+    "diagnosticLength": 256,
+    "operationLength": 64,
+    "correlationIdLength": 128,
+    "externalResourceIdLength": 128,
+    "valueDepth": 4,
+    "valueObjectEntries": 16,
+    "valueArrayItems": 16,
+    "valueKeyLength": 64,
+    "valueStringLength": 256
+  }
+}

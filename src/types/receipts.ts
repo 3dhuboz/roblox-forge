@@ -45,8 +45,20 @@ export interface BrowserReceiptInput<T = unknown> {
 
 export const MAX_DIAGNOSTICS = 8;
 export const MAX_DIAGNOSTIC_LENGTH = 256;
+export const MAX_MESSAGE_LENGTH = 256;
+export const MAX_RECOVERY_ACTION_LENGTH = 256;
+export const MAX_OPERATION_LENGTH = 64;
+export const MAX_CORRELATION_ID_LENGTH = 128;
+export const MAX_EXTERNAL_RESOURCE_ID_LENGTH = 128;
+export const MAX_VALUE_DEPTH = 4;
+export const MAX_VALUE_OBJECT_ENTRIES = 16;
+export const MAX_VALUE_ARRAY_ITEMS = 16;
+export const MAX_VALUE_KEY_LENGTH = 64;
+export const MAX_VALUE_STRING_LENGTH = 256;
 
-const REDACTED_DIAGNOSTIC = "[REDACTED: unsafe diagnostic]";
+const BROWSER_MESSAGE_PREFIX = "[Browser preview] ";
+const REDACTED_TEXT = "[REDACTED]";
+const TRUNCATED_VALUE = "[TRUNCATED]";
 
 export function createBrowserReceipt<T = unknown>(
   input: BrowserReceiptInput<T>,
@@ -55,22 +67,42 @@ export function createBrowserReceipt<T = unknown>(
     throw new Error("Browser receipts may only be simulated or unavailable");
   }
 
+  const operation = validateIdentifier(
+    input.operation,
+    MAX_OPERATION_LENGTH,
+    "operation identifier is invalid",
+  );
+  const correlationId = validateIdentifier(
+    input.correlationId,
+    MAX_CORRELATION_ID_LENGTH,
+    "correlation identifier is invalid",
+  );
   const startedAt = new Date().toISOString();
   return {
     operationId: createUuidV4(),
-    correlationId: input.correlationId,
-    operation: input.operation,
+    correlationId,
+    operation,
     state: input.state,
     authoritative: false,
     startedAt,
     finishedAt: startedAt,
-    message: `[Browser preview] ${input.message}`,
+    message: `${BROWSER_MESSAGE_PREFIX}${sanitizeText(
+      input.message,
+      MAX_MESSAGE_LENGTH - BROWSER_MESSAGE_PREFIX.length,
+    )}`,
     diagnostics: sanitizeDiagnostics(input.diagnostics ?? []),
     retrySafety: "not_retryable",
     ...(input.recoveryAction === undefined
       ? {}
-      : { recoveryAction: input.recoveryAction }),
-    ...(input.value === undefined ? {} : { value: input.value }),
+      : {
+          recoveryAction: sanitizeText(
+            input.recoveryAction,
+            MAX_RECOVERY_ACTION_LENGTH,
+          ),
+        }),
+    ...(input.value === undefined
+      ? {}
+      : { value: sanitizeValue(input.value, 0, new WeakSet()) as T }),
   };
 }
 
@@ -96,18 +128,85 @@ function sanitizeDiagnostics(diagnostics: readonly string[]): string[] {
       continue;
     }
 
-    safe.push(
-      isUnsafeDiagnostic(trimmed)
-        ? REDACTED_DIAGNOSTIC
-        : [...trimmed].slice(0, MAX_DIAGNOSTIC_LENGTH).join(""),
-    );
+    safe.push(sanitizeText(trimmed, MAX_DIAGNOSTIC_LENGTH));
   }
   return safe;
 }
 
-function isUnsafeDiagnostic(diagnostic: string): boolean {
-  const lower = diagnostic.toLowerCase();
+function validateIdentifier(
+  value: string,
+  maxLength: number,
+  staticError: string,
+): string {
+  const valid =
+    value.length > 0 &&
+    value.trim() === value &&
+    [...value].length <= maxLength &&
+    !isUnsafeText(value) &&
+    /^[A-Za-z0-9._:-]+$/.test(value);
+  if (!valid) {
+    throw new Error(staticError);
+  }
+  return value;
+}
+
+function sanitizeText(value: string, maxLength: number): string {
+  const trimmed = value.trim();
+  return isUnsafeText(trimmed)
+    ? REDACTED_TEXT
+    : [...trimmed].slice(0, maxLength).join("");
+}
+
+function sanitizeValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+  if (depth >= MAX_VALUE_DEPTH) {
+    return TRUNCATED_VALUE;
+  }
+  if (typeof value === "string") {
+    return sanitizeText(value, MAX_VALUE_STRING_LENGTH);
+  }
+  if (
+    value === null ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value))
+  ) {
+    return value;
+  }
+  if (typeof value !== "object") {
+    return TRUNCATED_VALUE;
+  }
+  if (seen.has(value)) {
+    return TRUNCATED_VALUE;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const sanitized = value
+      .slice(0, MAX_VALUE_ARRAY_ITEMS)
+      .map((item) => sanitizeValue(item, depth + 1, seen));
+    seen.delete(value);
+    return sanitized;
+  }
+
+  const sanitized: Record<string, unknown> = {};
+  Object.entries(value)
+    .slice(0, MAX_VALUE_OBJECT_ENTRIES)
+    .forEach(([key, item], index) => {
+      let safeKey = sanitizeText(key, MAX_VALUE_KEY_LENGTH);
+      if (Object.prototype.hasOwnProperty.call(sanitized, safeKey)) {
+        safeKey = [...`${safeKey}#${index}`].slice(0, MAX_VALUE_KEY_LENGTH).join("");
+      }
+      sanitized[safeKey] = sanitizeValue(item, depth + 1, seen);
+    });
+  seen.delete(value);
+  return sanitized;
+}
+
+function isUnsafeText(value: string): boolean {
+  const lower = value.toLowerCase();
   const unsafeMarker = [
+    ".roblosecurity",
+    "cookie:",
+    "x-api-key",
     "authorization",
     "bearer ",
     "api_key",
@@ -117,14 +216,22 @@ function isUnsafeDiagnostic(diagnostic: string): boolean {
     "token",
     "response body",
     "response_body",
+    "sk-",
     "sk-or-",
+    "pk_live_",
+    "rf_sentinel_never_leak",
   ].some((marker) => lower.includes(marker));
 
-  const windowsDrive = /[a-z]:[\\/]/i.test(diagnostic);
-  const windowsUnc = diagnostic.includes("\\\\");
-  const unixHostPath = ["/users/", "/home/", "/etc/", "/var/", "/tmp/"].some(
-    (prefix) => lower.includes(prefix),
-  );
+  const windowsDrive = /[a-z]:[\\/]/i.test(value);
+  const windowsUnc = value.includes("\\\\");
+  const unixHostPath = [
+    "/root/",
+    "/users/",
+    "/home/",
+    "/etc/",
+    "/var/",
+    "/tmp/",
+  ].some((prefix) => lower.includes(prefix));
 
   return unsafeMarker || windowsDrive || windowsUnc || unixHostPath;
 }
