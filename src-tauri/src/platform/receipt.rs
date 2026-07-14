@@ -29,30 +29,77 @@ pub enum RetrySafety {
     NotRetryable,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// A Rust-issued record of one privileged operation.
+///
+/// Callers cannot mutate authority-bearing fields after construction:
+///
+/// ```compile_fail
+/// use roblox_forge_lib::platform::receipt::OperationReceipt;
+///
+/// let mut receipt = OperationReceipt::simulated(
+///     "build",
+///     "correlation-1",
+///     "Browser preview",
+///     Vec::<String>::new(),
+/// );
+/// receipt.authoritative = true;
+/// ```
+///
+/// Callers also cannot construct a receipt literal:
+///
+/// ```compile_fail
+/// use roblox_forge_lib::platform::receipt::{OperationReceipt, OperationState, RetrySafety};
+///
+/// let _receipt = OperationReceipt {
+///     operation_id: String::new(),
+///     correlation_id: String::new(),
+///     operation: String::new(),
+///     state: OperationState::Succeeded,
+///     authoritative: true,
+///     started_at: String::new(),
+///     finished_at: None,
+///     input_hash: None,
+///     artifact_hash: None,
+///     external_resource_id: None,
+///     message: String::new(),
+///     diagnostics: Vec::new(),
+///     retry_safety: RetrySafety::Safe,
+///     recovery_action: None,
+///     value: None,
+/// };
+/// ```
+///
+/// Receipts cannot be manufactured by deserializing untrusted JSON:
+///
+/// ```compile_fail
+/// use roblox_forge_lib::platform::receipt::OperationReceipt;
+///
+/// let _receipt: OperationReceipt = serde_json::from_str("{}").unwrap();
+/// ```
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationReceipt {
-    pub operation_id: String,
-    pub correlation_id: String,
-    pub operation: String,
-    pub state: OperationState,
-    pub authoritative: bool,
-    pub started_at: String,
+    operation_id: String,
+    correlation_id: String,
+    operation: String,
+    state: OperationState,
+    authoritative: bool,
+    started_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub finished_at: Option<String>,
+    finished_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub input_hash: Option<String>,
+    input_hash: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub artifact_hash: Option<String>,
+    artifact_hash: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub external_resource_id: Option<String>,
-    pub message: String,
-    pub diagnostics: Vec<String>,
-    pub retry_safety: RetrySafety,
+    external_resource_id: Option<String>,
+    message: String,
+    diagnostics: Vec<String>,
+    retry_safety: RetrySafety,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub recovery_action: Option<String>,
+    recovery_action: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<Value>,
+    value: Option<Value>,
 }
 
 impl OperationReceipt {
@@ -211,6 +258,96 @@ impl OperationReceipt {
 
     pub fn is_authoritative_success(&self) -> bool {
         self.authoritative && self.state == OperationState::Succeeded
+    }
+
+    pub fn operation_id(&self) -> &str {
+        &self.operation_id
+    }
+
+    pub fn correlation_id(&self) -> &str {
+        &self.correlation_id
+    }
+
+    pub fn operation(&self) -> &str {
+        &self.operation
+    }
+
+    pub fn state(&self) -> OperationState {
+        self.state
+    }
+
+    pub fn authoritative(&self) -> bool {
+        self.authoritative
+    }
+
+    pub fn started_at(&self) -> &str {
+        &self.started_at
+    }
+
+    pub fn finished_at(&self) -> Option<&str> {
+        self.finished_at.as_deref()
+    }
+
+    pub fn input_hash(&self) -> Option<&str> {
+        self.input_hash.as_deref()
+    }
+
+    pub fn artifact_hash(&self) -> Option<&str> {
+        self.artifact_hash.as_deref()
+    }
+
+    pub fn external_resource_id(&self) -> Option<&str> {
+        self.external_resource_id.as_deref()
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn diagnostics(&self) -> &[String] {
+        &self.diagnostics
+    }
+
+    pub fn retry_safety(&self) -> RetrySafety {
+        self.retry_safety
+    }
+
+    pub fn recovery_action(&self) -> Option<&str> {
+        self.recovery_action.as_deref()
+    }
+
+    pub fn value(&self) -> Option<&Value> {
+        self.value.as_ref()
+    }
+
+    #[must_use]
+    pub fn with_input_hash(mut self, input_hash: impl Into<String>) -> Self {
+        self.input_hash = Some(input_hash.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_artifact_hash(mut self, artifact_hash: impl Into<String>) -> Self {
+        self.artifact_hash = Some(artifact_hash.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_external_resource_id(mut self, external_resource_id: impl Into<String>) -> Self {
+        self.external_resource_id = Some(external_resource_id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_recovery_action(mut self, recovery_action: impl Into<String>) -> Self {
+        self.recovery_action = Some(recovery_action.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_value(mut self, value: Value) -> Self {
+        self.value = Some(value);
+        self
     }
 
     #[allow(clippy::too_many_arguments)]

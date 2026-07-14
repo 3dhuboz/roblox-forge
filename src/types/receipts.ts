@@ -31,98 +31,22 @@ export interface OperationReceipt<T = unknown> {
   readonly value?: T;
 }
 
-export interface ReceiptInput<T = unknown> {
+export type BrowserReceiptState = "simulated" | "unavailable";
+
+export interface BrowserReceiptInput<T = unknown> {
+  readonly state: BrowserReceiptState;
   readonly operation: string;
   readonly correlationId: string;
   readonly message: string;
   readonly diagnostics?: readonly string[];
-  readonly retrySafety?: RetrySafety;
-  readonly inputHash?: string;
-  readonly artifactHash?: string;
-  readonly externalResourceId?: string;
   readonly recoveryAction?: string;
   readonly value?: T;
-}
-
-export interface PartialSuccessReceiptInput<T = unknown>
-  extends Omit<ReceiptInput<T>, "retrySafety" | "externalResourceId"> {
-  readonly externalResourceId: string;
-}
-
-export type BrowserReceiptState = "simulated" | "unavailable";
-
-export interface BrowserReceiptInput<T = unknown>
-  extends Omit<
-    ReceiptInput<T>,
-    "retrySafety" | "inputHash" | "artifactHash" | "externalResourceId"
-  > {
-  readonly state: BrowserReceiptState;
 }
 
 export const MAX_DIAGNOSTICS = 8;
 export const MAX_DIAGNOSTIC_LENGTH = 256;
 
 const REDACTED_DIAGNOSTIC = "[REDACTED: unsafe diagnostic]";
-
-export function createQueuedReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("queued", false, false, input, input.retrySafety ?? "safe");
-}
-
-export function createRunningReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("running", false, false, input, input.retrySafety ?? "safe");
-}
-
-export function createSucceededReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("succeeded", true, true, input, input.retrySafety ?? "safe");
-}
-
-export function createFailedReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("failed", false, true, input, input.retrySafety ?? "safe");
-}
-
-export function createCancelledReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("cancelled", false, true, input, input.retrySafety ?? "safe");
-}
-
-export function createPartialSuccessReceipt<T = unknown>(
-  input: PartialSuccessReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt(
-    "partial_success",
-    false,
-    true,
-    input,
-    "unsafe_without_reconciliation",
-  );
-}
-
-export function createUnavailableReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt(
-    "unavailable",
-    false,
-    true,
-    input,
-    input.retrySafety ?? "safe",
-  );
-}
-
-export function createSimulatedReceipt<T = unknown>(
-  input: ReceiptInput<T>,
-): OperationReceipt<T> {
-  return createReceipt("simulated", false, true, input, "not_retryable");
-}
 
 export function createBrowserReceipt<T = unknown>(
   input: BrowserReceiptInput<T>,
@@ -131,52 +55,33 @@ export function createBrowserReceipt<T = unknown>(
     throw new Error("Browser receipts may only be simulated or unavailable");
   }
 
-  const browserInput: ReceiptInput<T> = {
-    ...input,
-    message: `[Browser preview] ${input.message}`,
-    retrySafety: "not_retryable",
-  };
-
-  return input.state === "simulated"
-    ? createSimulatedReceipt(browserInput)
-    : createUnavailableReceipt(browserInput);
-}
-
-export function isAuthoritativeSuccess<T>(
-  receipt: OperationReceipt<T>,
-): boolean {
-  return receipt.authoritative === true && receipt.state === "succeeded";
-}
-
-function createReceipt<T>(
-  state: OperationState,
-  authoritative: boolean,
-  terminal: boolean,
-  input: ReceiptInput<T>,
-  retrySafety: RetrySafety,
-): OperationReceipt<T> {
   const startedAt = new Date().toISOString();
   return {
     operationId: createUuidV4(),
     correlationId: input.correlationId,
     operation: input.operation,
-    state,
-    authoritative,
+    state: input.state,
+    authoritative: false,
     startedAt,
-    ...(terminal ? { finishedAt: startedAt } : {}),
-    ...(input.inputHash === undefined ? {} : { inputHash: input.inputHash }),
-    ...(input.artifactHash === undefined ? {} : { artifactHash: input.artifactHash }),
-    ...(input.externalResourceId === undefined
-      ? {}
-      : { externalResourceId: input.externalResourceId }),
-    message: input.message,
+    finishedAt: startedAt,
+    message: `[Browser preview] ${input.message}`,
     diagnostics: sanitizeDiagnostics(input.diagnostics ?? []),
-    retrySafety,
+    retrySafety: "not_retryable",
     ...(input.recoveryAction === undefined
       ? {}
       : { recoveryAction: input.recoveryAction }),
     ...(input.value === undefined ? {} : { value: input.value }),
   };
+}
+
+/**
+ * Classifies a Rust-issued receipt for display only. This JavaScript predicate is
+ * never an authorization boundary; privileged gates must use Rust authority.
+ */
+export function isAuthoritativeSuccess<T>(
+  receipt: OperationReceipt<T>,
+): boolean {
+  return receipt.authoritative === true && receipt.state === "succeeded";
 }
 
 function sanitizeDiagnostics(diagnostics: readonly string[]): string[] {

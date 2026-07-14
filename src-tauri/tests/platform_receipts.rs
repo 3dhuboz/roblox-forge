@@ -20,13 +20,13 @@ fn simulated_receipt_is_never_authoritative() {
         Vec::<String>::new(),
     );
 
-    assert_eq!(receipt.state, OperationState::Simulated);
-    assert!(!receipt.authoritative);
+    assert_eq!(receipt.state(), OperationState::Simulated);
+    assert!(!receipt.authoritative());
     assert!(!receipt.is_authoritative_success());
 }
 
 #[test]
-fn only_succeeded_and_authoritative_unlocks_a_gate() {
+fn succeeded_constructor_is_the_only_authoritative_gate() {
     let success = OperationReceipt::succeeded(
         "build",
         CORRELATION_ID,
@@ -35,25 +35,6 @@ fn only_succeeded_and_authoritative_unlocks_a_gate() {
         RetrySafety::Safe,
     );
     assert!(success.is_authoritative_success());
-
-    for state in [
-        OperationState::Queued,
-        OperationState::Running,
-        OperationState::Failed,
-        OperationState::Cancelled,
-        OperationState::PartialSuccess,
-        OperationState::Unavailable,
-        OperationState::Simulated,
-    ] {
-        let mut spoofed = success.clone();
-        spoofed.state = state;
-        spoofed.authoritative = true;
-        assert!(!spoofed.is_authoritative_success());
-    }
-
-    let mut non_authoritative_success = success;
-    non_authoritative_success.authoritative = false;
-    assert!(!non_authoritative_success.is_authoritative_success());
 }
 
 #[test]
@@ -111,9 +92,9 @@ fn constructors_derive_safe_authority_for_every_state() {
 
     for receipt in receipts {
         assert!(
-            !receipt.authoritative,
+            !receipt.authoritative(),
             "{:?} must not be authoritative",
-            receipt.state
+            receipt.state()
         );
         assert!(!receipt.is_authoritative_success());
     }
@@ -129,14 +110,11 @@ fn partial_success_is_non_authoritative_and_requires_reconciliation() {
         safe_diagnostics(),
     );
 
-    assert_eq!(receipt.state, OperationState::PartialSuccess);
-    assert!(!receipt.authoritative);
+    assert_eq!(receipt.state(), OperationState::PartialSuccess);
+    assert!(!receipt.authoritative());
+    assert_eq!(receipt.external_resource_id(), Some("place-version:42"));
     assert_eq!(
-        receipt.external_resource_id.as_deref(),
-        Some("place-version:42")
-    );
-    assert_eq!(
-        receipt.retry_safety,
+        receipt.retry_safety(),
         RetrySafety::UnsafeWithoutReconciliation
     );
     assert!(!receipt.is_authoritative_success());
@@ -159,13 +137,13 @@ fn operation_ids_are_distinct_uuid_v4_and_correlation_ids_can_be_shared() {
         RetrySafety::Safe,
     );
 
-    let first_id = Uuid::parse_str(&first.operation_id).expect("operation ID must be a UUID");
-    let second_id = Uuid::parse_str(&second.operation_id).expect("operation ID must be a UUID");
+    let first_id = Uuid::parse_str(first.operation_id()).expect("operation ID must be a UUID");
+    let second_id = Uuid::parse_str(second.operation_id()).expect("operation ID must be a UUID");
     assert_eq!(first_id.get_version(), Some(Version::Random));
     assert_eq!(second_id.get_version(), Some(Version::Random));
-    assert_ne!(first.operation_id, second.operation_id);
-    assert_eq!(first.correlation_id, CORRELATION_ID);
-    assert_eq!(second.correlation_id, CORRELATION_ID);
+    assert_ne!(first.operation_id(), second.operation_id());
+    assert_eq!(first.correlation_id(), CORRELATION_ID);
+    assert_eq!(second.correlation_id(), CORRELATION_ID);
 }
 
 #[test]
@@ -192,8 +170,8 @@ fn queued_and_running_omit_finished_at_while_terminal_receipts_use_rfc3339() {
         RetrySafety::Safe,
     );
 
-    assert!(queued.finished_at.is_none());
-    assert!(running.finished_at.is_none());
+    assert!(queued.finished_at().is_none());
+    assert!(running.finished_at().is_none());
     assert!(!serde_json::to_value(&queued)
         .unwrap()
         .as_object()
@@ -205,10 +183,9 @@ fn queued_and_running_omit_finished_at_while_terminal_receipts_use_rfc3339() {
         .unwrap()
         .contains_key("finishedAt"));
 
-    DateTime::parse_from_rfc3339(&queued.started_at).expect("startedAt must be RFC3339");
+    DateTime::parse_from_rfc3339(queued.started_at()).expect("startedAt must be RFC3339");
     let finished_at = failed
-        .finished_at
-        .as_deref()
+        .finished_at()
         .expect("terminal receipt must have finishedAt");
     DateTime::parse_from_rfc3339(finished_at).expect("finishedAt must be RFC3339");
 }
@@ -270,14 +247,14 @@ fn diagnostics_are_deterministically_bounded_and_pre_redacted() {
         RetrySafety::NotRetryable,
     );
 
-    assert_eq!(first.diagnostics, second.diagnostics);
-    assert!(first.diagnostics.len() <= MAX_DIAGNOSTICS);
+    assert_eq!(first.diagnostics(), second.diagnostics());
+    assert!(first.diagnostics().len() <= MAX_DIAGNOSTICS);
     assert!(first
-        .diagnostics
+        .diagnostics()
         .iter()
         .all(|diagnostic| diagnostic.chars().count() <= MAX_DIAGNOSTIC_LENGTH));
 
-    let serialized = serde_json::to_string(&first.diagnostics).unwrap();
+    let serialized = serde_json::to_string(first.diagnostics()).unwrap();
     for forbidden in [
         "bearer-sentinel",
         "api-sentinel",
@@ -291,14 +268,69 @@ fn diagnostics_are_deterministically_bounded_and_pre_redacted() {
 
 #[test]
 fn value_is_data_and_never_grants_authority() {
-    let mut receipt = OperationReceipt::simulated(
+    let expected = json!({ "claimedSuccess": true, "visits": 1_000_000 });
+    let receipt = OperationReceipt::simulated(
         "analytics",
         CORRELATION_ID,
         "Browser preview only",
         Vec::<String>::new(),
-    );
-    receipt.value = Some(json!({ "claimedSuccess": true, "visits": 1_000_000 }));
+    )
+    .with_value(expected.clone());
 
-    assert!(receipt.value.is_some());
+    assert_eq!(receipt.value(), Some(&expected));
     assert!(!receipt.is_authoritative_success());
+}
+
+#[test]
+fn consuming_builders_preserve_non_authoritative_core_fields() {
+    let receipt = OperationReceipt::simulated(
+        "build",
+        CORRELATION_ID,
+        "Browser preview only",
+        Vec::<String>::new(),
+    );
+    let operation_id = receipt.operation_id().to_owned();
+    let started_at = receipt.started_at().to_owned();
+    let finished_at = receipt.finished_at().map(str::to_owned);
+
+    let receipt = receipt
+        .with_input_hash("input-hash")
+        .with_artifact_hash("artifact-hash")
+        .with_external_resource_id("preview:1")
+        .with_recovery_action("Run in the desktop app")
+        .with_value(json!({ "preview": true }));
+
+    assert_eq!(receipt.operation_id(), operation_id);
+    assert_eq!(receipt.correlation_id(), CORRELATION_ID);
+    assert_eq!(receipt.operation(), "build");
+    assert_eq!(receipt.state(), OperationState::Simulated);
+    assert!(!receipt.authoritative());
+    assert_eq!(receipt.started_at(), started_at);
+    assert_eq!(receipt.finished_at(), finished_at.as_deref());
+    assert_eq!(receipt.input_hash(), Some("input-hash"));
+    assert_eq!(receipt.artifact_hash(), Some("artifact-hash"));
+    assert_eq!(receipt.external_resource_id(), Some("preview:1"));
+    assert_eq!(receipt.recovery_action(), Some("Run in the desktop app"));
+    assert_eq!(receipt.value(), Some(&json!({ "preview": true })));
+    assert!(!receipt.is_authoritative_success());
+}
+
+#[test]
+fn consuming_builders_preserve_authoritative_success() {
+    let receipt = OperationReceipt::succeeded(
+        "publish",
+        CORRELATION_ID,
+        "Published",
+        Vec::<String>::new(),
+        RetrySafety::Safe,
+    )
+    .with_input_hash("input-hash")
+    .with_artifact_hash("artifact-hash")
+    .with_external_resource_id("place-version:42")
+    .with_recovery_action("Open Creator Dashboard")
+    .with_value(json!({ "placeVersion": 42 }));
+
+    assert_eq!(receipt.state(), OperationState::Succeeded);
+    assert!(receipt.authoritative());
+    assert!(receipt.is_authoritative_success());
 }
