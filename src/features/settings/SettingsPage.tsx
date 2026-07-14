@@ -173,6 +173,11 @@ export function SettingsPage() {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rojoAttemptIdRef = useRef(0);
   const rojoInFlightRef = useRef(false);
+  const studioSyncExpandedRef = useRef(false);
+  const rojoGenerationRef = useRef(0);
+  const rojoOperationSequenceRef = useRef(0);
+  const rojoOperationOwnerRef = useRef<number | null>(null);
+  const [rojoReconcileTick, setRojoReconcileTick] = useState(0);
 
   const clearSavedTimer = useCallback(() => {
     if (savedTimerRef.current !== null) {
@@ -196,20 +201,22 @@ export function SettingsPage() {
   const refreshRojoStatus = useCallback(async () => {
     if (
       !desktopRuntime ||
-      !rojoExpanded ||
-      !isTauriRuntime() ||
+      !studioSyncExpandedRef.current ||
       !mountedRef.current ||
-      rojoInFlightRef.current
+      rojoOperationOwnerRef.current !== null
     ) {
       return;
     }
+    if (!isTauriRuntime()) { showRojoRuntimeUnavailable(); return; }
 
-    rojoInFlightRef.current = true;
+    const operationOwner = ++rojoOperationSequenceRef.current;
+    rojoOperationOwnerRef.current = operationOwner;
+    const generation = rojoGenerationRef.current;
     const attemptId = ++rojoAttemptIdRef.current;
     setRojoLoading(true);
     try {
       const status = await rojoCommands.checkStatus();
-      if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
+      if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -223,7 +230,7 @@ export function SettingsPage() {
         recoveryAction: null,
       });
     } catch (error) {
-      if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
+      if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
         return;
       }
       if (!isTauriRuntime()) {
@@ -236,14 +243,11 @@ export function SettingsPage() {
       );
       setRojoAuthority(uiError);
     } finally {
-      if (attemptId === rojoAttemptIdRef.current) {
-        rojoInFlightRef.current = false;
-        if (mountedRef.current) {
-          setRojoLoading(false);
-        }
-      }
+      if (rojoOperationOwnerRef.current === operationOwner) rojoOperationOwnerRef.current = null;
+      if (mountedRef.current && generation === rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoLoading(false);
+      if (mountedRef.current && generation !== rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoReconcileTick((tick) => tick + 1);
     }
-  }, [desktopRuntime, rojoExpanded, showRojoRuntimeUnavailable]);
+  }, [desktopRuntime, showRojoRuntimeUnavailable]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -301,6 +305,7 @@ export function SettingsPage() {
       mountedRef.current = false;
       apiAttemptIdRef.current += 1;
       rojoAttemptIdRef.current += 1;
+      rojoGenerationRef.current += 1;
       apiSaveInFlightRef.current = false;
       rojoInFlightRef.current = false;
       clearSavedTimer();
@@ -328,6 +333,7 @@ export function SettingsPage() {
   }, [
     desktopRuntime,
     rojoExpanded,
+    rojoReconcileTick,
     refreshRojoStatus,
     showRojoRuntimeUnavailable,
   ]);
@@ -336,20 +342,21 @@ export function SettingsPage() {
     async (action: () => Promise<unknown>) => {
       if (
         !desktopRuntime ||
-        !rojoExpanded ||
-        !isTauriRuntime() ||
+        !studioSyncExpandedRef.current ||
         !mountedRef.current ||
-        rojoInFlightRef.current
+        rojoOperationOwnerRef.current !== null
       ) {
         return;
       }
+      if (!isTauriRuntime()) { showRojoRuntimeUnavailable(); return; }
 
-      rojoInFlightRef.current = true;
-      const attemptId = ++rojoAttemptIdRef.current;
+      const operationOwner = ++rojoOperationSequenceRef.current;
+      rojoOperationOwnerRef.current = operationOwner;
+      const generation = rojoGenerationRef.current;
       setRojoLoading(true);
       try {
         await action();
-        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
+        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -358,7 +365,7 @@ export function SettingsPage() {
         }
 
         const status = await rojoCommands.checkStatus();
-        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
+        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -372,7 +379,7 @@ export function SettingsPage() {
           recoveryAction: null,
         });
       } catch (error) {
-        if (!mountedRef.current || attemptId !== rojoAttemptIdRef.current) {
+        if (!mountedRef.current || generation !== rojoGenerationRef.current || !studioSyncExpandedRef.current) {
           return;
         }
         if (!isTauriRuntime()) {
@@ -385,24 +392,19 @@ export function SettingsPage() {
         );
         setRojoAuthority(uiError);
       } finally {
-        if (attemptId === rojoAttemptIdRef.current) {
-          rojoInFlightRef.current = false;
-          if (mountedRef.current) {
-            setRojoLoading(false);
-          }
-        }
+        if (rojoOperationOwnerRef.current === operationOwner) rojoOperationOwnerRef.current = null;
+        if (mountedRef.current && generation === rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoLoading(false);
+        if (mountedRef.current && generation !== rojoGenerationRef.current && studioSyncExpandedRef.current) setRojoReconcileTick((tick) => tick + 1);
       }
     },
-    [desktopRuntime, rojoExpanded, showRojoRuntimeUnavailable],
+    [desktopRuntime, showRojoRuntimeUnavailable],
   );
 
   const handleStartServe = async () => {
-    if (!desktopRuntime || !rojoExpanded || !isTauriRuntime()) return;
     await runRojoAction(() => rojoCommands.startServe("."));
   };
 
   const handleStopServe = async () => {
-    if (!desktopRuntime || !rojoExpanded || !isTauriRuntime()) return;
     await runRojoAction(() => rojoCommands.stopServe());
   };
 
@@ -757,7 +759,19 @@ export function SettingsPage() {
                 aria-expanded={rojoExpanded}
                 aria-label={`${rojoExpanded ? "Hide" : "Show"} Advanced Studio Sync`}
                 aria-controls="advanced-studio-sync-content"
-                onClick={() => setRojoExpanded((expanded) => !expanded)}
+                onClick={() => {
+                  setRojoExpanded((expanded) => {
+                    const next = !expanded;
+                    studioSyncExpandedRef.current = next;
+                    rojoGenerationRef.current += 1;
+                    if (!next) {
+                      setRojoStatus(null);
+                      setRojoLoading(false);
+                      setRojoAuthority({ status: "idle", message: null, recoveryAction: null });
+                    }
+                    return next;
+                  });
+                }}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-gray-800"
               >
                 <span aria-hidden="true">{rojoExpanded ? "Hide" : "Show"}</span>
