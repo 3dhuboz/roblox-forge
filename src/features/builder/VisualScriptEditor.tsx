@@ -6,6 +6,8 @@ import {
   BackgroundVariant,
   addEdge,
   type Connection,
+  type Edge,
+  type Node,
   type OnNodesChange,
   type OnEdgesChange,
   applyNodeChanges,
@@ -14,7 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { TriggerNode, ActionNode, LogicNode } from "./nodes/ScriptNode";
-import { useVisualScriptStore, canConnect } from "../../stores/visualScriptStore";
+import { useVisualScriptStore, canConnect, type NodeData } from "../../stores/visualScriptStore";
 import { NODE_TYPES, NODE_TYPE_LIST, NODE_CATEGORIES } from "../../lib/nodeTypes";
 import { Play, Save, Trash2, Code, Plus, X, Search } from "lucide-react";
 
@@ -55,23 +57,23 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
   }, [projectPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ReactFlow change handlers — write directly to store
-  const onNodesChange: OnNodesChange = useCallback(
+  const onNodesChange: OnNodesChange<Node<NodeData>> = useCallback(
     (changes) => {
-      setNodes(applyNodeChanges(changes, nodes) as typeof nodes);
+      setNodes(applyNodeChanges<Node<NodeData>>(changes, nodes));
     },
     [nodes, setNodes],
   );
 
-  const onEdgesChange: OnEdgesChange = useCallback(
+  const onEdgesChange: OnEdgesChange<Edge> = useCallback(
     (changes) => {
-      setEdges(applyEdgeChanges(changes, edges) as typeof edges);
+      setEdges(applyEdgeChanges<Edge>(changes, edges));
     },
     [edges, setEdges],
   );
 
   // Validate connection: check port type compatibility
   const isValidConnection = useCallback(
-    (connection: Connection) => {
+    (connection: Edge | Connection) => {
       const sourceNode = nodes.find((n) => n.id === connection.source);
       const targetNode = nodes.find((n) => n.id === connection.target);
       if (!sourceNode || !targetNode) return false;
@@ -259,7 +261,7 @@ export function VisualScriptEditor({ projectPath }: { projectPath: string }) {
             ref={reactFlowWrapper}
             className={`flex-1 ${compiledCode ? "h-1/2" : ""}`}
           >
-            <ReactFlow
+            <ReactFlow<Node<NodeData>, Edge>
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}

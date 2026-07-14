@@ -19,24 +19,6 @@ const DEFAULT_HIERARCHY: GameInstance[] = [
   },
 ];
 
-const CLASS_ICONS: Record<string, typeof Box> = {
-  Part: Box,
-  SpawnLocation: Flag,
-  Folder: Folder,
-  Script: FileCode,
-  LocalScript: FileCode,
-  ModuleScript: FileCode,
-};
-
-const CLASS_COLORS: Record<string, string> = {
-  Part: "text-blue-400",
-  SpawnLocation: "text-green-400",
-  Folder: "text-yellow-400",
-  Script: "text-red-400",
-  LocalScript: "text-purple-400",
-  ModuleScript: "text-orange-400",
-};
-
 function getIconForName(name: string) {
   if (name.includes("Script") || name.includes("Handler") || name.includes("Manager")) return { Icon: FileCode, color: "text-red-400" };
   if (name.includes("Spawn")) return { Icon: Flag, color: "text-green-400" };

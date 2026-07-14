@@ -13,11 +13,12 @@ import {
   Code,
   Wand2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useUserStore } from "../../stores/userStore";
 import type { ExperienceLevel, AgeRange } from "../../types/user";
 import { EXPERIENCE_DESCRIPTIONS, GOAL_OPTIONS } from "../../types/user";
 
-const goalIcons: Record<string, React.ElementType> = {
+const goalIcons: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   users: Users,
   coins: Coins,
@@ -159,7 +160,7 @@ export function OnboardingFlow() {
                     (typeof EXPERIENCE_DESCRIPTIONS)[ExperienceLevel],
                   ][]
                 ).map(([key, desc]) => {
-                  const icons: Record<ExperienceLevel, React.ElementType> = {
+                  const icons: Record<ExperienceLevel, LucideIcon> = {
                     beginner: Gamepad2,
                     intermediate: Wand2,
                     advanced: Code,

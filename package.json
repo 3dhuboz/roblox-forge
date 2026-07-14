@@ -8,7 +8,13 @@
     "dev:web": "vite --port 5173 --strictPort false",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:integration": "vitest run src/test/integration",
+    "test:e2e": "playwright test",
+    "verify:frontend": "npm run typecheck && npm run test:run && npm run build"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -24,13 +30,20 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "axe-core": "^4.10.3",
+    "jsdom": "^26.1.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^3.2.4"
   }
 }

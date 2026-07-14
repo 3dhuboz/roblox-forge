@@ -5,7 +5,7 @@ import type { PortType } from "../lib/nodeTypes";
 import { compileGraphToLuau } from "../lib/luauCodeGen";
 import { projectCommands } from "../services/tauriCommands";
 
-interface NodeData {
+export interface NodeData extends Record<string, unknown> {
   nodeType: string;
   values: Record<string, string | number | boolean>;
 }

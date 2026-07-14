@@ -1,8 +1,9 @@
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useToastStore } from "../stores/toastStore";
 import type { ToastType } from "../stores/toastStore";
 
-const iconMap: Record<ToastType, React.ElementType> = {
+const iconMap: Record<ToastType, LucideIcon> = {
   success: CheckCircle,
   error: XCircle,
   warning: AlertTriangle,

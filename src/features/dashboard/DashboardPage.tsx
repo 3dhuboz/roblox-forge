@@ -11,6 +11,7 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { dashboardCommands, type GameStats } from "../../services/tauriCommands";
 
@@ -20,7 +21,7 @@ function StatCard({
   value,
   color,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   value: string;
   color: string;

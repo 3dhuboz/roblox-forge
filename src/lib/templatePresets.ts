@@ -75,42 +75,7 @@ function inst(
   return { id, name, children, isExpanded };
 }
 
-function v3(x: number, y: number, z: number) {
-  return { Vector3: [x, y, z] };
-}
-
-function cf(x: number, y: number, z: number) {
-  return { CFrame: { position: [x, y, z], orientation: [0, 0, 0, 1, 0, 0, 0, 1, 0] } };
-}
-
-function rgb(r: number, g: number, b: number) {
-  return { Color3uint8: [r, g, b] };
-}
-
-function makeInstanceNode(
-  className: string,
-  name: string,
-  children: InstanceNode[] = [],
-  extra: Partial<InstanceNode> = {},
-): InstanceNode {
-  return { className, name, properties: {}, children, ...extra };
-}
-
 // ── Common DataModel wrapper ──
-
-function wrapInDataModel(workspaceChildren: InstanceNode[], extraServices: InstanceNode[] = []): InstanceNode {
-  return makeInstanceNode("DataModel", "DataModel", [
-    makeInstanceNode("Workspace", "Workspace", [
-      makeInstanceNode("Terrain", "Terrain"),
-      ...workspaceChildren,
-    ]),
-    makeInstanceNode("Lighting", "Lighting"),
-    makeInstanceNode("ReplicatedStorage", "ReplicatedStorage"),
-    makeInstanceNode("ServerScriptService", "ServerScriptService", extraServices),
-    makeInstanceNode("StarterPlayer", "StarterPlayer"),
-    makeInstanceNode("SoundService", "SoundService"),
-  ]);
-}
 
 // ── Preset: Obby ──
 

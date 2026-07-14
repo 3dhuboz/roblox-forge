@@ -976,10 +976,7 @@ export function mockCheckRojoStatus() {
   };
 }
 
-let mockRojoServing = false;
-
 export function mockStartRojoServe(): number {
-  mockRojoServing = true;
   return 34872;
 }
 

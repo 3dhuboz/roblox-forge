@@ -17,6 +17,7 @@ import {
   Wrench,
   Candy,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useChatStore } from "../../stores/chatStore";
 
 interface GuidedWizardProps {
@@ -28,7 +29,7 @@ interface GuidedWizardProps {
 type Theme = {
   id: string;
   name: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   color: string;
   prompt: string;
 };
@@ -281,7 +282,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "mansion",
       defaultFeatures: ["flashlight", "puzzles", "jumpscares"],
-      buildPrompt: (theme: Theme, scale: typeof horrorScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof horrorScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} horror game called "${name || "My Horror Game"}" with ${scale.count} rooms. Make it ${theme.prompt}. Include these systems: ${features}. Create dark atmosphere with fog, flickering lights, and ambient sounds. Puzzles should gate progression between rooms.`,
       namePlaceholder: "The Haunted Mansion",
       scaleLabel: "rooms",
@@ -301,7 +302,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "kart",
       defaultFeatures: ["vehicles", "laps", "boost"],
-      buildPrompt: (theme: Theme, scale: typeof racingScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof racingScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} racing game called "${name || "My Racing Game"}" with ${scale.count} tracks. Make it ${theme.prompt}. Include these systems: ${features}. Create tracks with checkpoints, a vehicle garage in the lobby, and race rewards.`,
       namePlaceholder: "Speed Legends",
       scaleLabel: "tracks",
@@ -321,7 +322,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "party",
       defaultFeatures: ["voting", "rounds", "rewards"],
-      buildPrompt: (theme: Theme, scale: typeof miniScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof miniScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} minigame hub called "${name || "My Minigames"}" with ${scale.count} games. Make it ${theme.prompt}. Include these systems: ${features}. Create a lobby with a voting board, intermission timer, and automatic round rotation.`,
       namePlaceholder: "Party Games Hub",
       scaleLabel: "games",
@@ -341,7 +342,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "fantasy",
       defaultFeatures: ["quests", "combat", "leveling"],
-      buildPrompt: (theme: Theme, scale: typeof rpgScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof rpgScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} RPG called "${name || "My RPG"}" with ${scale.count} quests. Make it ${theme.prompt}. Include these systems: ${features}. Create zones with level-gated progression, enemies that drop XP and gold, a quest board in the town hub, and an item shop.`,
       namePlaceholder: "My Fantasy RPG",
       scaleLabel: "quests",
@@ -361,7 +362,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "elemental",
       defaultFeatures: ["classes", "abilities", "matchmaking"],
-      buildPrompt: (theme: Theme, scale: typeof bgScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof bgScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} battlegrounds game called "${name || "My Battlegrounds"}" with ${scale.count} abilities. Make it ${theme.prompt}. Include these systems: ${features}. Create distinct classes with unique health/speed/abilities. Add a matchmaking queue and round-based combat with kill rewards.`,
       namePlaceholder: "My Epic Battlegrounds",
       scaleLabel: "abilities",
@@ -381,7 +382,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "pets",
       defaultFeatures: ["clicking", "pets", "upgrades"],
-      buildPrompt: (theme: Theme, scale: typeof simScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof simScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} simulator called "${name || "My Simulator"}" with ${scale.count} zones. Make it ${theme.prompt}. Include these systems: ${features}. Start with a basic click-to-earn loop, then add zones that unlock at higher coin thresholds. Each zone should have higher coin multipliers and unique visuals.`,
       namePlaceholder: "My Pet Simulator",
       scaleLabel: "zones",
@@ -401,7 +402,7 @@ function getConfig(templateType: string) {
       ],
       defaultTheme: "factory",
       defaultFeatures: ["droppers", "conveyors", "upgrades"],
-      buildPrompt: (theme: Theme, scale: typeof tycoonScales[0], features: string[], name: string) =>
+      buildPrompt: (theme: Theme, scale: typeof tycoonScales[0], features: string, name: string) =>
         `Create a ${scale.name.toLowerCase()} tycoon called "${name || "My Tycoon"}" with ${scale.count} upgrades. Make it ${theme.prompt}. Include these systems: ${features}. Start with a basic dropper + conveyor + collector loop, then each upgrade should unlock new machines or boost income. Add a rebirth system if selected.`,
       namePlaceholder: "My Epic Factory Tycoon",
       scaleLabel: "upgrades",
@@ -421,7 +422,7 @@ function getConfig(templateType: string) {
     ],
     defaultTheme: "space",
     defaultFeatures: ["killbricks"],
-    buildPrompt: (theme: Theme, scale: typeof obbyDifficulties[0], features: string[], name: string) =>
+    buildPrompt: (theme: Theme, scale: typeof obbyDifficulties[0], features: string, name: string) =>
       `Create a ${scale.name.toLowerCase()} difficulty obby called "${name || "My Obby"}" with ${scale.count} stages. Make it ${theme.prompt}. Include these obstacles: ${features}. Make each stage progressively harder and more visually impressive. Add checkpoints at each stage.`,
     namePlaceholder: "My Epic Space Obby",
     scaleLabel: "stages",
@@ -453,7 +454,7 @@ export function GuidedWizard({ projectPath, templateType, onComplete }: GuidedWi
       .filter(Boolean)
       .join(", ");
 
-    const prompt = config.buildPrompt(selectedTheme, selectedScale, featureNames as unknown as string[], gameName);
+    const prompt = config.buildPrompt(selectedTheme, selectedScale, featureNames, gameName);
     await sendMessage(projectPath, prompt);
     setIsGenerating(false);
     onComplete();

@@ -14,7 +14,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
 
 export function BuildPage() {
-  const { project, projectState, refreshProjectState } = useProjectStore();
+  const { project, projectState } = useProjectStore();
   const navigate = useNavigate();
   const { undo, redo, zoom, setZoom, elements, undoStack, redoStack, setTemplate, saveToProject, loadFromProject, isSaving, lastSavedAt } = useCanvasStore();
   const [sidebarTab, setSidebarTab] = useState<"chat" | "script" | "monetize">("chat");
@@ -217,7 +217,7 @@ export function BuildPage() {
 
             {/* Tab content */}
             {sidebarTab === "chat" ? (
-              <AiSceneChat projectPath={project.path} />
+              <AiSceneChat />
             ) : sidebarTab === "script" ? (
               <VisualScriptEditor projectPath={project.path} />
             ) : (

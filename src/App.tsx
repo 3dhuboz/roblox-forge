@@ -41,8 +41,15 @@ function App() {
     <Layout>
       <Suspense
         fallback={
-          <div className="flex h-full items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <div
+            role="status"
+            aria-label="Loading RobloxForge"
+            className="flex h-full items-center justify-center"
+          >
+            <div
+              aria-hidden="true"
+              className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"
+            />
           </div>
         }
       >

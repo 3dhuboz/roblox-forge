@@ -1,4 +1,5 @@
 import { CheckCircle, XCircle, AlertTriangle, Info, Loader2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ValidationIssue, Severity } from "../../types/validation";
 import { useProjectStore } from "../../stores/projectStore";
 
@@ -8,7 +9,7 @@ interface ValidationPanelProps {
 
 const severityConfig: Record<
   Severity,
-  { icon: React.ElementType; color: string; bgColor: string }
+  { icon: LucideIcon; color: string; bgColor: string }
 > = {
   error: { icon: XCircle, color: "text-red-400", bgColor: "bg-red-950/30" },
   warning: {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mountain, Factory, Zap, Swords, Map, Ghost, Car, Dice1, Clock, Trash2, CheckCircle, Circle, Key, Radio, Gamepad2, X, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
 import { rojoCommands, aiCommands } from "../../services/tauriCommands";
@@ -10,7 +11,7 @@ interface Template {
   id: string;
   name: string;
   description: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   available: boolean;
   color: string;
 }
@@ -89,7 +90,7 @@ const templates: Template[] = [
   },
 ];
 
-const TEMPLATE_ICON_MAP: Record<string, React.ElementType> = {
+const TEMPLATE_ICON_MAP: Record<string, LucideIcon> = {
   obby: Mountain,
   tycoon: Factory,
   simulator: Zap,
@@ -626,7 +627,6 @@ export function TemplateSelector() {
         {/* Template grid */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
           {templates.map((template) => {
-            const Icon = template.icon;
             const isSelected = selectedTemplate === template.id;
             return (
               <button

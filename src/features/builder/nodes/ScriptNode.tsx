@@ -6,15 +6,10 @@
 
 import { memo, useCallback } from "react";
 import { Handle, Position } from "@xyflow/react";
-import type { NodeProps } from "@xyflow/react";
+import type { Node, NodeProps } from "@xyflow/react";
 import { NODE_TYPES } from "../../../lib/nodeTypes";
 import type { PortType } from "../../../lib/nodeTypes";
-import { useVisualScriptStore } from "../../../stores/visualScriptStore";
-
-interface NodeData {
-  nodeType: string;
-  values: Record<string, string | number | boolean>;
-}
+import { useVisualScriptStore, type NodeData } from "../../../stores/visualScriptStore";
 
 const PORT_COLORS: Record<PortType, string> = {
   signal: "#a3a3a3",
@@ -43,9 +38,8 @@ const CATEGORY_STYLES = {
   },
 };
 
-function BaseScriptNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as unknown as NodeData;
-  const typeDef = NODE_TYPES[nodeData.nodeType];
+function BaseScriptNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
+  const typeDef = NODE_TYPES[data.nodeType];
   const updateNodeValue = useVisualScriptStore((s) => s.updateNodeValue);
 
   const style = CATEGORY_STYLES[typeDef?.category ?? "action"];
@@ -60,7 +54,7 @@ function BaseScriptNode({ id, data, selected }: NodeProps) {
   if (!typeDef) {
     return (
       <div className="rounded-lg border border-red-500 bg-red-950 p-3 text-xs text-red-300">
-        Unknown node: {nodeData.nodeType}
+        Unknown node: {data.nodeType}
       </div>
     );
   }
@@ -100,7 +94,7 @@ function BaseScriptNode({ id, data, selected }: NodeProps) {
 
         {/* Data input ports with inline editors */}
         {nonSignalInputs.map((port) => {
-          const val = nodeData.values?.[port.id] ?? port.defaultValue ?? "";
+          const val = data.values?.[port.id] ?? port.defaultValue ?? "";
           return (
             <div key={port.id} className="relative mb-1.5 flex items-center gap-2">
               <Handle
@@ -153,7 +147,7 @@ function BaseScriptNode({ id, data, selected }: NodeProps) {
         })}
 
         {/* Output ports (right side) */}
-        {typeDef.outputs.map((port, i) => (
+        {typeDef.outputs.map((port) => (
           <div
             key={port.id}
             className="relative flex items-center justify-end mb-1"

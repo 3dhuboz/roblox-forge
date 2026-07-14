@@ -3,7 +3,8 @@ import {
   Sparkles, Send, TreePine, Droplets, Mountain, Sword,
   Users, Coins, Flag, Loader2, Wand2, Home, Route, Shield,
 } from "lucide-react";
-import { useCanvasStore, PALETTE_ITEMS } from "../../stores/canvasStore";
+import type { LucideIcon } from "lucide-react";
+import { useCanvasStore, PALETTE_ITEMS, type PaletteItem } from "../../stores/canvasStore";
 import { useProjectStore } from "../../stores/projectStore";
 
 // ── Quick actions per template ──
@@ -15,7 +16,7 @@ interface SubOption {
 
 interface QuickAction {
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   prompt: string;
   color: string;
   subOptions?: SubOption[];
@@ -203,7 +204,7 @@ function getQuickActions(template: string): QuickAction[] {
 
 // ── Template-aware AI scene generation ──
 
-function aiGenerateScene(prompt: string, template: string, addElement: (item: any, x: number, y: number) => void): string {
+function aiGenerateScene(prompt: string, template: string, addElement: (item: PaletteItem, x: number, y: number) => void): string {
   const lower = prompt.toLowerCase();
   const find = (type: string) => PALETTE_ITEMS.find(p => p.type === type)!;
   const rand = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) / 20) * 20;
@@ -377,7 +378,7 @@ function aiGenerateScene(prompt: string, template: string, addElement: (item: an
 
 // ── Template-specific full level builders ──
 
-function buildFullLevel(template: string, add: (item: any, x: number, y: number) => void, find: (t: string) => any, rand: (min: number, max: number) => number): string {
+function buildFullLevel(template: string, add: (item: PaletteItem, x: number, y: number) => void, find: (t: string) => PaletteItem, rand: (min: number, max: number) => number): string {
   switch (template) {
     case "obby": {
       // Linear obstacle course with stages
@@ -552,7 +553,7 @@ const TEMPLATE_NAMES: Record<string, string> = {
 
 // ── Main Component ──
 
-export function AiSceneChat({ projectPath }: { projectPath: string }) {
+export function AiSceneChat() {
   const { project } = useProjectStore();
   const template = project?.template || "obby";
   const templateName = TEMPLATE_NAMES[template] || template;

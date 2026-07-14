@@ -439,7 +439,7 @@ function getDefaultShopItems(template: string): ShopItem[] {
 
 // ── Format logic as readable summary ──
 
-export function formatLogicSummary(type: string, logic: GameLogicProperties): string[] {
+export function formatLogicSummary(_type: string, logic: GameLogicProperties): string[] {
   const lines: string[] = [];
 
   if (logic.health) lines.push(`❤️ ${logic.health} HP`);

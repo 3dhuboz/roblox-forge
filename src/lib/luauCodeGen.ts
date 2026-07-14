@@ -7,7 +7,7 @@
 import { NODE_TYPES } from "./nodeTypes";
 import type { Node, Edge } from "@xyflow/react";
 
-interface NodeData {
+interface NodeData extends Record<string, unknown> {
   nodeType: string;
   values: Record<string, string | number | boolean>;
 }
@@ -96,10 +96,8 @@ export function compileGraphToLuau(
   }
 
   // Build adjacency: for each node, find what signal edges connect to it
-  const signalEdges = edges.filter((e) => {
-    // Signal edges connect signal outputs to signal inputs
-    return true; // All edges in our system are signal/data flow
-  });
+  // All edges in our system are signal/data flow.
+  const signalEdges = [...edges];
 
   // For each trigger, generate a handler block
   for (const trigger of triggerNodes) {

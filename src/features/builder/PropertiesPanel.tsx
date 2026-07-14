@@ -7,9 +7,10 @@ import {
   Flag, ChevronRight, Coins, Diamond, UserPlus,
   Trash2, Copy, Lock, Unlock, Eye, EyeOffIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCanvasStore } from "../../stores/canvasStore";
 
-const ICON_MAP: Record<string, React.ElementType> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   "square": Square, "trees": Trees, "droplets": Droplets, "flame": Flame,
   "sun": Sun, "snowflake": Snowflake, "minus": Minus, "move-horizontal": MoveHorizontal,
   "eye-off": EyeOff, "arrow-up": ArrowUp, "arrow-right": ArrowRight,

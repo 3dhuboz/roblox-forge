@@ -10,9 +10,10 @@ import {
   Download,
   Eraser,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCanvasStore, type ToolMode } from "../../stores/canvasStore";
 
-const TOOLS: { mode: ToolMode; icon: React.ElementType; label: string; shortcut: string }[] = [
+const TOOLS: { mode: ToolMode; icon: LucideIcon; label: string; shortcut: string }[] = [
   { mode: "select", icon: MousePointer2, label: "Select", shortcut: "V" },
   { mode: "move", icon: Move, label: "Move", shortcut: "G" },
   { mode: "delete", icon: Trash2, label: "Delete", shortcut: "X" },

@@ -19,7 +19,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { aiCommands, rojoCommands } from "../../services/tauriCommands";
-import { isTauriRuntime } from "../../lib/isTauriRuntime";
 import type { RojoStatus } from "../../services/tauriCommands";
 import { useUserStore } from "../../stores/userStore";
 import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";

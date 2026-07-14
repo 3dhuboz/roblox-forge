@@ -8,9 +8,10 @@ import {
   Flag, ChevronRight, Coins, Diamond, UserPlus,
   Search, ChevronDown,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCanvasStore, PALETTE_ITEMS, type PaletteItem, type ElementCategory } from "../../stores/canvasStore";
 
-const ICON_MAP: Record<string, React.ElementType> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   "square": Square, "trees": Trees, "droplets": Droplets, "flame": Flame,
   "sun": Sun, "snowflake": Snowflake, "minus": Minus, "move-horizontal": MoveHorizontal,
   "eye-off": EyeOff, "arrow-up": ArrowUp, "arrow-right": ArrowRight,
@@ -29,9 +30,10 @@ const CATEGORY_INFO: Record<ElementCategory, { label: string; color: string }> =
   character: { label: "Characters", color: "text-pink-400" },
   decoration: { label: "Decorations", color: "text-yellow-400" },
   mechanic: { label: "Mechanics", color: "text-cyan-400" },
+  structure: { label: "Structures", color: "text-orange-400" },
 };
 
-const CATEGORIES: ElementCategory[] = ["terrain", "platform", "obstacle", "character", "decoration", "mechanic"];
+const CATEGORIES: ElementCategory[] = ["terrain", "platform", "obstacle", "character", "decoration", "mechanic", "structure"];
 
 function PaletteItemCard({ item }: { item: PaletteItem }) {
   const { setPlacingItem, placingItem } = useCanvasStore();
