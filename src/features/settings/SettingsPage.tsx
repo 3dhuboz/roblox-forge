@@ -340,6 +340,13 @@ export function SettingsPage() {
     showRojoRuntimeUnavailable,
   ]);
 
+  useEffect(() => {
+    if (!desktopRuntime || !isTauriRuntime()) {
+      rojoGenerationRef.current += 1;
+      showRojoRuntimeUnavailable();
+    }
+  }, [desktopRuntime, showRojoRuntimeUnavailable]);
+
   const runRojoAction = useCallback(
     async (action: () => Promise<unknown>) => {
       if (

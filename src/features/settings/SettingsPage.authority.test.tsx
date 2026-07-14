@@ -699,6 +699,21 @@ describe("SettingsPage desktop authority", () => {
     expect(rojoCommands.stopServe).toHaveBeenCalledTimes(1);
   });
 
+  it("handles same-tick Start clicks exactly once", async () => {
+    enableTauriRuntime();
+    vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo);
+    const start = deferred<number>();
+    vi.mocked(rojoCommands.startServe).mockReturnValueOnce(start.promise);
+    render(<SettingsPage />); expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    await act(async () => {
+      screen.getByRole("button", { name: "Start Sync to Studio" }).click();
+      screen.getByRole("button", { name: "Start Sync to Studio" }).click();
+    });
+    expect(rojoCommands.startServe).toHaveBeenCalledTimes(1);
+    await act(async () => { start.resolve(34872); await start.promise; });
+  });
+
   it("does not reconcile after unmount during a probe", async () => {
     enableTauriRuntime();
     const probe = deferred<RojoStatus>();
