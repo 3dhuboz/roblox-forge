@@ -753,8 +753,15 @@ export function SettingsPage() {
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5">
                 <Radio size={20} className="text-indigo-400" />
-                <h3 id="advanced-studio-sync-heading" className="text-[15px] font-bold text-white">Advanced Studio Sync</h3>
-                <span className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Optional</span>
+                <h3
+                  id="advanced-studio-sync-heading"
+                  className="text-[15px] font-bold text-white"
+                >
+                  Advanced Studio Sync
+                </h3>
+                <span className="rounded-full border border-gray-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  Optional
+                </span>
               </div>
               <button
                 type="button"
@@ -771,13 +778,14 @@ export function SettingsPage() {
               Not needed to create, preview, publish, or monitor your game. Open this only if you want live synchronization with Roblox Studio.
             </p>
 
-            {rojoExpanded && <div id="advanced-studio-sync-content">
-            <div className="mt-3 flex items-center justify-between">
+            {rojoExpanded && (
+              <div id="advanced-studio-sync-content">
+                <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-gray-500">Rojo live synchronization</p>
               <button type="button" aria-label="Refresh Rojo status" onClick={refreshRojoStatus} disabled={!desktopRuntime || rojoLoading || rojoAuthority.status === "unavailable"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-800 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14} className={rojoLoading ? "animate-spin" : undefined} /></button>
-            </div>
+                </div>
 
-            {rojoAuthority.status === "error" ||
+                {rojoAuthority.status === "error" ||
             rojoAuthority.status === "unavailable" ? (
               <div
                 className="mt-3 rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400"
@@ -851,8 +859,9 @@ export function SettingsPage() {
               >
                 <Loader2 size={14} className="animate-spin" /> Checking Rojo...
               </div>
+                )}
+              </div>
             )}
-            </div>}
           </section>
 
           {/* Appearance */}
