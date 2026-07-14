@@ -518,19 +518,20 @@ export function TemplateSelector() {
 
   const handleCreate = async () => {
     if (!selectedTemplate || !projectName.trim()) return;
-    await createProject(selectedTemplate, projectName.trim());
-    saveRecentProject({
-      name: projectName.trim(),
-      template: selectedTemplate,
-      path: `browser-dev://${projectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_")}`,
-      createdAt: new Date().toISOString(),
-    });
+    const created = await createProject(selectedTemplate, projectName.trim());
+    if (!created) return;
+
+    const createdProject = useProjectStore.getState().project;
+    if (!createdProject) return;
+
+    saveRecentProject(createdProject);
     setRecentProjects(getRecentProjects());
     navigate("/build");
   };
 
   const handleOpenRecent = async (recent: RecentProject) => {
-    await createProject(recent.template, recent.name);
+    const created = await createProject(recent.template, recent.name);
+    if (!created) return;
     navigate("/build");
   };
 

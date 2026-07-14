@@ -1,11 +1,16 @@
 import { create } from "zustand";
 import type { ProjectInfo, ProjectState } from "../types/project";
 import type { ValidationIssue } from "../types/validation";
-import { projectCommands, validationCommands } from "../services/tauriCommands";
+import {
+  browserPreviewService,
+  projectCommands,
+  validationCommands,
+} from "../services/tauriCommands";
 import { useToastStore } from "./toastStore";
 import { getTemplatePreset } from "../lib/templatePresets";
 import { useCanvasStore } from "./canvasStore";
 import { useInstanceStore } from "./instanceStore";
+import { isTauriRuntime } from "../lib/isTauriRuntime";
 
 interface ProjectStore {
   project: ProjectInfo | null;
@@ -15,7 +20,7 @@ interface ProjectStore {
   error: string | null;
   fixingIssueId: string | null;
 
-  createProject: (template: string, name: string) => Promise<void>;
+  createProject: (template: string, name: string) => Promise<boolean>;
   refreshProjectState: () => Promise<void>;
   validateProject: () => Promise<void>;
   autoFixIssue: (issueId: string) => Promise<void>;
@@ -31,11 +36,24 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   fixingIssueId: null,
 
   createProject: async (template, name) => {
-    set({ isLoading: true, error: null });
+    const isDesktop = isTauriRuntime();
+    set({
+      project: null,
+      projectState: null,
+      validationIssues: [],
+      isLoading: true,
+      error: null,
+      fixingIssueId: null,
+    });
     try {
-      const project = await projectCommands.createProject(template, name);
-      set({ project });
-      await get().refreshProjectState();
+      const project = isDesktop
+        ? await projectCommands.createProject(template, name)
+        : (await browserPreviewService.createProject(template, name)).data;
+      const projectState = isDesktop
+        ? await projectCommands.getProjectState(project.path)
+        : (await browserPreviewService.getProjectState(project.path)).data;
+
+      set({ project, projectState });
 
       // Load template preset into canvas and instance stores
       const preset = getTemplatePreset(template);
@@ -46,10 +64,19 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         useInstanceStore.getState().loadFromHierarchy(preset.hierarchy);
       }
 
-      useToastStore.getState().addToast("success", `Project "${name}" created!`);
+      useToastStore
+        .getState()
+        .addToast(
+          "success",
+          isDesktop
+            ? `Project "${name}" created!`
+            : `Preview project "${name}" created in temporary memory.`,
+        );
+      return true;
     } catch (e) {
-      set({ error: String(e) });
+      set({ project: null, projectState: null, error: String(e) });
       useToastStore.getState().addToast("error", `Failed to create project: ${e}`);
+      return false;
     } finally {
       set({ isLoading: false });
     }
@@ -59,7 +86,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const { project } = get();
     if (!project) return;
     try {
-      const projectState = await projectCommands.getProjectState(project.path);
+      const projectState = isTauriRuntime()
+        ? await projectCommands.getProjectState(project.path)
+        : (await browserPreviewService.getProjectState(project.path)).data;
       set({ projectState });
     } catch (e) {
       set({ error: String(e) });
