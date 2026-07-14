@@ -15,6 +15,7 @@ import { isTauriRuntime } from "../lib/isTauriRuntime";
 export type ValidationState = "not_run" | "running" | "failed" | "passed";
 
 let validationEpoch = 0;
+let fixingOperationGeneration = 0;
 
 interface ProjectStore {
   project: ProjectInfo | null;
@@ -45,6 +46,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   createProject: async (template, name) => {
     validationEpoch += 1;
+    fixingOperationGeneration += 1;
     const isDesktop = isTauriRuntime();
     set({
       project: null,
@@ -168,12 +170,17 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   autoFixIssue: async (issueId: string) => {
-    const { project } = get();
-    if (!project) return;
+    const { project, fixingIssueId } = get();
+    if (!project || fixingIssueId !== null) return;
     const projectPath = project.path;
     const mutationEpoch = ++validationEpoch;
+    const fixingGeneration = ++fixingOperationGeneration;
     const isCurrentMutation = () =>
       validationEpoch === mutationEpoch && get().project?.path === projectPath;
+    const ownsFixingOperation = () =>
+      fixingOperationGeneration === fixingGeneration &&
+      get().project?.path === projectPath &&
+      get().fixingIssueId === issueId;
     set({
       fixingIssueId: issueId,
       validationIssues: [],
@@ -204,12 +211,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       });
       useToastStore.getState().addToast("error", `Auto-fix failed: ${message}`);
     } finally {
-      set({ fixingIssueId: null });
+      if (ownsFixingOperation()) {
+        set({ fixingIssueId: null });
+      }
     }
   },
 
   clearProject: () => {
     validationEpoch += 1;
+    fixingOperationGeneration += 1;
     set({
       project: null,
       projectState: null,

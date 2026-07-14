@@ -306,4 +306,31 @@ describe("project validation state", () => {
       }),
     );
   });
+
+  it("rejects a programmatic overlapping fix while the current owner is live", async () => {
+    const activeFix = deferred<string>();
+    const autoFixIssue = vi
+      .spyOn(validationCommands, "autoFixIssue")
+      .mockReturnValueOnce(activeFix.promise)
+      .mockRejectedValueOnce(new Error("Overlapping fix should not run."));
+    useProjectStore.setState({
+      project,
+      validationIssues: [autoFixableWarning],
+      validationState: "passed",
+      validationError: null,
+    });
+
+    const activePromise = useProjectStore
+      .getState()
+      .autoFixIssue("active-owner");
+    await useProjectStore.getState().autoFixIssue("overlapping-owner");
+
+    expect(autoFixIssue).toHaveBeenCalledTimes(1);
+    expect(useProjectStore.getState().fixingIssueId).toBe("active-owner");
+
+    activeFix.reject(new Error("Active fix stopped."));
+    await activePromise;
+
+    expect(useProjectStore.getState().fixingIssueId).toBeNull();
+  });
 });

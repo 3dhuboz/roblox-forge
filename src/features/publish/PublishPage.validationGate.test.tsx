@@ -2,7 +2,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublishPage } from "./PublishPage";
-import { publishCommands } from "../../services/tauriCommands";
+import {
+  publishCommands,
+  validationCommands,
+} from "../../services/tauriCommands";
 import { useAuthStore } from "../../stores/authStore";
 import { useProjectStore } from "../../stores/projectStore";
 import type { AuthState } from "../../types/roblox";
@@ -26,6 +29,16 @@ const project: ProjectInfo = {
   template: "obby",
   createdAt: "2000-06-01T00:00:00.000Z",
 };
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
 
 beforeEach(() => {
   useAuthStore.setState(originalAuthStoreState, true);
@@ -181,5 +194,58 @@ describe("PublishPage validation gate", () => {
       screen.getByRole("button", { name: "Publish to Roblox!" }),
     ).toBeDisabled();
     expect(publishGame).not.toHaveBeenCalled();
+  });
+
+  it("keeps a replacement project's fix gate owned until its operation settles", async () => {
+    const olderFix = deferred<string>();
+    const replacementFix = deferred<string>();
+    vi.spyOn(validationCommands, "autoFixIssue")
+      .mockReturnValueOnce(olderFix.promise)
+      .mockReturnValueOnce(replacementFix.promise);
+    render(<PublishPage />);
+    await enterPublishIds();
+
+    let olderFixPromise!: Promise<void>;
+    act(() => {
+      olderFixPromise = useProjectStore.getState().autoFixIssue("project-a-fix");
+    });
+
+    await act(async () => {
+      useProjectStore.getState().clearProject();
+      await useProjectStore
+        .getState()
+        .createProject("obby", "Replacement Fix Owner");
+    });
+
+    let replacementFixPromise!: Promise<void>;
+    act(() => {
+      replacementFixPromise = useProjectStore
+        .getState()
+        .autoFixIssue("project-b-fix");
+    });
+    expect(useProjectStore.getState().fixingIssueId).toBe("project-b-fix");
+    expect(
+      screen.getByRole("button", { name: "Check My Game" }),
+    ).toBeDisabled();
+
+    await act(async () => {
+      olderFix.reject(new Error("Stale project A fix failed."));
+      await olderFixPromise;
+    });
+
+    expect(useProjectStore.getState().fixingIssueId).toBe("project-b-fix");
+    expect(
+      screen.getByRole("button", { name: "Check My Game" }),
+    ).toBeDisabled();
+
+    await act(async () => {
+      replacementFix.reject(new Error("Replacement fix failed."));
+      await replacementFixPromise;
+    });
+
+    expect(useProjectStore.getState().fixingIssueId).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Check My Game" }),
+    ).toBeEnabled();
   });
 });
