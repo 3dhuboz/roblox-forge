@@ -760,11 +760,12 @@ export function SettingsPage() {
               <button
                 type="button"
                 aria-expanded={rojoExpanded}
+                aria-label={`${rojoExpanded ? "Hide" : "Show"} Advanced Studio Sync`}
                 aria-controls="advanced-studio-sync-content"
                 onClick={() => setRojoExpanded((expanded) => !expanded)}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-gray-800"
               >
-                {rojoExpanded ? "Hide" : "Show"}
+                <span aria-hidden="true">{rojoExpanded ? "Hide" : "Show"}</span>
               </button>
             </div>
             <p className="mt-2 text-[13px] text-gray-400">
@@ -836,11 +837,8 @@ export function SettingsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-yellow-900/40 bg-yellow-950/20 px-4 py-3 text-[13px] text-yellow-300">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={16} />
-                      Install Rojo to sync
-                    </div>
+                  <div className="rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-[13px] text-gray-400" role="status">
+                    <p>Rojo is not installed. That is fine unless you choose live Studio sync.</p>
                     <pre className="mt-2 text-xs text-gray-400 whitespace-pre-wrap">
                       {rojoStatus.install_instructions}
                     </pre>

@@ -96,7 +96,7 @@ function clearTauriRuntime(): void {
 
 function expandStudioSync() {
   const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
-  fireEvent.click(within(region).getByRole("button", { name: "Show" }));
+  fireEvent.click(within(region).getByRole("button", { name: "Show Advanced Studio Sync" }));
   return region;
 }
 
@@ -143,7 +143,7 @@ describe("SettingsPage desktop authority", () => {
     const region = screen.getByRole("region", { name: "Advanced Studio Sync" });
     expect(within(region).getByText("Optional")).toBeInTheDocument();
     expect(within(region).getByText(/Not needed to create, preview, publish, or monitor your game/)).toBeInTheDocument();
-    expect(within(region).getByRole("button", { name: "Show" })).toHaveAttribute("aria-expanded", "false");
+    expect(within(region).getByRole("button", { name: "Show Advanced Studio Sync" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText(/AI key management requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByText(/Rojo status requires the RobloxForge Desktop app/i)).toBeInTheDocument();
     expect(screen.getByLabelText("AI API key")).toBeDisabled();
@@ -175,7 +175,9 @@ describe("SettingsPage desktop authority", () => {
   it("defensively skips save, refresh, and Rojo actions if the desktop runtime disappears", async () => {
     enableTauriRuntime();
     vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo);
-    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);
+    expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
     await screen.findByText(/No AI key is configured/i);
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByLabelText("AI API key"), {
@@ -235,7 +237,9 @@ describe("SettingsPage desktop authority", () => {
     const start = deferred<number>();
     vi.mocked(rojoCommands.checkStatus).mockResolvedValueOnce(installedRojo);
     vi.mocked(rojoCommands.startServe).mockReturnValueOnce(start.promise);
-    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);
+    expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
     fireEvent.click(
       screen.getByRole("button", { name: "Start Sync to Studio" }),
@@ -263,7 +267,9 @@ describe("SettingsPage desktop authority", () => {
     vi.mocked(rojoCommands.checkStatus)
       .mockResolvedValueOnce(installedRojo)
       .mockReturnValueOnce(refreshedStatus.promise);
-    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);
+    expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
     fireEvent.click(
       screen.getByRole("button", { name: "Start Sync to Studio" }),
     );
@@ -580,7 +586,9 @@ describe("SettingsPage desktop authority", () => {
     vi.mocked(rojoCommands.checkStatus)
       .mockResolvedValueOnce(installedRojo)
       .mockRejectedValueOnce(new Error("Rojo refresh failed."));
-    render(<SettingsPage />);\r\n    expandStudioSync();\r\n    await screen.findByRole("button", { name: "Start Sync to Studio" });
+    render(<SettingsPage />);
+    expandStudioSync();
+    await screen.findByRole("button", { name: "Start Sync to Studio" });
 
     fireEvent.click(
       screen.getByRole("button", { name: /Refresh Rojo status/i }),
