@@ -553,17 +553,19 @@ it("keeps a newer expansion authoritative when an older Rojo probe resolves late
   expandStudioSync();
   const panel = screen.getByRole("region", { name: "Advanced Studio Sync" });
 
+  expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    oldStatusCheck.resolve(installedRojo);
+    await oldStatusCheck.promise;
+  });
+
   await waitFor(() =>
     expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2),
   );
   expect(await within(panel).findByRole("status")).toHaveTextContent(
     /Rojo is not installed/i,
   );
-
-  await act(async () => {
-    oldStatusCheck.resolve(installedRojo);
-    await oldStatusCheck.promise;
-  });
 
   expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hide Advanced Studio Sync" }))
@@ -649,6 +651,32 @@ it("clears an installed status and skips Start when runtime disappears", async (
   );
   expect(within(panel).queryByText("Rojo Installed")).not.toBeInTheDocument();
   expect(rojoCommands.startServe).not.toHaveBeenCalled();
+});
+
+it("keeps the disclosure state recoverable after runtime loss", async () => {
+  enableTauriRuntime();
+  vi.mocked(rojoCommands.checkStatus)
+    .mockResolvedValueOnce(installedRojo)
+    .mockResolvedValueOnce(installedRojo);
+  render(<SettingsPage />);
+  expandStudioSync();
+
+  await screen.findByText("Rojo Installed");
+  clearTauriRuntime();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh Rojo status" }));
+  expect(screen.getByRole("button", { name: "Hide Advanced Studio Sync" }))
+    .toHaveAttribute("aria-expanded", "true");
+
+  enableTauriRuntime();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Hide Advanced Studio Sync" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Show Advanced Studio Sync" }),
+  );
+
+  expect(await screen.findByText("Rojo Installed")).toBeInTheDocument();
+  expect(rojoCommands.checkStatus).toHaveBeenCalledTimes(2);
 });
 
 it("allows only one immediate Start Sync action", async () => {
@@ -765,6 +793,34 @@ const handleStudioSyncToggle = useCallback(() => {
 ```
 
 Collapse invalidates only presentation. It must **not** clear `rojoOperationOwnerRef`: a deferred status/start/stop operation still owns the mutation lock until its own `finally` block releases the matching operation ID.
+
+Split lifecycle cleanup from the dependencyful AI authority effect. The component-lifetime effect runs once and owns `mountedRef`, generation invalidation, operation cleanup, and saved-timer cleanup; it must not depend on `desktopRuntime`, `studioSyncExpanded`, or any callback that changes when runtime state changes:
+
+```tsx
+useEffect(() => {
+  mountedRef.current = true;
+  return () => {
+    mountedRef.current = false;
+    apiAttemptIdRef.current += 1;
+    rojoGenerationRef.current += 1;
+    studioSyncExpandedRef.current = false;
+    apiSaveInFlightRef.current = false;
+    clearSavedTimer();
+  };
+}, [clearSavedTimer]);
+```
+
+The AI authority effect remains separate and may depend on `desktopRuntime`; runtime transitions must never set `studioSyncExpandedRef.current = false`. Add a small runtime transition effect that increments the Rojo generation and clears visible Rojo state when Desktop disappears, while leaving the disclosure open so a later runtime restoration can be tested and recovered:
+
+```tsx
+useEffect(() => {
+  if (desktopRuntime && isTauriRuntime()) return;
+  rojoGenerationRef.current += 1;
+  setRojoLoading(false);
+  setRojoStatus(null);
+  setRojoAuthority(unavailableRojoAuthorityState());
+}, [desktopRuntime]);
+```
 
 At the top of both `refreshRojoStatus` and `runRojoAction`, use live refs and handle dynamic runtime loss visibly:
 
