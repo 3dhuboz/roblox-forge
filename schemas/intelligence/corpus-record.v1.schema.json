@@ -34,7 +34,7 @@
       "required": ["url", "title", "publisher"],
       "properties": {
         "url": {
-          "$ref": "common.schema.json#/$defs/uri"
+          "$ref": "common.schema.json#/$defs/httpsUri"
         },
         "title": {
           "$ref": "common.schema.json#/$defs/shortText"

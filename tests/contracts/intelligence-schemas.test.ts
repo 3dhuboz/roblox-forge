@@ -74,6 +74,77 @@ function walkSchema(
   );
 }
 
+function asJsonObject(value: unknown, label: string): JsonObject {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value as JsonObject;
+}
+
+function asJsonObjects(value: unknown, label: string): JsonObject[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array`);
+  }
+  return value.map((item, index) => asJsonObject(item, `${label}/${index}`));
+}
+
+function asStrings(value: unknown, label: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`${label} must be a string array`);
+  }
+  return value as string[];
+}
+
+function idSet(value: unknown, label: string): Set<string> {
+  return new Set(
+    asJsonObjects(value, label).map((item, index) => {
+      if (typeof item.id !== "string") {
+        throw new Error(`${label}/${index}/id must be a string`);
+      }
+      return item.id;
+    }),
+  );
+}
+
+function collectNamedStringReferences(
+  value: unknown,
+  singularKeys: ReadonlySet<string>,
+  arrayKeys: ReadonlySet<string>,
+): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) =>
+      collectNamedStringReferences(item, singularKeys, arrayKeys),
+    );
+  }
+  if (value === null || typeof value !== "object") {
+    return [];
+  }
+
+  const references: string[] = [];
+  for (const [key, child] of Object.entries(value)) {
+    if (singularKeys.has(key) && typeof child === "string") {
+      references.push(child);
+    }
+    if (arrayKeys.has(key)) {
+      references.push(...asStrings(child, key));
+    }
+    references.push(
+      ...collectNamedStringReferences(child, singularKeys, arrayKeys),
+    );
+  }
+  return references;
+}
+
+function expectIdsToResolve(
+  label: string,
+  references: readonly string[],
+  declaredIds: ReadonlySet<string>,
+): void {
+  for (const reference of references) {
+    expect(declaredIds.has(reference), `${label}: unresolved ${reference}`).toBe(true);
+  }
+}
+
 describe("game intelligence JSON contracts", () => {
   const schemas = new Map<SchemaFile, AnySchema>();
   const validators = new Map<SchemaFile, ValidateFunction>();
@@ -121,6 +192,414 @@ describe("game intelligence JSON contracts", () => {
     }
     validator(document);
     return validator;
+  }
+
+  function proposalWithBriefField(
+    field: string,
+    value: unknown,
+    inverseValue: unknown = value,
+  ): JsonObject {
+    const proposal = clone(asJsonObject(validFixture.directorProposal, "proposal"));
+    const operation = clone(asJsonObjects(proposal.operations, "proposal.operations")[0]);
+    operation.field = field;
+    operation.before = { value: clone(value) };
+    operation.after = { value: clone(value) };
+    operation.inverse = { restoreValue: clone(inverseValue) };
+    proposal.operations = [operation];
+    return proposal;
+  }
+
+  function publicUrlCases(url: string): Array<{
+    label: string;
+    filename: SchemaFile;
+    document: JsonObject;
+  }> {
+    const corpus = clone(asJsonObject(validFixture.corpusRecord, "corpusRecord"));
+    asJsonObject(corpus.source, "corpusRecord.source").url = url;
+
+    const reference = clone(
+      asJsonObject(validFixture.referenceAnalysis, "referenceAnalysis"),
+    );
+    asJsonObject(reference.sourceGame, "referenceAnalysis.sourceGame").publicUrl = url;
+
+    const radarEntry = clone(asJsonObject(validFixture.radarSnapshot, "radarSnapshot"));
+    asJsonObjects(radarEntry.entries, "radarSnapshot.entries")[0].publicUrl = url;
+
+    const radarSignal = clone(asJsonObject(validFixture.radarSnapshot, "radarSnapshot"));
+    const radarSignalEntry = asJsonObjects(
+      radarSignal.entries,
+      "radarSnapshot.entries",
+    )[0];
+    asJsonObjects(radarSignalEntry.signals, "radarSnapshot.entries/0/signals")[0]
+      .sourceUrl = url;
+
+    const monetization = clone(
+      asJsonObject(
+        validFixture.monetizationOpportunitySignal,
+        "monetizationOpportunitySignal",
+      ),
+    );
+    asJsonObjects(
+      monetization.publicSignals,
+      "monetizationOpportunitySignal.publicSignals",
+    )[0].sourceUrl = url;
+
+    return [
+      {
+        label: "corpusRecord.source.url",
+        filename: "corpus-record.v1.schema.json",
+        document: corpus,
+      },
+      {
+        label: "referenceAnalysis.sourceGame.publicUrl",
+        filename: "reference-analysis.v1.schema.json",
+        document: reference,
+      },
+      {
+        label: "radarSnapshot.entries.publicUrl",
+        filename: "radar-snapshot.v1.schema.json",
+        document: radarEntry,
+      },
+      {
+        label: "radarSnapshot.entries.signals.sourceUrl",
+        filename: "radar-snapshot.v1.schema.json",
+        document: radarSignal,
+      },
+      {
+        label: "monetizationOpportunitySignal.publicSignals.sourceUrl",
+        filename: "monetization-opportunity-signal.v1.schema.json",
+        document: monetization,
+      },
+    ];
+  }
+
+  function expectCoherentIntelligenceLinks(fixture: JsonObject): void {
+    const common = asJsonObject(fixture.common, "common");
+    const brief = asJsonObject(fixture.gameBrief, "gameBrief");
+    const gom = asJsonObject(fixture.gameOperatingModel, "gameOperatingModel");
+    const proposal = asJsonObject(fixture.directorProposal, "directorProposal");
+    const provenance = asJsonObject(fixture.provenance, "provenance");
+    const corpus = asJsonObject(fixture.corpusRecord, "corpusRecord");
+    const reference = asJsonObject(fixture.referenceAnalysis, "referenceAnalysis");
+    const radar = asJsonObject(fixture.radarSnapshot, "radarSnapshot");
+    const monetization = asJsonObject(
+      fixture.monetizationOpportunitySignal,
+      "monetizationOpportunitySignal",
+    );
+    const recommendation = asJsonObject(fixture.recommendation, "recommendation");
+
+    expect(gom.briefId, "GOM must reference the Brief").toBe(brief.id);
+
+    const briefProvenance = asJsonObject(brief.provenance, "gameBrief.provenance");
+    const gomProvenance = asJsonObject(gom.provenance, "gameOperatingModel.provenance");
+    const corpusProvenance = asJsonObject(corpus.provenance, "corpusRecord.provenance");
+    const referenceProvenance = asJsonObject(
+      reference.provenance,
+      "referenceAnalysis.provenance",
+    );
+    const radarProvenance = asJsonObject(radar.provenance, "radarSnapshot.provenance");
+    const monetizationProvenance = asJsonObject(
+      monetization.provenance,
+      "monetizationOpportunitySignal.provenance",
+    );
+    const recommendationProvenance = asJsonObject(
+      recommendation.provenance,
+      "recommendation.provenance",
+    );
+    const provenanceLinks: Array<[string, unknown]> = [
+      ["common", common.provenanceId],
+      ["gameBrief", briefProvenance.provenanceId],
+      ["gameOperatingModel", gomProvenance.provenanceId],
+      ["directorProposal", proposal.provenanceId],
+      ["corpusRecord", corpusProvenance.provenanceId],
+      ["referenceAnalysis", referenceProvenance.provenanceId],
+      ["radarSnapshot", radarProvenance.provenanceId],
+      ["monetizationOpportunitySignal", monetizationProvenance.provenanceId],
+      ["recommendation", recommendationProvenance.provenanceId],
+    ];
+    for (const [label, provenanceId] of provenanceLinks) {
+      expect(provenanceId, `${label} must reference the provenance document`).toBe(
+        provenance.id,
+      );
+    }
+
+    expect(
+      asStrings(provenance.sourceIds, "provenance.sourceIds"),
+      "provenance must reference the corpus source",
+    ).toContain(corpus.id);
+    expect(
+      asStrings(reference.corpusRecordIds, "referenceAnalysis.corpusRecordIds"),
+      "reference analysis must reference the corpus record",
+    ).toContain(corpus.id);
+    expect(
+      asStrings(radar.corpusRecordIds, "radarSnapshot.corpusRecordIds"),
+      "radar snapshot must reference the corpus record",
+    ).toContain(corpus.id);
+
+    const observationIds = idSet(corpus.observations, "corpusRecord.observations");
+    const evidenceSingularKeys = new Set(["evidenceId"]);
+    const evidenceArrayKeys = new Set([
+      "evidenceIds",
+      "sourceEvidenceIds",
+      "decisionEvidenceIds",
+      "basedOnObservationIds",
+    ]);
+    expectIdsToResolve(
+      "evidence references",
+      collectNamedStringReferences(
+        fixture,
+        evidenceSingularKeys,
+        evidenceArrayKeys,
+      ),
+      observationIds,
+    );
+    expectIdsToResolve(
+      "reference-analysis evidence",
+      collectNamedStringReferences(reference, evidenceSingularKeys, evidenceArrayKeys),
+      observationIds,
+    );
+    expectIdsToResolve(
+      "radar evidence",
+      collectNamedStringReferences(radar, evidenceSingularKeys, evidenceArrayKeys),
+      observationIds,
+    );
+
+    const corpusSource = asJsonObject(corpus.source, "corpusRecord.source");
+    const referenceSource = asJsonObject(
+      reference.sourceGame,
+      "referenceAnalysis.sourceGame",
+    );
+    expect(referenceSource.publicUrl, "reference URL must match its corpus source").toBe(
+      corpusSource.url,
+    );
+
+    const corpusPatternIds = idSet(corpus.patterns, "corpusRecord.patterns");
+    const adaptablePatternIds = idSet(
+      reference.adaptablePatterns,
+      "referenceAnalysis.adaptablePatterns",
+    );
+    expectIdsToResolve(
+      "adaptable patterns",
+      [...adaptablePatternIds],
+      corpusPatternIds,
+    );
+    for (const transformation of asJsonObjects(
+      reference.transformations,
+      "referenceAnalysis.transformations",
+    )) {
+      expect(
+        adaptablePatternIds.has(String(transformation.sourcePatternId)),
+        `reference transformation must resolve ${String(transformation.sourcePatternId)}`,
+      ).toBe(true);
+    }
+
+    const radarEntries = asJsonObjects(radar.entries, "radarSnapshot.entries");
+    const radarSignals = radarEntries.flatMap((entry, entryIndex) => {
+      expect(entry.publicUrl, `radar entry ${entryIndex} URL must match the corpus`).toBe(
+        corpusSource.url,
+      );
+      return asJsonObjects(entry.signals, `radarSnapshot.entries/${entryIndex}/signals`);
+    });
+    for (const [index, signal] of radarSignals.entries()) {
+      expect(
+        observationIds.has(String(signal.evidenceId)),
+        `radar signal ${index} must resolve its evidence`,
+      ).toBe(true);
+      expect(signal.sourceUrl, `radar signal ${index} URL must match the corpus`).toBe(
+        corpusSource.url,
+      );
+    }
+
+    expect(
+      monetization.radarSnapshotId,
+      "monetization signal must reference the radar snapshot",
+    ).toBe(radar.id);
+    for (const publicSignal of asJsonObjects(
+      monetization.publicSignals,
+      "monetizationOpportunitySignal.publicSignals",
+    )) {
+      const radarSignal = radarSignals.find((signal) => signal.id === publicSignal.id);
+      expect(radarSignal, `public signal ${String(publicSignal.id)} must exist in radar`).toEqual(
+        publicSignal,
+      );
+    }
+
+    expect(proposal.baseModelId, "proposal must reference its base GOM").toBe(gom.id);
+    expect(proposal.baseModelRevision, "proposal revision must match the GOM").toBe(
+      gom.revision,
+    );
+    expect(proposal.baseModelHash, "proposal hash must match the GOM").toBe(gom.hash);
+    expect(proposal.provenanceId, "proposal provenance must resolve").toBe(provenance.id);
+    const provenanceEvidenceIds = new Set(
+      asStrings(provenance.evidenceIds, "provenance.evidenceIds"),
+    );
+    const proposalEvidenceIds = new Set(
+      asStrings(proposal.evidenceIds, "directorProposal.evidenceIds"),
+    );
+    expectIdsToResolve(
+      "proposal evidence",
+      [...proposalEvidenceIds],
+      provenanceEvidenceIds,
+    );
+
+    const acceptanceTestIds = idSet(gom.acceptanceTests, "gameOperatingModel.acceptanceTests");
+    const sceneIds = idSet(gom.sceneNodes, "gameOperatingModel.sceneNodes");
+    const objectiveIds = idSet(gom.objectives, "gameOperatingModel.objectives");
+    const systemIds = idSet(gom.systems, "gameOperatingModel.systems");
+    const runtimeRuleIds = idSet(gom.runtimeRules, "gameOperatingModel.runtimeRules");
+    const feedbackIds = idSet(gom.feedback, "gameOperatingModel.feedback");
+    const materialQuestionIds = idSet(brief.materialQuestions, "gameBrief.materialQuestions");
+    const operations = asJsonObjects(proposal.operations, "directorProposal.operations");
+    const operationByType = (type: string): JsonObject => {
+      const operation = operations.find((candidate) => candidate.type === type);
+      if (!operation) {
+        throw new Error(`Missing proposal operation ${type}`);
+      }
+      return operation;
+    };
+
+    for (const [index, operation] of operations.entries()) {
+      const precondition = asJsonObject(
+        operation.precondition,
+        `directorProposal.operations/${index}/precondition`,
+      );
+      expect(precondition.baseRevision, `operation ${index} revision must match GOM`).toBe(
+        gom.revision,
+      );
+      expect(precondition.expectedModelHash, `operation ${index} hash must match GOM`).toBe(
+        gom.hash,
+      );
+      expectIdsToResolve(
+        `operation ${index} acceptance tests`,
+        asStrings(
+          operation.affectedAcceptanceTestIds,
+          `directorProposal.operations/${index}/affectedAcceptanceTestIds`,
+        ),
+        acceptanceTestIds,
+      );
+    }
+
+    expect(operationByType("brief.set_field").targetBriefId).toBe(brief.id);
+    expect(
+      materialQuestionIds.has(String(operationByType("question.answer").targetQuestionId)),
+      "question operation target must exist in the Brief",
+    ).toBe(true);
+    for (const type of ["scene.update", "scene.remove"]) {
+      expect(
+        sceneIds.has(String(operationByType(type).targetSceneId)),
+        `${type} target must exist in the GOM`,
+      ).toBe(true);
+    }
+    expect(
+      objectiveIds.has(String(operationByType("objective.update").targetObjectiveId)),
+      "objective.update target must exist in the GOM",
+    ).toBe(true);
+    expect(operationByType("objective.remove").targetObjectiveId).toBe(
+      asJsonObject(
+        operationByType("objective.add").addedObjective,
+        "objective.add.addedObjective",
+      ).id,
+    );
+    expect(operationByType("progression.update").targetProgressionId).toBe(
+      asJsonObject(gom.progression, "gameOperatingModel.progression").id,
+    );
+    expect(operationByType("economy.update").targetEconomyId).toBe(
+      asJsonObject(gom.economy, "gameOperatingModel.economy").id,
+    );
+    expect(
+      runtimeRuleIds.has(
+        String(operationByType("runtime_rule.update").targetRuntimeRuleId),
+      ),
+      "runtime rule operation target must exist in the GOM",
+    ).toBe(true);
+    expect(
+      feedbackIds.has(String(operationByType("feedback.update").targetFeedbackId)),
+      "feedback operation target must exist in the GOM",
+    ).toBe(true);
+    expect(
+      acceptanceTestIds.has(
+        String(operationByType("acceptance_test.update").targetAcceptanceTestId),
+      ),
+      "acceptance operation target must exist in the GOM",
+    ).toBe(true);
+
+    for (const [index, scene] of asJsonObjects(gom.sceneNodes, "gameOperatingModel.sceneNodes").entries()) {
+      expectIdsToResolve(
+        `scene ${index} systems`,
+        asStrings(scene.systemIds, `gameOperatingModel.sceneNodes/${index}/systemIds`),
+        systemIds,
+      );
+    }
+    for (const [index, system] of asJsonObjects(gom.systems, "gameOperatingModel.systems").entries()) {
+      expectIdsToResolve(
+        `system ${index} dependencies`,
+        asStrings(system.dependencyIds, `gameOperatingModel.systems/${index}/dependencyIds`),
+        systemIds,
+      );
+      expectIdsToResolve(
+        `system ${index} scenes`,
+        asStrings(system.sceneIds, `gameOperatingModel.systems/${index}/sceneIds`),
+        sceneIds,
+      );
+    }
+    for (const [index, objective] of asJsonObjects(gom.objectives, "gameOperatingModel.objectives").entries()) {
+      expectIdsToResolve(
+        `objective ${index} dependencies`,
+        asStrings(
+          objective.dependencyIds,
+          `gameOperatingModel.objectives/${index}/dependencyIds`,
+        ),
+        objectiveIds,
+      );
+    }
+
+    expect(recommendation.gomId, "recommendation must reference its GOM").toBe(gom.id);
+    expect(recommendation.gomRevision, "recommendation revision must match GOM").toBe(
+      gom.revision,
+    );
+    expect(recommendation.proposalId, "recommendation must reference its proposal").toBe(
+      proposal.id,
+    );
+    expectIdsToResolve(
+      "recommendation evidence",
+      asStrings(recommendation.evidenceIds, "recommendation.evidenceIds"),
+      proposalEvidenceIds,
+    );
+    expectIdsToResolve(
+      "recommendation scene targets",
+      asStrings(recommendation.targetElementIds, "recommendation.targetElementIds"),
+      sceneIds,
+    );
+    expectIdsToResolve(
+      "recommendation acceptance targets",
+      asJsonObjects(recommendation.acceptanceTests, "recommendation.acceptanceTests").map(
+        (test) => String(test.id),
+      ),
+      acceptanceTestIds,
+    );
+
+    const gomTraceIds = new Set(
+      asStrings(gomProvenance.traceIds, "gameOperatingModel.provenance.traceIds"),
+    );
+    expectIdsToResolve(
+      "trace references",
+      collectNamedStringReferences(fixture, new Set(), new Set(["traceIds"])),
+      gomTraceIds,
+    );
+
+    const analyticsIds = idSet(
+      gom.analyticsEventContracts,
+      "gameOperatingModel.analyticsEventContracts",
+    );
+    expectIdsToResolve(
+      "analytics references",
+      collectNamedStringReferences(
+        [gom, proposal, recommendation],
+        new Set(["successSignal", "observableSignal", "analyticsEventId"]),
+        new Set(["observableSignals"]),
+      ),
+      analyticsIds,
+    );
   }
 
   it("compiles all ten Draft 2020-12 schemas with stable ids and refs", () => {
@@ -240,6 +719,110 @@ describe("game intelligence JSON contracts", () => {
         ).not.toBeNull();
       }
     }
+  });
+
+  it.each([
+    "rawIdea",
+    "playerFantasy",
+    "intendedAchievement",
+    "genre",
+    "audience",
+  ])("validates the exact Game Brief shape for brief.set_field %s", (field) => {
+    const brief = asJsonObject(validFixture.gameBrief, "gameBrief");
+    const proposal = proposalWithBriefField(field, brief[field]);
+    const validator = validate("director-proposal.v1.schema.json", proposal);
+    expect(validator.errors, formatErrors(validator.errors)).toBeNull();
+  });
+
+  it.each(["intendedAchievement", "genre", "audience"])(
+    "rejects a string-valued object field for brief.set_field %s",
+    (field) => {
+      const proposal = proposalWithBriefField(field, "not the declared object shape");
+      const validator = validate("director-proposal.v1.schema.json", proposal);
+      expect(validator.errors, formatErrors(validator.errors)).not.toBeNull();
+    },
+  );
+
+  it.each(["rawIdea", "playerFantasy"])(
+    "rejects an object-valued string field for brief.set_field %s",
+    (field) => {
+      const proposal = proposalWithBriefField(field, { unexpected: "object" });
+      const validator = validate("director-proposal.v1.schema.json", proposal);
+      expect(validator.errors, formatErrors(validator.errors)).not.toBeNull();
+    },
+  );
+
+  it.each([
+    "rawIdea",
+    "playerFantasy",
+    "intendedAchievement",
+    "genre",
+    "audience",
+  ])("requires brief.set_field %s inverse to use the same field shape", (field) => {
+    const brief = asJsonObject(validFixture.gameBrief, "gameBrief");
+    const wrongInverse =
+      field === "rawIdea" || field === "playerFantasy"
+        ? { unexpected: "object" }
+        : "not the declared object shape";
+    const proposal = proposalWithBriefField(field, brief[field], wrongInverse);
+    const validator = validate("director-proposal.v1.schema.json", proposal);
+    expect(validator.errors, formatErrors(validator.errors)).not.toBeNull();
+    expect(
+      (validator.errors ?? []).some(
+        (error) =>
+          error.instancePath === "/operations/0/inverse/restoreValue" &&
+          error.keyword === "type",
+      ),
+      `${field} must reject the inverse value at its exact field path`,
+    ).toBe(true);
+  });
+
+  it("accepts HTTPS URLs for every public evidence URL consumer", () => {
+    for (const { label, filename, document } of publicUrlCases(
+      "https://evidence.example.test/public/game",
+    )) {
+      const validator = validate(filename, document);
+      expect(validator.errors, `${label}: ${formatErrors(validator.errors)}`).toBeNull();
+    }
+  });
+
+  it.each([
+    ["Windows file", "file:///C:/Users/Steve/private-evidence.json"],
+    ["Unix file", "file:///etc/passwd"],
+    ["UNC file", "file://server/share/private-evidence.json"],
+    ["data", "data:text/plain,private-evidence"],
+    ["javascript", "javascript:alert(1)"],
+    ["HTTP", "http://evidence.example.test/public/game"],
+    ["FTP", "ftp://evidence.example.test/public/game"],
+  ])("rejects %s URLs for every public evidence URL consumer", (_scheme, url) => {
+    for (const { label, filename, document } of publicUrlCases(url)) {
+      const validator = validate(filename, document);
+      expect(validator.errors, `${label} accepted ${url}`).not.toBeNull();
+    }
+  });
+
+  it("keeps all intelligence document links coherent", () => {
+    expectCoherentIntelligenceLinks(validFixture);
+  });
+
+  it("detects representative cross-document link mutations", () => {
+    const wrongBrief = clone(validFixture);
+    asJsonObject(wrongBrief.gameOperatingModel, "gameOperatingModel").briefId =
+      "brief:mismatched";
+    expect(() => expectCoherentIntelligenceLinks(wrongBrief)).toThrow();
+
+    const wrongEvidence = clone(validFixture);
+    const wrongRadar = asJsonObject(wrongEvidence.radarSnapshot, "radarSnapshot");
+    const wrongEntry = asJsonObjects(wrongRadar.entries, "radarSnapshot.entries")[0];
+    asJsonObjects(wrongEntry.signals, "radarSnapshot.entries/0/signals")[0].evidenceId =
+      "evidence:mismatched";
+    expect(() => expectCoherentIntelligenceLinks(wrongEvidence)).toThrow();
+
+    const wrongAnalytics = clone(validFixture);
+    const wrongGom = asJsonObject(wrongAnalytics.gameOperatingModel, "gameOperatingModel");
+    asJsonObject(wrongGom.firstSessionPromise, "gameOperatingModel.firstSessionPromise")
+      .successSignal = "analytics:mismatched";
+    expect(() => expectCoherentIntelligenceLinks(wrongAnalytics)).toThrow();
   });
 
   it.each(["write_file", "delete_file", "shell", "source.replace"])(

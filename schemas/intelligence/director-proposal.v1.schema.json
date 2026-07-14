@@ -157,23 +157,103 @@
         }
       }
     },
-    "briefFieldState": {
+    "briefRawIdeaFieldState": {
       "type": "object",
       "additionalProperties": false,
       "required": ["value"],
       "properties": {
         "value": {
-          "$ref": "common.schema.json#/$defs/text"
+          "$ref": "game-brief.v1.schema.json#/properties/rawIdea"
         }
       }
     },
-    "briefFieldInverse": {
+    "briefRawIdeaFieldInverse": {
       "type": "object",
       "additionalProperties": false,
       "required": ["restoreValue"],
       "properties": {
         "restoreValue": {
-          "$ref": "common.schema.json#/$defs/text"
+          "$ref": "game-brief.v1.schema.json#/properties/rawIdea"
+        }
+      }
+    },
+    "briefIntendedAchievementFieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "game-brief.v1.schema.json#/properties/intendedAchievement"
+        }
+      }
+    },
+    "briefIntendedAchievementFieldInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreValue"],
+      "properties": {
+        "restoreValue": {
+          "$ref": "game-brief.v1.schema.json#/properties/intendedAchievement"
+        }
+      }
+    },
+    "briefPlayerFantasyFieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "game-brief.v1.schema.json#/properties/playerFantasy"
+        }
+      }
+    },
+    "briefPlayerFantasyFieldInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreValue"],
+      "properties": {
+        "restoreValue": {
+          "$ref": "game-brief.v1.schema.json#/properties/playerFantasy"
+        }
+      }
+    },
+    "briefGenreFieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "game-brief.v1.schema.json#/properties/genre"
+        }
+      }
+    },
+    "briefGenreFieldInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreValue"],
+      "properties": {
+        "restoreValue": {
+          "$ref": "game-brief.v1.schema.json#/properties/genre"
+        }
+      }
+    },
+    "briefAudienceFieldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "game-brief.v1.schema.json#/properties/audience"
+        }
+      }
+    },
+    "briefAudienceFieldInverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["restoreValue"],
+      "properties": {
+        "restoreValue": {
+          "$ref": "game-brief.v1.schema.json#/properties/audience"
         }
       }
     },
@@ -289,6 +369,25 @@
       }
     },
     "briefSetFieldOperation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/briefRawIdeaSetFieldOperation"
+        },
+        {
+          "$ref": "#/$defs/briefIntendedAchievementSetFieldOperation"
+        },
+        {
+          "$ref": "#/$defs/briefPlayerFantasySetFieldOperation"
+        },
+        {
+          "$ref": "#/$defs/briefGenreSetFieldOperation"
+        },
+        {
+          "$ref": "#/$defs/briefAudienceSetFieldOperation"
+        }
+      ]
+    },
+    "briefRawIdeaSetFieldOperation": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -319,17 +418,17 @@
         },
         "field": {
           "type": "string",
-          "enum": ["rawIdea", "intendedAchievement", "playerFantasy", "genre", "audience"],
+          "const": "rawIdea",
           "maxLength": 32
         },
         "before": {
-          "$ref": "#/$defs/briefFieldState"
+          "$ref": "#/$defs/briefRawIdeaFieldState"
         },
         "precondition": {
           "$ref": "#/$defs/precondition"
         },
         "after": {
-          "$ref": "#/$defs/briefFieldState"
+          "$ref": "#/$defs/briefRawIdeaFieldState"
         },
         "rationale": {
           "$ref": "common.schema.json#/$defs/text"
@@ -344,7 +443,247 @@
           "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
         },
         "inverse": {
-          "$ref": "#/$defs/briefFieldInverse"
+          "$ref": "#/$defs/briefRawIdeaFieldInverse"
+        }
+      }
+    },
+    "briefIntendedAchievementSetFieldOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetBriefId",
+        "field",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "brief.set_field",
+          "maxLength": 32
+        },
+        "targetBriefId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "field": {
+          "type": "string",
+          "const": "intendedAchievement",
+          "maxLength": 32
+        },
+        "before": {
+          "$ref": "#/$defs/briefIntendedAchievementFieldState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/briefIntendedAchievementFieldState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/briefIntendedAchievementFieldInverse"
+        }
+      }
+    },
+    "briefPlayerFantasySetFieldOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetBriefId",
+        "field",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "brief.set_field",
+          "maxLength": 32
+        },
+        "targetBriefId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "field": {
+          "type": "string",
+          "const": "playerFantasy",
+          "maxLength": 32
+        },
+        "before": {
+          "$ref": "#/$defs/briefPlayerFantasyFieldState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/briefPlayerFantasyFieldState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/briefPlayerFantasyFieldInverse"
+        }
+      }
+    },
+    "briefGenreSetFieldOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetBriefId",
+        "field",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "brief.set_field",
+          "maxLength": 32
+        },
+        "targetBriefId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "field": {
+          "type": "string",
+          "const": "genre",
+          "maxLength": 32
+        },
+        "before": {
+          "$ref": "#/$defs/briefGenreFieldState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/briefGenreFieldState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/briefGenreFieldInverse"
+        }
+      }
+    },
+    "briefAudienceSetFieldOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "targetBriefId",
+        "field",
+        "before",
+        "precondition",
+        "after",
+        "rationale",
+        "traceIds",
+        "risk",
+        "affectedAcceptanceTestIds",
+        "inverse"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "const": "brief.set_field",
+          "maxLength": 32
+        },
+        "targetBriefId": {
+          "$ref": "common.schema.json#/$defs/id"
+        },
+        "field": {
+          "type": "string",
+          "const": "audience",
+          "maxLength": 32
+        },
+        "before": {
+          "$ref": "#/$defs/briefAudienceFieldState"
+        },
+        "precondition": {
+          "$ref": "#/$defs/precondition"
+        },
+        "after": {
+          "$ref": "#/$defs/briefAudienceFieldState"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/text"
+        },
+        "traceIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "risk": {
+          "$ref": "common.schema.json#/$defs/risk"
+        },
+        "affectedAcceptanceTestIds": {
+          "$ref": "common.schema.json#/$defs/nonEmptyIdArray"
+        },
+        "inverse": {
+          "$ref": "#/$defs/briefAudienceFieldInverse"
         }
       }
     },

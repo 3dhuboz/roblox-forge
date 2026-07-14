@@ -120,7 +120,7 @@
     "firstSessionPromise": {
       "statement": "Within eight minutes, the player reads a bloom pulse, crosses the indicated route, and completes checkpoint two with or without its optional shard.",
       "targetMinutes": 8,
-      "successSignal": "analytics:checkpoint-two-completed is emitted after server validation",
+      "successSignal": "analytics:checkpoint-two-completed",
       "traceIds": [
         "trace:gom-checkpoint-two",
         "trace:signal-bloom-origin"
