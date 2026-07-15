@@ -41,6 +41,7 @@ rbx_reflection_database = "2.0"
 regex = "1"
 async-trait = "0.1"
 zeroize = "1"
+jsonschema = { version = "0.47", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3.6.3", default-features = false, features = ["windows-native"] }

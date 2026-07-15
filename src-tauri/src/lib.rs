@@ -1,6 +1,7 @@
 mod ai;
 mod builder;
 mod commands;
+pub mod intelligence;
 pub mod platform;
 mod project;
 pub mod roblox_authority;
