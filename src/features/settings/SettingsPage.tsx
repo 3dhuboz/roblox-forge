@@ -28,6 +28,10 @@ import { EXPERIENCE_DESCRIPTIONS } from "../../types/user";
 import type { ExperienceLevel } from "../../types/user";
 import { isTauriRuntime } from "../../lib/isTauriRuntime";
 import { RobloxAuthorityPanel } from "./RobloxAuthorityPanel";
+import {
+  checkBrowserAiKey,
+  saveBrowserAiKey,
+} from "../../services/browserPreviewAi";
 
 type ApiAuthorityStatus =
   | "checking"
@@ -151,16 +155,14 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [apiAuthority, setApiAuthority] = useState<ApiAuthorityState>(() =>
-    desktopRuntime
-      ? {
-          status: "checking",
-          message: "Checking AI key in RobloxForge Desktop...",
-          provider: null,
-          recoveryAction: null,
-        }
-      : unavailableApiAuthorityState(),
-  );
+  const [apiAuthority, setApiAuthority] = useState<ApiAuthorityState>(() => ({
+    status: "checking",
+    message: desktopRuntime
+      ? "Checking AI key in RobloxForge Desktop..."
+      : "Checking OpenRouter for this browser tab...",
+    provider: null,
+    recoveryAction: null,
+  }));
   const [rojoStatus, setRojoStatus] = useState<RojoStatus | null>(null);
   const [rojoLoading, setRojoLoading] = useState(false);
   const [rojoExpanded, setRojoExpanded] = useState(false);
@@ -286,54 +288,60 @@ export function SettingsPage() {
   }, [clearSavedTimer]);
 
   useEffect(() => {
-    if (desktopRuntime) {
-      const attemptId = ++apiAttemptIdRef.current;
-      void aiCommands
-        .checkApiKey()
-        .then((provider) => {
-          if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
-            return;
-          }
-          if (!isTauriRuntime()) {
-            showApiRuntimeUnavailable();
-            return;
-          }
+    const attemptId = ++apiAttemptIdRef.current;
+    const checkKey = desktopRuntime
+      ? aiCommands.checkApiKey()
+      : checkBrowserAiKey();
+    void checkKey
+      .then((provider) => {
+        if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
+          return;
+        }
+        if (desktopRuntime !== isTauriRuntime()) {
+          showApiRuntimeUnavailable();
+          return;
+        }
 
-          if (provider) {
-            setApiAuthority({
-              status: "configured",
-              message: "AI key configured in RobloxForge Desktop.",
-              provider: providerLabel(provider),
-              recoveryAction: null,
-            });
-            updateProfile({ hasSetApiKey: true });
-          } else {
-            setApiAuthority({
-              status: "missing",
-              message: "No AI key is configured in RobloxForge Desktop.",
-              provider: null,
-              recoveryAction: null,
-            });
-          }
-        })
-        .catch((error: unknown) => {
-          if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
-            return;
-          }
-          if (!isTauriRuntime()) {
-            showApiRuntimeUnavailable();
-            return;
-          }
-          const uiError = toAuthorityUiError(
-            error,
-            "RobloxForge Desktop could not check the AI key.",
-          );
+        if (provider) {
           setApiAuthority({
-            ...uiError,
-            provider: null,
+            status: "configured",
+            message: desktopRuntime
+              ? "AI key configured in RobloxForge Desktop."
+              : "OpenRouter connected for this browser tab. The key clears when the tab closes.",
+            provider: providerLabel(provider),
+            recoveryAction: null,
           });
+          updateProfile({ hasSetApiKey: true });
+        } else {
+          setApiAuthority({
+            status: "missing",
+            message: desktopRuntime
+              ? "No AI key is configured in RobloxForge Desktop."
+              : "No OpenRouter key is connected for this browser tab.",
+            provider: null,
+            recoveryAction: null,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
+          return;
+        }
+        if (desktopRuntime !== isTauriRuntime()) {
+          showApiRuntimeUnavailable();
+          return;
+        }
+        const uiError = toAuthorityUiError(
+          error,
+          desktopRuntime
+            ? "RobloxForge Desktop could not check the AI key."
+            : "This browser could not check the OpenRouter session.",
+        );
+        setApiAuthority({
+          ...uiError,
+          provider: null,
         });
-    }
+      });
   }, [desktopRuntime, showApiRuntimeUnavailable, updateProfile]);
 
   useEffect(() => {
@@ -466,13 +474,12 @@ export function SettingsPage() {
 
   const handleSaveKey = async () => {
     const trimmedKey = apiKey.trim();
-    if (
-      !desktopRuntime ||
-      !isTauriRuntime() ||
-      !trimmedKey ||
-      apiSaveInFlightRef.current ||
-      !mountedRef.current
-    ) {
+    const runtimeNow = isTauriRuntime();
+    if (!trimmedKey || apiSaveInFlightRef.current || !mountedRef.current) {
+      return;
+    }
+    if (desktopRuntime !== runtimeNow) {
+      showApiRuntimeUnavailable();
       return;
     }
 
@@ -483,24 +490,32 @@ export function SettingsPage() {
     setApiKey("");
     setApiAuthority({
       status: "saving",
-      message: "Saving AI key in RobloxForge Desktop...",
+      message: desktopRuntime
+        ? "Saving AI key in RobloxForge Desktop..."
+        : "Validating the OpenRouter key...",
       provider: null,
       recoveryAction: null,
     });
     try {
-      await aiCommands.setApiKey(trimmedKey);
+      if (desktopRuntime) {
+        await aiCommands.setApiKey(trimmedKey);
+      } else {
+        await saveBrowserAiKey(trimmedKey);
+      }
       if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
         return;
       }
-      if (!isTauriRuntime()) {
+      if (desktopRuntime !== isTauriRuntime()) {
         showApiRuntimeUnavailable();
         return;
       }
       updateProfile({ hasSetApiKey: true });
       setApiAuthority({
         status: "configured",
-        message: "AI key configured in RobloxForge Desktop.",
-        provider: "Saved key",
+        message: desktopRuntime
+          ? "AI key configured in RobloxForge Desktop."
+          : "OpenRouter connected for this browser tab. The key clears when the tab closes.",
+        provider: desktopRuntime ? "Saved key" : "OpenRouter",
         recoveryAction: null,
       });
       setSaved(true);
@@ -514,13 +529,15 @@ export function SettingsPage() {
       if (!mountedRef.current || attemptId !== apiAttemptIdRef.current) {
         return;
       }
-      if (!isTauriRuntime()) {
+      if (desktopRuntime !== isTauriRuntime()) {
         showApiRuntimeUnavailable();
         return;
       }
       const uiError = toAuthorityUiError(
         error,
-        "RobloxForge Desktop could not save the AI key.",
+        desktopRuntime
+          ? "RobloxForge Desktop could not save the AI key."
+          : "This browser could not connect the OpenRouter key.",
         [trimmedKey],
       );
       setSaved(false);
@@ -705,21 +722,29 @@ export function SettingsPage() {
             ) : apiAuthority.status === "missing" ? (
               <div className="mt-2 space-y-2 text-[13px] text-gray-400">
                 <p>{apiAuthority.message}</p>
-                <p>
-                  Add{" "}
-                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
-                    OPENROUTER_API_KEY
-                  </code>{" "}
-                  or{" "}
-                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
-                    ANTHROPIC_API_KEY
-                  </code>{" "}
-                  to your{" "}
-                  <code className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">
-                    .env
-                  </code>{" "}
-                  file, or paste below.
-                </p>
+                {desktopRuntime ? (
+                  <p>
+                    Add{" "}
+                    <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
+                      OPENROUTER_API_KEY
+                    </code>{" "}
+                    or{" "}
+                    <code className="rounded bg-gray-800 px-1.5 py-0.5 text-indigo-300">
+                      ANTHROPIC_API_KEY
+                    </code>{" "}
+                    to your{" "}
+                    <code className="rounded bg-gray-800 px-1.5 py-0.5 text-gray-300">
+                      .env
+                    </code>{" "}
+                    file, or paste below.
+                  </p>
+                ) : (
+                  <p>
+                    Paste an OpenRouter key below. It is validated directly with
+                    OpenRouter, kept only for this browser tab session, and
+                    cleared when the tab closes.
+                  </p>
+                )}
               </div>
             ) : (
               <div
@@ -741,9 +766,10 @@ export function SettingsPage() {
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-or-... or sk-ant-..."
+                  placeholder={
+                    desktopRuntime ? "sk-or-... or sk-ant-..." : "sk-or-..."
+                  }
                   disabled={
-                    !desktopRuntime ||
                     apiAuthority.status === "saving" ||
                     apiAuthority.status === "unavailable"
                   }
@@ -752,7 +778,6 @@ export function SettingsPage() {
                 <button
                   onClick={() => setShowKey(!showKey)}
                   disabled={
-                    !desktopRuntime ||
                     apiAuthority.status === "saving" ||
                     apiAuthority.status === "unavailable"
                   }
@@ -765,7 +790,6 @@ export function SettingsPage() {
               <button
                 onClick={handleSaveKey}
                 disabled={
-                  !desktopRuntime ||
                   !apiKey.trim() ||
                   apiAuthority.status === "saving" ||
                   apiAuthority.status === "unavailable"

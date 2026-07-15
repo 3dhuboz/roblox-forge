@@ -18,8 +18,10 @@ import { useUserStore } from "../../stores/userStore";
 import type { OperationReceipt } from "../../types/receipts";
 import type { RojoStatus } from "../../services/tauriCommands";
 import type { RobloxAuthorityState } from "../../types/robloxAuthority";
+import * as browserAi from "../../services/browserPreviewAi";
 
 const originalUserStoreState = useUserStore.getState();
+const BROWSER_TEST_KEY = ["sk", "or", "private", "browser", "value"].join("-");
 
 const installedRojo: RojoStatus = {
   installed: true,
@@ -121,11 +123,14 @@ function setPersistedApiKey(value: boolean): void {
 beforeEach(() => {
   clearTauriRuntime();
   localStorage.clear();
+  sessionStorage.clear();
   useUserStore.setState(originalUserStoreState, true);
   setPersistedApiKey(false);
 
   vi.spyOn(aiCommands, "checkApiKey").mockResolvedValue(null);
   vi.spyOn(aiCommands, "setApiKey").mockResolvedValue(undefined);
+  vi.spyOn(browserAi, "checkBrowserAiKey").mockResolvedValue(null);
+  vi.spyOn(browserAi, "saveBrowserAiKey").mockResolvedValue(undefined);
   vi.spyOn(rojoCommands, "checkStatus").mockResolvedValue(missingRojo);
   vi.spyOn(rojoCommands, "startServe").mockResolvedValue(34872);
   vi.spyOn(rojoCommands, "stopServe").mockResolvedValue(undefined);
@@ -139,12 +144,13 @@ afterEach(() => {
   vi.useRealTimers();
   clearTauriRuntime();
   localStorage.clear();
+  sessionStorage.clear();
   useUserStore.setState(originalUserStoreState, true);
   vi.restoreAllMocks();
 });
 
 describe("SettingsPage desktop authority", () => {
-  it("keeps optional Studio Sync collapsed in browser without calls", () => {
+  it("enables a validated browser-session AI key while keeping optional Studio Sync collapsed", async () => {
     setPersistedApiKey(true);
 
     render(<SettingsPage />);
@@ -160,8 +166,8 @@ describe("SettingsPage desktop authority", () => {
       within(region).getByRole("button", { name: "Show Advanced Studio Sync" }),
     ).toHaveAttribute("aria-expanded", "false");
     expect(
-      screen.getByText(
-        /AI key management requires the RobloxForge Desktop app/i,
+      await screen.findByText(
+        /No OpenRouter key is connected for this browser tab/i,
       ),
     ).toBeInTheDocument();
     expect(
@@ -169,10 +175,23 @@ describe("SettingsPage desktop authority", () => {
         /Rojo status requires|Rojo Installed|Checking Rojo/i,
       ),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText("AI API key")).toBeDisabled();
+    expect(screen.getByLabelText("AI API key")).toBeEnabled();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("AI API key"), {
+      target: { value: BROWSER_TEST_KEY },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Saved!")).toBeInTheDocument();
+    expect(browserAi.saveBrowserAiKey).toHaveBeenCalledWith(BROWSER_TEST_KEY);
+    expect(
+      screen.getByText(/OpenRouter connected for this browser tab/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/AI key management requires/i),
+    ).not.toBeInTheDocument();
     expect(aiCommands.checkApiKey).not.toHaveBeenCalled();
     expect(aiCommands.setApiKey).not.toHaveBeenCalled();
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
     expect(rojoCommands.startServe).not.toHaveBeenCalled();
     expect(rojoCommands.stopServe).not.toHaveBeenCalled();
@@ -220,15 +239,17 @@ describe("SettingsPage desktop authority", () => {
     fireEvent.change(screen.getByLabelText("AI API key"), {
       target: { value: "sk-or-private-value" },
     });
+    const refreshButton = screen.getByRole("button", {
+      name: /Refresh Rojo status/i,
+    });
+    const startButton = screen.getByRole("button", {
+      name: "Start Sync to Studio",
+    });
     clearTauriRuntime();
 
+    fireEvent.click(refreshButton);
+    fireEvent.click(startButton);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Refresh Rojo status/i }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Start Sync to Studio" }),
-    );
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -257,18 +278,21 @@ describe("SettingsPage desktop authority", () => {
       await save.promise;
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /AI key management requires the RobloxForge Desktop app/i,
-    );
+    expect(
+      await screen.findByText(
+        /No OpenRouter key is connected for this browser tab/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Saved!")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/AI key configured in RobloxForge Desktop/i),
     ).not.toBeInTheDocument();
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(false);
-    expect(screen.getByLabelText("AI API key")).toBeDisabled();
+    expect(screen.getByLabelText("AI API key")).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "Show AI API key" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
   });
 
   it("does not run a follow-up Rojo check when runtime disappears during start", async () => {
@@ -338,7 +362,7 @@ describe("SettingsPage desktop authority", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not promote deferred initial authority checks after runtime disappears", async () => {
+  it("falls back to browser AI after a deferred Desktop check loses its runtime", async () => {
     enableTauriRuntime();
     const keyCheck = deferred<string | null>();
     vi.mocked(aiCommands.checkApiKey).mockReturnValueOnce(keyCheck.promise);
@@ -352,14 +376,13 @@ describe("SettingsPage desktop authority", () => {
 
     expect(useUserStore.getState().profile.hasSetApiKey).toBe(false);
     expect(
-      screen.getByText(
-        /AI key management requires the RobloxForge Desktop app/i,
-      ),
+      screen.getByText(/No OpenRouter key is connected for this browser tab/i),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/AI key configured in RobloxForge Desktop/i),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Rojo Installed")).not.toBeInTheDocument();
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
   it("treats a desktop null check as missing even when the persisted profile says configured", async () => {

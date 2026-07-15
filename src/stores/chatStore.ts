@@ -3,6 +3,8 @@ import type { ChatMessage } from "../types/ai";
 import { aiCommands } from "../services/tauriCommands";
 import { useProjectStore } from "./projectStore";
 import { useUserStore } from "./userStore";
+import { sendBrowserAiMessage } from "../services/browserPreviewAi";
+import { isTauriRuntime } from "../lib/isTauriRuntime";
 
 interface ChatStore {
   messages: ChatMessage[];
@@ -37,13 +39,26 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const history = get().messages;
       const { profile } = useUserStore.getState();
-      const response = await aiCommands.sendChatMessage(
-        projectPath,
-        content,
-        history,
-        profile.experienceLevel,
-        profile.displayName,
-      );
+      const response = isTauriRuntime()
+        ? await aiCommands.sendChatMessage(
+            projectPath,
+            content,
+            history,
+            profile.experienceLevel,
+            profile.displayName,
+          )
+        : projectPath.startsWith("browser-preview://")
+          ? await sendBrowserAiMessage({
+              message: content,
+              history: history.slice(0, -1),
+              userLevel: profile.experienceLevel,
+              userName: profile.displayName,
+            })
+          : (() => {
+              throw new Error(
+                "Browser AI can only advise the active browser preview project.",
+              );
+            })();
 
       const assistantMessage: ChatMessage = {
         id: `msg-${++messageCounter}`,

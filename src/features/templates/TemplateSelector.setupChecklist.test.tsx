@@ -10,6 +10,7 @@ import {
 import type { OperationReceipt } from "../../types/receipts";
 import { useProjectStore } from "../../stores/projectStore";
 import { useUserStore } from "../../stores/userStore";
+import * as browserAi from "../../services/browserPreviewAi";
 
 const originalUserStoreState = useUserStore.getState();
 const originalProjectStoreState = useProjectStore.getState();
@@ -70,10 +71,12 @@ function renderSelector() {
 beforeEach(() => {
   clearTauriRuntime();
   localStorage.clear();
+  sessionStorage.clear();
   useUserStore.setState(originalUserStoreState, true);
   useProjectStore.setState(originalProjectStoreState, true);
   seedProfile(false);
   vi.spyOn(aiCommands, "checkApiKey").mockResolvedValue(null);
+  vi.spyOn(browserAi, "checkBrowserAiKey").mockResolvedValue(null);
   vi.spyOn(rojoCommands, "checkStatus").mockResolvedValue({
     installed: false,
     version: null,
@@ -86,6 +89,7 @@ beforeEach(() => {
 afterEach(() => {
   clearTauriRuntime();
   localStorage.clear();
+  sessionStorage.clear();
   useUserStore.setState(originalUserStoreState, true);
   useProjectStore.setState(originalProjectStoreState, true);
   vi.restoreAllMocks();
@@ -102,7 +106,9 @@ describe("TemplateSelector setup checklist authority", () => {
     renderSelector();
 
     expect(await screen.findByText("1/2")).toBeInTheDocument();
-    expect(screen.getByText("Set up your AI key")).not.toHaveClass("line-through");
+    expect(screen.getByText("Set up your AI key")).not.toHaveClass(
+      "line-through",
+    );
     expect(screen.getByText(/Checking AI key/i)).toBeInTheDocument();
 
     await act(async () => {
@@ -129,15 +135,17 @@ describe("TemplateSelector setup checklist authority", () => {
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
-  it("starts unavailable in browser, ignores a persisted flag, and calls no desktop checks", () => {
+  it("uses the validated browser-session key and calls no desktop checks", async () => {
     seedProfile(true);
     seedRecentProject();
+    vi.mocked(browserAi.checkBrowserAiKey).mockResolvedValueOnce("openrouter");
 
     renderSelector();
 
-    expect(screen.getByText("1/2")).toBeInTheDocument();
-    expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
-    expect(screen.queryByText(/Checking/i)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText("Getting Started")).not.toBeInTheDocument(),
+    );
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
     expect(aiCommands.checkApiKey).not.toHaveBeenCalled();
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
@@ -152,7 +160,9 @@ describe("TemplateSelector setup checklist authority", () => {
 
     const genericView = renderSelector();
 
-    expect(await screen.findByText(/Desktop key probe failed/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Desktop key probe failed/i),
+    ).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
     genericView.unmount();
 
@@ -173,14 +183,18 @@ describe("TemplateSelector setup checklist authority", () => {
       new OperationUnavailableError(receipt),
     );
     const view = renderSelector();
-    expect(await screen.findByText(/AI key authority is unavailable/i)).toBeInTheDocument();
-    expect(screen.getByText(/Restart RobloxForge Desktop/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/AI key authority is unavailable/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Restart RobloxForge Desktop/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/raw receipt detail/i)).not.toBeInTheDocument();
     view.unmount();
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
-  it("keeps deferred successful checks incomplete when the desktop runtime disappears", async () => {
+  it("falls back to the browser-session check when Desktop disappears", async () => {
     enableTauriRuntime();
     seedRecentProject();
     const keyCheck = deferred<string | null>();
@@ -198,13 +212,15 @@ describe("TemplateSelector setup checklist authority", () => {
     expect(updateProfile).not.toHaveBeenCalled();
     expect(screen.getByText("Getting Started")).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
-    expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
-    expect(screen.queryByText(/OpenRouter/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Connect an OpenRouter key in Settings/i),
+    ).toBeInTheDocument();
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Install Rojo")).not.toBeInTheDocument();
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
-  it("uses Desktop-required hints for deferred failures after runtime disappears", async () => {
+  it("uses browser-session guidance for deferred failures after Desktop disappears", async () => {
     enableTauriRuntime();
     seedRecentProject();
     const keyCheck = deferred<string | null>();
@@ -219,8 +235,11 @@ describe("TemplateSelector setup checklist authority", () => {
 
     expect(screen.getByText("Getting Started")).toBeInTheDocument();
     expect(screen.getByText("1/2")).toBeInTheDocument();
-    expect(screen.getAllByText(/Desktop app required/i)).toHaveLength(1);
+    expect(
+      screen.getByText(/Connect an OpenRouter key in Settings/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/late key failure/i)).not.toBeInTheDocument();
+    expect(browserAi.checkBrowserAiKey).toHaveBeenCalledTimes(1);
     expect(rojoCommands.checkStatus).not.toHaveBeenCalled();
   });
 
@@ -230,7 +249,9 @@ describe("TemplateSelector setup checklist authority", () => {
     const updateProfile = vi.fn();
     useUserStore.setState({ updateProfile });
     vi.mocked(aiCommands.checkApiKey).mockReturnValueOnce(keyCheck.promise);
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     const view = renderSelector();
 
     view.unmount();
