@@ -15,7 +15,9 @@ import {
   type IntelligenceContractKind,
 } from "../../src/intelligence/contracts";
 import {
+  MAX_INTELLIGENCE_DOCUMENT_NODES,
   MAX_INTELLIGENCE_VALIDATION_ISSUES,
+  intelligenceMigrationTarget,
   migrateIntelligenceContract,
   validateIntelligenceContract,
 } from "../../src/intelligence/validation";
@@ -47,6 +49,175 @@ function readJson<T>(...segments: string[]): T {
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+function countJsonNodes(value: unknown): number {
+  if (value === null || typeof value !== "object") {
+    return 1;
+  }
+  const children = Array.isArray(value) ? value : Object.values(value);
+  return 1 + children.reduce((total, child) => total + countJsonNodes(child), 0);
+}
+
+function resolveSchemaReference(
+  reference: string,
+  currentSchemaId: string,
+  schemasById: ReadonlyMap<string, JsonObject>,
+): { readonly id: string; readonly schema: JsonObject } {
+  const resolved = new URL(reference, currentSchemaId);
+  const schemaId = `${resolved.origin}${resolved.pathname}`;
+  const root = schemasById.get(schemaId);
+  if (root === undefined) {
+    throw new Error(`cardinality schema unavailable: ${schemaId}`);
+  }
+
+  let target: unknown = root;
+  if (resolved.hash.length > 0) {
+    if (!resolved.hash.startsWith("#/")) {
+      throw new Error(`unsupported schema fragment: ${resolved.hash}`);
+    }
+    for (const encodedSegment of resolved.hash.slice(2).split("/")) {
+      const segment = decodeURIComponent(encodedSegment)
+        .replaceAll("~1", "/")
+        .replaceAll("~0", "~");
+      target = asJsonObject(target, `schema pointer ${resolved.href}`)[segment];
+    }
+  }
+
+  return {
+    id: resolved.href,
+    schema: asJsonObject(target, `schema reference ${resolved.href}`),
+  };
+}
+
+function assertNonStructuralAllOf(schema: JsonObject): void {
+  if (schema.allOf === undefined) {
+    return;
+  }
+  if (!Array.isArray(schema.allOf)) {
+    throw new Error("schema allOf must be an array");
+  }
+
+  const declaredProperties = new Set(
+    Object.keys(asJsonObject(schema.properties, "schema properties")),
+  );
+  for (const [index, candidate] of schema.allOf.entries()) {
+    const branch = asJsonObject(candidate, `schema allOf/${index}`);
+    if (
+      Object.keys(branch).some(
+        (key) => key !== "if" && key !== "then" && key !== "else",
+      )
+    ) {
+      throw new Error("unsupported structural allOf branch");
+    }
+    for (const keyword of ["then", "else"] as const) {
+      if (branch[keyword] === undefined) {
+        continue;
+      }
+      const consequence = asJsonObject(
+        branch[keyword],
+        `schema allOf/${index}/${keyword}`,
+      );
+      if (
+        Object.keys(consequence).some((key) => key !== "properties")
+      ) {
+        throw new Error("unsupported structural allOf consequence");
+      }
+      const properties = asJsonObject(
+        consequence.properties,
+        `schema allOf/${index}/${keyword}/properties`,
+      );
+      if (Object.keys(properties).some((key) => !declaredProperties.has(key))) {
+        throw new Error("allOf introduces an uncounted property");
+      }
+    }
+  }
+}
+
+function maximumSchemaJsonNodes(
+  schema: JsonObject,
+  currentSchemaId: string,
+  schemasById: ReadonlyMap<string, JsonObject>,
+  activeReferences: Set<string> = new Set(),
+): number {
+  if (typeof schema.$ref === "string") {
+    const resolved = resolveSchemaReference(
+      schema.$ref,
+      currentSchemaId,
+      schemasById,
+    );
+    if (activeReferences.has(resolved.id)) {
+      throw new Error(`recursive schema reference: ${resolved.id}`);
+    }
+    activeReferences.add(resolved.id);
+    try {
+      return maximumSchemaJsonNodes(
+        resolved.schema,
+        resolved.id.split("#", 1)[0],
+        schemasById,
+        activeReferences,
+      );
+    } finally {
+      activeReferences.delete(resolved.id);
+    }
+  }
+
+  for (const keyword of ["oneOf", "anyOf"] as const) {
+    if (schema[keyword] === undefined) {
+      continue;
+    }
+    if (!Array.isArray(schema[keyword]) || schema[keyword].length === 0) {
+      throw new Error(`schema ${keyword} must contain branches`);
+    }
+    return Math.max(
+      ...schema[keyword].map((candidate, index) =>
+        maximumSchemaJsonNodes(
+          asJsonObject(candidate, `schema ${keyword}/${index}`),
+          currentSchemaId,
+          schemasById,
+          activeReferences,
+        ),
+      ),
+    );
+  }
+
+  assertNonStructuralAllOf(schema);
+  if (schema.type === "object" || schema.properties !== undefined) {
+    const properties = asJsonObject(schema.properties, "schema properties");
+    return (
+      1 +
+      Object.values(properties).reduce(
+        (total, property, index) =>
+          total +
+          maximumSchemaJsonNodes(
+            asJsonObject(property, `schema property/${index}`),
+            currentSchemaId,
+            schemasById,
+            activeReferences,
+          ),
+        0,
+      )
+    );
+  }
+  if (schema.type === "array") {
+    if (
+      !Number.isSafeInteger(schema.maxItems) ||
+      (schema.maxItems as number) < 0
+    ) {
+      throw new Error("bounded schema array requires maxItems");
+    }
+    return (
+      1 +
+      (schema.maxItems as number) *
+        maximumSchemaJsonNodes(
+          asJsonObject(schema.items, "schema array items"),
+          currentSchemaId,
+          schemasById,
+          activeReferences,
+        )
+    );
+  }
+  return 1;
 }
 
 function formatErrors(errors: ErrorObject[] | null | undefined): string {
@@ -715,6 +886,48 @@ describe("game intelligence JSON contracts", () => {
     }
   });
 
+  it("keeps the fixed node budget above every committed schema maximum", () => {
+    const schemasById = new Map<string, JsonObject>();
+    const roots = new Map<SchemaFile, JsonObject>();
+    for (const file of schemaFiles) {
+      const schema = asJsonObject(schemas.get(file), `schema ${file}`);
+      if (typeof schema.$id !== "string") {
+        throw new Error(`${file} must declare an id`);
+      }
+      schemasById.set(schema.$id, schema);
+      roots.set(file, schema);
+    }
+
+    const maxima = Object.fromEntries(
+      schemaFiles.map((file) => {
+        const schema = roots.get(file);
+        if (schema === undefined || typeof schema.$id !== "string") {
+          throw new Error(`${file} cardinality root is unavailable`);
+        }
+        return [
+          file,
+          maximumSchemaJsonNodes(schema, schema.$id, schemasById),
+        ];
+      }),
+    );
+
+    expect(maxima).toEqual({
+      "common.schema.json": 134,
+      "game-brief.v1.schema.json": 1_087,
+      "game-operating-model.v1.schema.json": 65_815,
+      "director-proposal.v1.schema.json": 1_104_853,
+      "provenance.v1.schema.json": 2_413,
+      "corpus-record.v1.schema.json": 4_793,
+      "reference-analysis.v1.schema.json": 6_068,
+      "radar-snapshot.v1.schema.json": 32_620,
+      "monetization-opportunity-signal.v1.schema.json": 1_447,
+      "recommendation.v1.schema.json": 1_077,
+    });
+    expect(Math.max(...Object.values(maxima))).toBeLessThan(
+      MAX_INTELLIGENCE_DOCUMENT_NODES,
+    );
+  });
+
   it("validates all ten fixture documents through the TypeScript adapters", () => {
     const documents: Record<IntelligenceContractKind, unknown> = {
       common: validFixture.common,
@@ -790,6 +1003,284 @@ describe("game intelligence JSON contracts", () => {
       value: first.value,
     });
     expect(first.value).toEqual(document);
+  });
+
+  it("registers current migrations per kind and preserves their declared target", () => {
+    for (const kind of INTELLIGENCE_CONTRACT_KINDS) {
+      expect(intelligenceMigrationTarget(kind, SCHEMA_VERSION), kind).toBe(
+        SCHEMA_VERSION,
+      );
+      expect(
+        intelligenceMigrationTarget(kind, "1.1.0"),
+        kind,
+      ).toBeUndefined();
+    }
+
+    const cases: readonly [IntelligenceContractKind, JsonObject][] = [
+      ["common", clone(validFixture.common)],
+      ["gameOperatingModel", clone(validFixture.gameOperatingModel)],
+    ];
+    for (const [kind, document] of cases) {
+      const targetVersion = intelligenceMigrationTarget(kind, SCHEMA_VERSION);
+      const first = migrateIntelligenceContract(kind, document);
+      expect(first, kind).toMatchObject({ ok: true, validated: false });
+      if (!first.ok) {
+        throw new Error(`${kind} migration failed: ${first.code}`);
+      }
+      expect(first.value.schemaVersion).toBe(targetVersion);
+
+      const second = migrateIntelligenceContract(kind, first.value);
+      expect(second, kind).toMatchObject({ ok: true, validated: false });
+      if (!second.ok) {
+        throw new Error(`${kind} repeated migration failed: ${second.code}`);
+      }
+      expect(second.value).toEqual(first.value);
+      expect(second.value.schemaVersion).toBe(targetVersion);
+    }
+  });
+
+  it("returns an owned deeply immutable validated document", () => {
+    const document = clone(validFixture.gameOperatingModel);
+    const originalPromise = asJsonObject(
+      document.firstSessionPromise,
+      "original firstSessionPromise",
+    );
+    const originalTraceIds = asStrings(
+      originalPromise.traceIds,
+      "original firstSessionPromise.traceIds",
+    );
+    const expectedStatement = originalPromise.statement;
+    const expectedFirstTraceId = originalTraceIds[0];
+
+    const result = validateIntelligenceContract("gameOperatingModel", document);
+    expect(result).toMatchObject({ ok: true, validated: true });
+    if (!result.ok) {
+      throw new Error(`validation failed: ${result.code}`);
+    }
+
+    const validated = result.value as unknown as JsonObject;
+    const validatedPromise = asJsonObject(
+      validated.firstSessionPromise,
+      "validated firstSessionPromise",
+    );
+    const validatedTraceIds = asStrings(
+      validatedPromise.traceIds,
+      "validated firstSessionPromise.traceIds",
+    );
+
+    originalPromise.statement = "caller mutation after validation";
+    originalTraceIds[0] = "trace:caller-mutation";
+
+    expect(validatedPromise.statement).toBe(expectedStatement);
+    expect(validatedTraceIds[0]).toBe(expectedFirstTraceId);
+    expect(Object.isFrozen(validated)).toBe(true);
+    expect(Object.isFrozen(validatedPromise)).toBe(true);
+    expect(Object.isFrozen(validatedTraceIds)).toBe(true);
+    expect(() => {
+      validatedPromise.statement = "validated mutation attempt";
+    }).toThrow(TypeError);
+    expect(() => {
+      validatedTraceIds.push("trace:validated-mutation");
+    }).toThrow(TypeError);
+  });
+
+  it("rejects cyclic input without throwing or echoing content", () => {
+    const sentinel = "sk-live-cyclic-secret-sentinel";
+    const document: JsonObject = {
+      schemaVersion: SCHEMA_VERSION,
+      sentinel,
+    };
+    document.self = document;
+
+    let result: unknown;
+    expect(() => {
+      result = validateIntelligenceContract("gameOperatingModel", document);
+    }).not.toThrow();
+    expect(result).toMatchObject({
+      ok: false,
+      kind: "gameOperatingModel",
+      validated: false,
+      code: "invalid_json_document",
+      issues: [
+        {
+          code: "schema_mismatch",
+          path: "/",
+          message: "Document must contain only bounded JSON data.",
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain(sentinel);
+  });
+
+  it("rejects non-JSON input without throwing or echoing content", () => {
+    const sentinel = "sk-live-non-json-secret-sentinel";
+    const document = clone(validFixture.gameOperatingModel);
+    document.unexpectedCredential = {
+      sentinel,
+      value: BigInt(1),
+    };
+
+    let result: unknown;
+    expect(() => {
+      result = validateIntelligenceContract("gameOperatingModel", document);
+    }).not.toThrow();
+    expect(result).toMatchObject({
+      ok: false,
+      kind: "gameOperatingModel",
+      validated: false,
+      code: "invalid_json_document",
+      issues: [
+        {
+          code: "schema_mismatch",
+          path: "/",
+          message: "Document must contain only bounded JSON data.",
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain(sentinel);
+  });
+
+  it("rejects adversarial node counts with one bounded generic issue", () => {
+    const document = clone(validFixture.gameOperatingModel);
+    const provenance = asJsonObject(document.provenance, "provenance");
+    provenance.traceIds = new Array(MAX_INTELLIGENCE_DOCUMENT_NODES + 1);
+
+    const result = validateIntelligenceContract("gameOperatingModel", document);
+
+    expect(result).toEqual({
+      ok: false,
+      kind: "gameOperatingModel",
+      validated: false,
+      code: "input_budget_exceeded",
+      issues: [
+        {
+          code: "schema_mismatch",
+          path: "/",
+          message: "Document exceeds the fixed validation budget.",
+        },
+      ],
+    });
+  });
+
+  it("accepts high-cardinality radar documents allowed by the committed schema", () => {
+    const document = clone(validFixture.radarSnapshot) as JsonObject;
+    const entries = asJsonObjects(document.entries, "radar entries");
+    const entryTemplate = clone(entries[0]);
+    const signalTemplate = clone(
+      asJsonObjects(entryTemplate.signals, "radar entry signals")[0],
+    );
+    const scoreTemplate = clone(
+      asJsonObjects(entryTemplate.ordinalScores, "radar ordinal scores")[0],
+    );
+    const sourceUrl = signalTemplate.sourceUrl;
+    const observedAt = signalTemplate.observedAt;
+
+    document.corpusRecordIds = Array.from(
+      { length: 64 },
+      (_, index) => `corpus:max-${index}`,
+    );
+    const provenance = asJsonObject(document.provenance, "radar provenance");
+    provenance.evidenceIds = Array.from(
+      { length: 640 },
+      (_, index) => `evidence:radar-max-${index}`,
+    );
+    provenance.traceIds = Array.from(
+      { length: 64 },
+      (_, index) => `trace:radar-max-${index}`,
+    );
+
+    document.entries = Array.from({ length: 32 }, (_, entryIndex) => {
+      const entry = clone(entryTemplate);
+      entry.id = `radarentry:max-${entryIndex}`;
+      entry.universeId = entryIndex + 1;
+      entry.rootPlaceId = entryIndex + 101;
+      entry.signals = Array.from({ length: 24 }, (_, signalIndex) => ({
+        ...clone(signalTemplate),
+        id: `publicsignal:max-${entryIndex}-${signalIndex}`,
+        evidenceId: `evidence:signal-${entryIndex}-${signalIndex}`,
+      }));
+      entry.ordinalScores = Array.from({ length: 8 }, (_, scoreIndex) => ({
+        ...clone(scoreTemplate),
+        dimension: ["visibility", "momentum", "recency"][scoreIndex % 3],
+        evidenceIds: Array.from(
+          { length: 64 },
+          (_, evidenceIndex) =>
+            `evidence:score-${entryIndex}-${scoreIndex}-${evidenceIndex}`,
+        ),
+      }));
+      entry.patternTags = Array.from(
+        { length: 32 },
+        (_, tagIndex) => `radar-tag-${entryIndex}-${tagIndex}`,
+      );
+      entry.publicOffers = Array.from({ length: 18 }, (_, offerIndex) => ({
+        evidenceId: `evidence:offer-${entryIndex}-${offerIndex}`,
+        offerType: "game_pass",
+        offerId: offerIndex + 1,
+        sourceUrl,
+        observedAt,
+        locale: "en-US",
+        priceContext: "anonymous_public_page",
+        priceRobux: offerIndex,
+      }));
+      entry.discontinuities = Array.from(
+        { length: 2 },
+        (_, discontinuityIndex) => ({
+          metric: discontinuityIndex === 0 ? "visits" : "favorites",
+          previousValue: discontinuityIndex,
+          currentValue: discontinuityIndex + 1,
+          previousEvidenceId: `evidence:previous-${entryIndex}-${discontinuityIndex}`,
+          evidenceId: `evidence:current-${entryIndex}-${discontinuityIndex}`,
+          observedAt,
+        }),
+      );
+      return entry;
+    });
+
+    const schemaValidator = validate(
+      "radar-snapshot.v1.schema.json",
+      document,
+    );
+    expect(
+      schemaValidator.errors,
+      formatErrors(schemaValidator.errors),
+    ).toBeNull();
+    expect(countJsonNodes(document)).toBeGreaterThan(30_000);
+    expect(countJsonNodes(document)).toBeLessThan(
+      MAX_INTELLIGENCE_DOCUMENT_NODES,
+    );
+
+    const result = validateIntelligenceContract("radarSnapshot", document);
+    expect(result).toMatchObject({
+      ok: true,
+      kind: "radarSnapshot",
+      validated: true,
+    });
+  });
+
+  it("rejects adversarial nesting with one bounded generic issue", () => {
+    const document: JsonObject = { schemaVersion: SCHEMA_VERSION };
+    let cursor = document;
+    for (let depth = 0; depth < 100; depth += 1) {
+      const child: JsonObject = {};
+      cursor.child = child;
+      cursor = child;
+    }
+
+    const result = validateIntelligenceContract("common", document);
+
+    expect(result).toEqual({
+      ok: false,
+      kind: "common",
+      validated: false,
+      code: "input_budget_exceeded",
+      issues: [
+        {
+          code: "schema_mismatch",
+          path: "/",
+          message: "Document exceeds the fixed validation budget.",
+        },
+      ],
+    });
   });
 
   it("bounds TypeScript adapter issues without echoing document content", () => {

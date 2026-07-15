@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "AI-Powered Roblox Game Builder"
 authors = ["Steve"]
 edition = "2021"
+rust-version = "1.85"
 
 [lib]
 name = "roblox_forge_lib"

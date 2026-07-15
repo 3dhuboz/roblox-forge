@@ -2,7 +2,8 @@ use roblox_forge_lib::intelligence::{
     canonical_json::canonical_sha256,
     contracts::{supported_schema_versions, ContractKind},
     validation::{
-        migrate_contract, validate_contract, validate_game_operating_model, MAX_VALIDATION_ISSUES,
+        migrate_contract, migration_target, validate_contract, validate_game_operating_model,
+        MAX_VALIDATION_ISSUES,
     },
 };
 use serde_json::{json, Value};
@@ -39,6 +40,10 @@ fn canonical_hash_is_stable_across_recursive_key_order() {
     let second = canonical_sha256(&b).expect("canonical JSON must hash");
 
     assert_eq!(first, second);
+    assert_eq!(
+        first,
+        "sha256:9544f22846b264b6278675660ca15dd097c3022564425b50b8d16f66c05a0e9a"
+    );
     assert!(first.starts_with("sha256:"));
     assert_eq!(first.len(), "sha256:".len() + 64);
 }
@@ -99,14 +104,28 @@ fn future_major_schema_fails_closed() {
 fn supported_minor_migration_registry_is_explicit_and_idempotent() {
     assert_eq!(supported_schema_versions(), &["1.0.0"]);
 
-    let original = fixture_document("gameOperatingModel");
-    let migrated_once = migrate_contract(ContractKind::GameOperatingModel, &original)
-        .expect("the current supported minor must migrate");
-    let migrated_twice = migrate_contract(ContractKind::GameOperatingModel, &migrated_once)
-        .expect("migration must be safe to repeat");
+    for kind in ContractKind::ALL {
+        assert_eq!(migration_target(kind, "1.0.0"), Some("1.0.0"));
+        assert_eq!(migration_target(kind, "1.1.0"), None);
+    }
 
-    assert_eq!(migrated_once, original);
-    assert_eq!(migrated_twice, migrated_once);
+    for (kind, key) in [
+        (ContractKind::Common, "common"),
+        (ContractKind::GameOperatingModel, "gameOperatingModel"),
+    ] {
+        let original = fixture_document(key);
+        let migrated_once = migrate_contract(kind, &original)
+            .unwrap_or_else(|error| panic!("{key} current minor must migrate: {error}"));
+        let migrated_twice = migrate_contract(kind, &migrated_once)
+            .unwrap_or_else(|error| panic!("{key} migration must be safe to repeat: {error}"));
+
+        assert_eq!(migrated_once, original);
+        assert_eq!(migrated_twice, migrated_once);
+        assert_eq!(
+            migrated_twice.get("schemaVersion").and_then(Value::as_str),
+            migration_target(kind, "1.0.0")
+        );
+    }
 }
 
 #[test]

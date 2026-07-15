@@ -16,6 +16,7 @@ const MAX_ISSUE_MESSAGE_LENGTH: usize = 160;
 enum ContractErrorCode {
     InvalidSchemaVersion,
     UnsupportedSchemaVersion,
+    SchemaMigrationFailed,
     SchemaUnavailable,
     SchemaValidationFailed,
 }
@@ -25,6 +26,7 @@ impl ContractErrorCode {
         match self {
             Self::InvalidSchemaVersion => "invalid_schema_version",
             Self::UnsupportedSchemaVersion => "unsupported_schema_version",
+            Self::SchemaMigrationFailed => "schema_migration_failed",
             Self::SchemaUnavailable => "schema_unavailable",
             Self::SchemaValidationFailed => "schema_validation_failed",
         }
@@ -82,6 +84,16 @@ impl ContractValidationError {
         Self::new(ContractErrorCode::SchemaUnavailable, Vec::new())
     }
 
+    fn migration_failed() -> Self {
+        Self::new(
+            ContractErrorCode::SchemaMigrationFailed,
+            vec![ContractValidationIssue {
+                path: "/schemaVersion".to_owned(),
+                message: "Schema migration did not produce its declared target.",
+            }],
+        )
+    }
+
     pub const fn code(&self) -> &'static str {
         self.code.as_str()
     }
@@ -104,28 +116,101 @@ impl fmt::Display for ContractValidationError {
 
 impl Error for ContractValidationError {}
 
-type MigrationFn = fn(&Value) -> Value;
+type MigrationFn = fn(ContractKind, Value) -> Value;
 
 struct MinorMigration {
+    kind: ContractKind,
     source_version: &'static str,
     target_version: &'static str,
     migrate: MigrationFn,
 }
 
-fn identity_migration(document: &Value) -> Value {
-    document.clone()
+fn identity_migration(_kind: ContractKind, document: Value) -> Value {
+    document
 }
 
-// Every supported minor revision must be registered explicitly. The current
-// identity entry is deliberate: applying it repeatedly has the same result.
-const MINOR_MIGRATION_REGISTRY: &[MinorMigration] = &[MinorMigration {
-    source_version: CURRENT_SCHEMA_VERSION,
-    target_version: CURRENT_SCHEMA_VERSION,
-    migrate: identity_migration,
-}];
+// Every supported minor revision is scoped by contract kind and source
+// version. Current-version identity entries are explicit and idempotent.
+const MINOR_MIGRATION_REGISTRY: &[MinorMigration] = &[
+    MinorMigration {
+        kind: ContractKind::Common,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::GameBrief,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::GameOperatingModel,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::DirectorProposal,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::Provenance,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::CorpusRecord,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::ReferenceAnalysis,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::RadarSnapshot,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::MonetizationOpportunitySignal,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+    MinorMigration {
+        kind: ContractKind::Recommendation,
+        source_version: CURRENT_SCHEMA_VERSION,
+        target_version: CURRENT_SCHEMA_VERSION,
+        migrate: identity_migration,
+    },
+];
+
+fn registered_migration(
+    kind: ContractKind,
+    source_version: &str,
+) -> Option<&'static MinorMigration> {
+    MINOR_MIGRATION_REGISTRY.iter().find(|registration| {
+        registration.kind == kind
+            && registration.source_version == source_version
+            && supported_schema_versions().contains(&registration.target_version)
+    })
+}
+
+pub fn migration_target(kind: ContractKind, source_version: &str) -> Option<&'static str> {
+    registered_migration(kind, source_version).map(|registration| registration.target_version)
+}
 
 pub fn migrate_contract(
-    _kind: ContractKind,
+    kind: ContractKind,
     document: &Value,
 ) -> Result<Value, ContractValidationError> {
     let version = document
@@ -142,16 +227,19 @@ pub fn migrate_contract(
         ));
     }
 
-    let migration = MINOR_MIGRATION_REGISTRY
-        .iter()
-        .find(|registration| {
-            registration.source_version == version
-                && supported_schema_versions().contains(&registration.target_version)
-        })
-        .ok_or_else(|| {
-            ContractValidationError::version(ContractErrorCode::UnsupportedSchemaVersion)
-        })?;
-    Ok((migration.migrate)(document))
+    let migration = registered_migration(kind, version).ok_or_else(|| {
+        ContractValidationError::version(ContractErrorCode::UnsupportedSchemaVersion)
+    })?;
+    let migrated = (migration.migrate)(kind, document.clone());
+    if migrated
+        .as_object()
+        .and_then(|object| object.get("schemaVersion"))
+        .and_then(Value::as_str)
+        != Some(migration.target_version)
+    {
+        return Err(ContractValidationError::migration_failed());
+    }
+    Ok(migrated)
 }
 
 pub fn validate_contract(
