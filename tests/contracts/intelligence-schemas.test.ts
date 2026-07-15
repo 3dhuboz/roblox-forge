@@ -9,6 +9,17 @@ import Ajv2020, {
 import addFormats from "ajv-formats";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import {
+  INTELLIGENCE_CONTRACT_KINDS,
+  INTELLIGENCE_CONTRACTS,
+  type IntelligenceContractKind,
+} from "../../src/intelligence/contracts";
+import {
+  MAX_INTELLIGENCE_VALIDATION_ISSUES,
+  migrateIntelligenceContract,
+  validateIntelligenceContract,
+} from "../../src/intelligence/validation";
+
 const SCHEMA_VERSION = "1.0.0";
 const SCHEMA_BASE_ID = "https://schemas.robloxforge.dev/intelligence/";
 
@@ -686,6 +697,126 @@ describe("game intelligence JSON contracts", () => {
       const validator = validate(filename, documents[filename]);
       expect(validator.errors, `${filename}: ${formatErrors(validator.errors)}`).toBeNull();
     }
+  });
+
+  it("loads every committed schema through the TypeScript contract registry", () => {
+    expect(INTELLIGENCE_CONTRACT_KINDS).toHaveLength(10);
+    expect(Object.keys(INTELLIGENCE_CONTRACTS).sort()).toEqual(
+      [...INTELLIGENCE_CONTRACT_KINDS].sort(),
+    );
+
+    for (const kind of INTELLIGENCE_CONTRACT_KINDS) {
+      const contract = INTELLIGENCE_CONTRACTS[kind];
+      expect(contract.kind).toBe(kind);
+      expect(contract.schema.$schema).toBe(
+        "https://json-schema.org/draft/2020-12/schema",
+      );
+      expect(contract.schema.$id).toBe(contract.schemaId);
+    }
+  });
+
+  it("validates all ten fixture documents through the TypeScript adapters", () => {
+    const documents: Record<IntelligenceContractKind, unknown> = {
+      common: validFixture.common,
+      gameBrief: validFixture.gameBrief,
+      gameOperatingModel: validFixture.gameOperatingModel,
+      directorProposal: validFixture.directorProposal,
+      provenance: validFixture.provenance,
+      corpusRecord: validFixture.corpusRecord,
+      referenceAnalysis: validFixture.referenceAnalysis,
+      radarSnapshot: validFixture.radarSnapshot,
+      monetizationOpportunitySignal:
+        validFixture.monetizationOpportunitySignal,
+      recommendation: validFixture.recommendation,
+    };
+
+    for (const kind of INTELLIGENCE_CONTRACT_KINDS) {
+      const result = validateIntelligenceContract(kind, documents[kind]);
+      expect(result, kind).toMatchObject({ ok: true, kind, validated: true });
+    }
+  });
+
+  it("rejects the committed invalid radar fixture through the TypeScript adapter", () => {
+    const result = validateIntelligenceContract(
+      "radarSnapshot",
+      invalidCompetitorRevenue,
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      kind: "radarSnapshot",
+      validated: false,
+      code: "schema_validation_failed",
+    });
+  });
+
+  it.each(["2.0.0", "1.1.0"])(
+    "fails closed for unsupported schema version %s through the TypeScript adapter",
+    (schemaVersion) => {
+      const document = clone(validFixture.gameOperatingModel);
+      document.schemaVersion = schemaVersion;
+
+      const result = validateIntelligenceContract("gameOperatingModel", document);
+
+      expect(result).toMatchObject({
+        ok: false,
+        kind: "gameOperatingModel",
+        validated: false,
+        code: "unsupported_schema_version",
+      });
+    },
+  );
+
+  it("keeps exported migrations explicitly unvalidated and idempotent", () => {
+    const document = clone(validFixture.gameOperatingModel);
+    const first = migrateIntelligenceContract("gameOperatingModel", document);
+    expect(first).toMatchObject({
+      ok: true,
+      kind: "gameOperatingModel",
+      validated: false,
+    });
+    if (!first.ok) {
+      throw new Error(`migration failed: ${first.code}`);
+    }
+
+    const second = migrateIntelligenceContract(
+      "gameOperatingModel",
+      first.value,
+    );
+    expect(second).toMatchObject({
+      ok: true,
+      kind: "gameOperatingModel",
+      validated: false,
+      value: first.value,
+    });
+    expect(first.value).toEqual(document);
+  });
+
+  it("bounds TypeScript adapter issues without echoing document content", () => {
+    const sentinel = "sk-live-typescript-adapter-secret-sentinel";
+    const document = clone(validFixture.gameOperatingModel);
+    document.unexpectedCredential = sentinel;
+
+    const result = validateIntelligenceContract("gameOperatingModel", document);
+    expect(result).toMatchObject({
+      ok: false,
+      validated: false,
+      code: "schema_validation_failed",
+    });
+    if (result.ok) {
+      throw new Error("invalid document unexpectedly validated");
+    }
+
+    expect(result.issues.length).toBeGreaterThan(0);
+    expect(result.issues.length).toBeLessThanOrEqual(
+      MAX_INTELLIGENCE_VALIDATION_ISSUES,
+    );
+    expect(JSON.stringify(result)).not.toContain(sentinel);
+    expect(
+      result.issues.every(
+        (issue) => issue.path.length <= 256 && issue.message.length <= 160,
+      ),
+    ).toBe(true);
   });
 
   it("rejects unknown properties at the top level and in nested objects", () => {

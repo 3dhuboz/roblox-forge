@@ -48,12 +48,15 @@ export interface VersionedIntelligenceDocument extends IntelligenceJsonObject {
   readonly schemaVersion: string;
 }
 
+export type MigratedIntelligenceDocument = VersionedIntelligenceDocument & {
+  readonly schemaVersion: typeof CURRENT_INTELLIGENCE_SCHEMA_VERSION;
+};
+
 declare const validatedContractKind: unique symbol;
 
 export type ValidatedIntelligenceDocument<
   Kind extends IntelligenceContractKind,
-> = VersionedIntelligenceDocument & {
-  readonly schemaVersion: typeof CURRENT_INTELLIGENCE_SCHEMA_VERSION;
+> = MigratedIntelligenceDocument & {
   readonly [validatedContractKind]: Kind;
 };
 

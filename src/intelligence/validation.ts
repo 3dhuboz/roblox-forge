@@ -12,6 +12,7 @@ import {
   type IntelligenceContractDocuments,
   type IntelligenceContractKind,
   type IntelligenceJsonObject,
+  type MigratedIntelligenceDocument,
 } from "./contracts";
 
 export const MAX_INTELLIGENCE_VALIDATION_ISSUES = 64;
@@ -29,20 +30,37 @@ export interface IntelligenceValidationIssue {
   readonly message: string;
 }
 
+export interface IntelligenceValidationFailure<
+  Kind extends IntelligenceContractKind,
+> {
+  readonly ok: false;
+  readonly kind: Kind;
+  readonly validated: false;
+  readonly code: IntelligenceValidationErrorCode;
+  readonly issues: readonly IntelligenceValidationIssue[];
+}
+
+export type IntelligenceMigrationResult<
+  Kind extends IntelligenceContractKind,
+> =
+  | {
+      readonly ok: true;
+      readonly kind: Kind;
+      readonly validated: false;
+      readonly value: MigratedIntelligenceDocument;
+    }
+  | IntelligenceValidationFailure<Kind>;
+
 export type IntelligenceValidationResult<
   Kind extends IntelligenceContractKind,
 > =
   | {
       readonly ok: true;
       readonly kind: Kind;
+      readonly validated: true;
       readonly value: IntelligenceContractDocuments[Kind];
     }
-  | {
-      readonly ok: false;
-      readonly kind: Kind;
-      readonly code: IntelligenceValidationErrorCode;
-      readonly issues: readonly IntelligenceValidationIssue[];
-    };
+  | IntelligenceValidationFailure<Kind>;
 
 type MinorMigration = (
   document: IntelligenceJsonObject,
@@ -101,10 +119,11 @@ function versionFailure<Kind extends IntelligenceContractKind>(
     IntelligenceValidationErrorCode,
     "invalid_schema_version" | "unsupported_schema_version"
   >,
-): IntelligenceValidationResult<Kind> {
+): IntelligenceValidationFailure<Kind> {
   return {
     ok: false,
     kind,
+    validated: false,
     code,
     issues: [
       {
@@ -121,7 +140,7 @@ function versionFailure<Kind extends IntelligenceContractKind>(
 
 export function migrateIntelligenceContract<
   Kind extends IntelligenceContractKind,
->(kind: Kind, value: unknown): IntelligenceValidationResult<Kind> {
+>(kind: Kind, value: unknown): IntelligenceMigrationResult<Kind> {
   if (!isJsonObject(value)) {
     return versionFailure(kind, "invalid_schema_version");
   }
@@ -144,7 +163,8 @@ export function migrateIntelligenceContract<
   return {
     ok: true,
     kind,
-    value: migration(value) as IntelligenceContractDocuments[Kind],
+    validated: false,
+    value: migration(value) as MigratedIntelligenceDocument,
   };
 }
 
@@ -192,7 +212,12 @@ export function validateIntelligenceContract<
 
   const validator = validators[kind];
   if (validator(migrated.value)) {
-    return migrated;
+    return {
+      ok: true,
+      kind,
+      validated: true,
+      value: migrated.value as IntelligenceContractDocuments[Kind],
+    };
   }
 
   const issues = (validator.errors ?? [])
@@ -201,6 +226,7 @@ export function validateIntelligenceContract<
   return {
     ok: false,
     kind,
+    validated: false,
     code: "schema_validation_failed",
     issues,
   };
